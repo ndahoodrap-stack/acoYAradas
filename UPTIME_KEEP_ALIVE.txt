@@ -1,0 +1,61 @@
+MANTENER RENDER FREE ACTIVO (SIN PAGAR)
+========================================
+
+En el plan Free de Render, el servicio se duerme tras ~15 minutos sin actividad.
+Al primer request tras dormir tarda ~30-60 segundos en despertar.
+
+Hay varias formas de evitarlo:
+
+OPCIÓN 1: UptimeRobot (GRATIS - RECOMENDADA)
+----------------------------------------------
+1. Ir a https://uptimerobot.com/
+2. Crear cuenta gratis
+3. Add New Monitor
+   - Monitor Type: HTTP(s)
+   - Friendly Name: acoYAradas
+   - URL (or IP): https://acoyaradas.onrender.com/api/health
+   - Monitoring Interval: 5 minutes (gratis)
+4. Crear monitor
+
+Con eso cada 5 minutos hace un GET a /api/health y mantiene el servicio despierto.
+
+OPCIÓN 2: cron-job.org (GRATIS)
+--------------------------------
+1. Ir a https://cron-job.org/
+2. Crear cuenta
+3. Create cronjob
+   - Title: acoYAradas keep-alive
+   - URL: https://acoyaradas.onrender.com/api/health
+   - Schedule: */5 * * * * (cada 5 minutos)
+4. Guardar
+
+OPCIÓN 3: GitHub Actions (GRATIS)
+---------------------------------
+Crear archivo .github/workflows/keep-alive.yml
+
+name: Keep Render Alive
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping
+        run: curl -s https://acoyaradas.onrender.com/api/health
+
+Con eso GitHub ejecuta el cron cada 5 minutos.
+
+OPCIÓN 4: Koyeb/cron externo (cualquiera de los anteriores)
+
+NOTAS:
+- Con UptimeRobot gratis alcanza perfectamente
+- Cada ping cuesta 0 y mantiene el dyno despierto
+- Render sigue siendo gratis
+- No hace falta tocar nada del código
+- No se recomienda hacer pings cada minuto (no hace falta)
+
+MI RECOMENDACIÓN: Usar UptimeRobot con intervalo 5 minutos.
+Es lo más simple y funciona.
