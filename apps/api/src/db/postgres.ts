@@ -13,13 +13,13 @@ pg.types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
  * usando el connection string (pooler o directo).
  */
 export async function createPostgresDatabase(connectionString: string): Promise<Database> {
-  const useSsl = process.env.NODE_ENV === 'production' || /supabase|pooler|sslmode=require/i.test(connectionString);
+  const useSsl = process.env.NODE_ENV === 'production' || /supabase|pooler|sslmode=require|supabase\.co/i.test(connectionString);
   const pool = new Pool({
     connectionString,
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 15_000,
-    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+    ssl: useSsl ? { rejectUnauthorized: false, ca: undefined } : undefined,
   });
 
   const makeExecutor = (runner: {
