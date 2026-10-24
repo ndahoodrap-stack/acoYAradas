@@ -63,6 +63,8 @@ export default function AdminSettings() {
       setEditing(null);
       setMessage('Configuración guardada.');
       await queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      await queryClient.invalidateQueries({ queryKey: ['home'] });
+      await queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
     },
     onError: (err) => setMessage((err as Error).message),
   });
@@ -74,6 +76,7 @@ export default function AdminSettings() {
       setLegal(null);
       setMessage('Página legal guardada.');
       await queryClient.invalidateQueries({ queryKey: ['admin-legal-pages'] });
+      await queryClient.invalidateQueries({ queryKey: ['home'] });
     },
     onError: (err) => setMessage((err as Error).message),
   });

@@ -12,7 +12,7 @@ export function IconPicker({
       <p className="text-xs font-medium text-ink-600">
         Icono predeterminado (opcional)
       </p>
-      <div className="grid grid-cols-6 gap-2 sm:grid-cols-7">
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6">
         {PRODUCT_ICONS.map((icon) => {
           const selected = value === icon.url;
           return (
@@ -21,14 +21,14 @@ export function IconPicker({
               type="button"
               title={icon.label}
               onClick={() => onChange(selected ? '' : icon.url)}
-              className={`flex flex-col items-center gap-1 rounded-xl border p-1.5 text-[10px] transition ${
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-3 text-xs transition ${
                 selected
-                  ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
-                  : 'border-ink-200 bg-white hover:border-brand-300'
+                  ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500'
+                  : 'border-ink-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
               }`}
             >
-              <img src={icon.url} alt={icon.label} className="h-8 w-8" />
-              <span className="truncate text-ink-600">{icon.label}</span>
+              <img src={icon.url} alt={icon.label} className="h-12 w-12" />
+              <span className="text-center text-ink-700">{icon.label}</span>
             </button>
           );
         })}
