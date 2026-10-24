@@ -36,7 +36,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.status(err.status).json({ error: err.code, message: err.message, details: err.details });
     return;
   }
-  const e = err as { code?: string; message?: string; detail?: string };
+  const e = err as { code?: string; message?: string; detail?: string; stack?: string };
   // Errores de PostgreSQL que no son AppError
   if (e?.code === '23505') {
     res.status(409).json({ error: 'conflict', message: 'El registro ya existe' });
@@ -54,7 +54,8 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   console.error('[api] error no controlado:', err);
   res.status(500).json({
     error: 'internal_error',
-    message: 'Ocurrió un error inesperado. Intentá de nuevo.',
+    message: e?.message || 'Ocurrió un error inesperado. Intentá de nuevo.',
+    detail: e?.code || undefined,
   });
 }
 
