@@ -6,5 +6,5 @@
     </linearGradient>
   </defs>
   <rect width="120" height="120" rx="24" fill="url(#g)"/>
-  <text x="60" y="78" font-size="64" text-anchor="middle" font-family="system-ui,Segoe UI Emoji,Apple Color Emoji">🚬</text>
+  <text x="60" y="78" font-size="52" text-anchor="middle" font-family="system-ui,Segoe UI Emoji,Apple Color Emoji">🚬</text>
 </svg>
