@@ -1,0 +1,388 @@
+# PROMPT MAESTRO — acoYAradas!
+## Marketplace de comercios, publicidad, compras online y motomandados
+
+Actúa como un desarrollador full-stack senior, arquitecto de software y especialista en marketplaces, comercio electrónico, logística de última milla y aplicaciones web seguras.
+
+Quiero desarrollar **acoYAradas!**, una plataforma comercial para Argentina que conecte clientes, comercios locales y repartidores. Debe permitir comprar productos por internet, descubrir negocios de la zona, contratar servicios de motomandados y ofrecer publicidad comercial paga.
+
+No quiero una simple maqueta ni una página estática. Quiero una aplicación funcional, con base de datos real, autenticación, permisos, pedidos, administración y una arquitectura preparada para crecer.
+
+El desarrollo debe realizarse en etapas cortas, probando cada etapa antes de continuar.
+
+# ETAPA 1 — Tienda pública y experiencia del cliente
+
+Desarrollar una interfaz moderna, minimalista, elegante y adaptable a celulares, tablets y computadoras.
+
+### Página principal
+
+Incluir:
+
+- Logo y nombre comercial acoYAradas!
+- Buscador de productos y comercios.
+- Categorías comerciales.
+- Comercios destacados.
+- Banners de publicidad.
+- Ofertas y promociones.
+- Productos populares y novedades.
+- Acceso al carrito y seguimiento de pedidos.
+- Información de contacto, cobertura, horarios y condiciones del servicio.
+
+Permitir navegar por categorías como gastronomía, rotiserías, kioscos, almacenes, bebidas, indumentaria, ferreterías, tecnología y otras categorías configurables desde administración.
+
+### Página de cada comercio
+
+Cada negocio tendrá su propia página pública con:
+
+- Nombre, logo, portada y descripción.
+- Dirección, horarios y datos de contacto.
+- Catálogo propio con fotografías, descripción, precio y disponibilidad.
+- Categorías, promociones y productos destacados.
+- Indicador de comercio abierto, cerrado o temporalmente no disponible.
+- Modalidad de entrega disponible.
+- Costo de envío o indicación de que debe calcularse.
+- Tiempo estimado de preparación, cuando esté configurado.
+- Botón para agregar productos al carrito.
+
+Los comercios no deben compartir catálogos entre sí. Cada producto estará vinculado a un único comercio.
+
+### Carrito y finalización de compra
+
+Permitir:
+
+- Agregar productos y modificar cantidades.
+- Eliminar artículos.
+- Mostrar subtotal, envío, descuentos y total.
+- Introducir nombre, teléfono, dirección, localidad, referencias y observaciones.
+- Elegir entrega a domicilio o retiro en el local, según las opciones habilitadas.
+- Elegir un método de pago disponible.
+- Confirmar el pedido y obtener un identificador único.
+- Consultar el estado del pedido mediante un enlace seguro.
+
+**Regla para la primera versión:** un pedido corresponde a un solo comercio. Si el cliente intenta mezclar productos de negocios distintos, informar claramente y permitir cambiar de comercio sin perder accidentalmente el carrito actual.
+
+No exigir una cuenta para comprar como invitado. Permitir crear una cuenta opcional para consultar compras anteriores.
+
+# ETAPA 2 — Comercios, publicidad y modelo de ingresos combinado
+
+Implementar un sistema multi-comercio donde cada negocio tenga su propia cuenta y panel.
+
+### Incorporación de comercios
+
+- Solicitud de registro comercial.
+- Formulario con nombre del negocio, responsable, teléfono, dirección, categoría y datos necesarios.
+- Aprobación manual del administrador.
+- Activación, suspensión y baja de comercios.
+- Configuración de horarios, cobertura, tarifas de envío y métodos de pago aceptados.
+- Aceptación de condiciones comerciales y políticas de privacidad.
+- Posibilidad de verificar los datos del comercio antes de publicarlo.
+
+### Panel del comercio
+
+Cada comercio podrá:
+
+- Editar su perfil público.
+- Crear, editar y desactivar productos.
+- Administrar imágenes, precios, categorías y stock.
+- Gestionar promociones y descuentos.
+- Recibir y consultar pedidos propios.
+- Aceptar o rechazar pedidos.
+- Informar el tiempo de preparación.
+- Marcar pedidos como preparando, listos y entregados al repartidor o retirados.
+- Consultar sus ventas, pedidos y estadísticas.
+- Consultar sus suscripciones, cargos, comisiones y pagos pendientes.
+- Contratar espacios publicitarios y consultar el estado de sus campañas.
+
+Un comercio nunca debe poder consultar pedidos, clientes, ingresos ni configuraciones privadas de otro negocio.
+
+### Publicidad comercial
+
+Crear un módulo publicitario que permita:
+
+- Mostrar banners en la página de inicio.
+- Destacar comercios en las categorías.
+- Promocionar productos específicos.
+- Crear campañas con fecha de inicio y finalización.
+- Establecer precios, ubicaciones y duración de cada espacio publicitario.
+- Activar, pausar, aprobar o rechazar campañas.
+- Registrar impresiones y clics.
+- Consultar resultados básicos por campaña.
+- Identificar los contenidos patrocinados con una etiqueta de publicidad.
+- Configurar descuentos y promociones para anunciantes.
+
+El administrador decidirá qué anuncios se muestran y en qué ubicaciones.
+
+### Sistema combinado de ingresos
+
+Implementar tres fuentes de ingresos configurables:
+
+**1. Abonos mensuales**
+
+- Plan gratuito opcional con funciones limitadas.
+- Planes pagos con diferentes prestaciones.
+- Precio y periodicidad configurables.
+- Fecha de vencimiento, estado y registro de pagos.
+- Límites configurables de productos, promociones o funcionalidades según el plan.
+
+**2. Comisiones por pedido**
+
+- Porcentaje o importe fijo configurable.
+- Posibilidad de establecer diferentes condiciones por comercio.
+- Cálculo de la comisión a partir de una base claramente definida, configurable por el administrador.
+- Registro del importe bruto, descuentos, envío, comisión y neto correspondiente al comercio.
+- Excluir pedidos cancelados o reembolsados de acuerdo con las reglas comerciales configuradas.
+- Evitar duplicar cargos cuando se reintente procesar un pedido.
+
+**3. Publicidad paga**
+
+- Campañas patrocinadas por importe fijo y duración.
+- Tarifas configurables por ubicación y período.
+- Registro de facturación, pagos y vencimientos.
+- Posibilidad de otorgar espacios promocionales gratuitos.
+
+El administrador podrá habilitar o deshabilitar cada modalidad por comercio. Un negocio podrá pagar un abono, comprar publicidad y estar sujeto a comisiones simultáneamente cuando así se haya configurado y aceptado.
+
+Los registros internos de pagos no deben presentarse como cobros reales hasta que exista una confirmación verificable.
+
+# ETAPA 3 — Pedidos, logística y motomandados
+
+El sistema debe admitir dos modalidades de entrega, seleccionables según el comercio y el pedido.
+
+### Modalidad A: entrega organizada por acoYAradas!
+
+El administrador coordina el envío mediante su red de repartidores.
+
+Funciones:
+
+- Asignar el pedido a un repartidor.
+- Consultar pedidos pendientes de despacho.
+- Ver nombre, teléfono, dirección y referencias de entrega.
+- Consultar el comercio de origen, el importe del envío y las instrucciones necesarias.
+- Registrar quién prepara, quién despacha y quién recibe el pedido.
+- Permitir reasignar un pedido.
+- Actualizar el estado de la entrega.
+- Registrar incidencias, intentos fallidos y cancelaciones.
+- Consultar historial de entregas por repartidor.
+- Configurar tarifas de envío por zona, distancia o tarifa fija.
+- Registrar los importes cobrados por envío y los importes adeudados a los repartidores, cuando corresponda.
+
+Estados sugeridos:
+
+Pendiente de confirmación → Confirmado → En preparación → Listo para retirar → Repartidor asignado → En camino → Entregado.
+
+Agregar estados de cancelación e incidencia cuando sean necesarios.
+
+### Modalidad B: entrega propia del comercio
+
+El comercio realiza su propia entrega o utiliza un servicio externo.
+
+Funciones:
+
+- Habilitar o deshabilitar esta modalidad por negocio.
+- Permitir al comercio configurar sus condiciones de envío.
+- Registrar quién será responsable de entregar el pedido.
+- Permitir que el comercio actualice el estado del envío.
+- No asignar automáticamente el pedido a los repartidores de acoYAradas!.
+- Registrar el costo del envío y las condiciones informadas al cliente.
+- Permitir retiro en el local cuando corresponda.
+
+### Gestión de repartidores
+
+Crear perfiles con:
+
+- Nombre y teléfono.
+- Estado activo o inactivo.
+- Disponibilidad.
+- Pedidos asignados.
+- Historial de entregas.
+- Importe de envíos realizados, si corresponde.
+
+Cada repartidor tendrá una vista móvil sencilla con sus pedidos asignados, dirección, contacto y detalles de entrega.
+
+Solo podrá acceder a la información necesaria para sus entregas, no a las ventas generales ni a los datos privados de otros pedidos.
+
+### Seguimiento del cliente
+
+Mostrar el estado actualizado del pedido en una página accesible desde el teléfono.
+
+Permitir notificaciones cuando:
+
+- El comercio acepta el pedido.
+- El pedido está preparándose.
+- El pedido está listo.
+- Se asigna un repartidor.
+- El pedido sale a reparto.
+- El pedido se entrega o surge una incidencia.
+
+Preparar la integración con WhatsApp mediante proveedores y API oficiales compatibles. No asumir que los mensajes automáticos funcionarán sin configurar credenciales, permisos y plantillas cuando correspondan.
+
+# ETAPA 4 — Panel administrativo general
+
+Crear un panel privado exclusivo para el administrador de acoYAradas!.
+
+### Dashboard
+
+Mostrar:
+
+- Ventas y pedidos del período.
+- Pedidos pendientes de aceptación.
+- Pedidos en preparación.
+- Entregas pendientes.
+- Comercios activos y pendientes de aprobación.
+- Publicidades activas y próximas a vencer.
+- Suscripciones vigentes y vencidas.
+- Comisiones registradas.
+- Ingresos por abonos, publicidad y comisiones.
+- Gastos e importes de logística registrados.
+- Incidencias y pedidos cancelados.
+
+Diferenciar siempre las ventas de los comercios de los ingresos propios de acoYAradas!. No contabilizar el valor bruto de una venta como si fuera ingreso propio.
+
+### Administración global
+
+Permitir:
+
+- Crear, editar, suspender y eliminar lógicamente comercios.
+- Administrar usuarios y roles.
+- Revisar catálogos y aprobar productos cuando se habilite esa política.
+- Administrar todos los pedidos.
+- Gestionar repartidores y asignaciones.
+- Configurar tarifas, comisiones y planes.
+- Crear y administrar espacios publicitarios.
+- Consultar transacciones, pagos pendientes y vencimientos.
+- Configurar categorías, banners, zonas de cobertura y horarios.
+- Gestionar promociones globales.
+- Exportar reportes de ventas, pedidos, publicidad y comisiones a CSV.
+- Consultar un registro de auditoría de las acciones administrativas.
+
+Incluir filtros por fecha, comercio, estado, repartidor y modalidad de entrega.
+
+# ETAPA 5 — Arquitectura, seguridad y publicación
+
+### Tecnologías propuestas
+
+- Frontend: React, TypeScript y Vite.
+- Estilos: Tailwind CSS.
+- Backend y base de datos: Supabase con PostgreSQL.
+- Autenticación: Supabase Auth.
+- Actualizaciones de pedidos: Supabase Realtime cuando corresponda.
+- Imágenes: Supabase Storage.
+- Publicación: Vercel o Netlify, con dominio personalizado.
+
+Mantener una arquitectura sencilla y económica. Antes de incorporar nuevas tecnologías o servicios pagos, explicar por qué son necesarios.
+
+### Modelo de datos
+
+Diseñar una estructura relacional que incluya, como mínimo:
+
+- Perfiles y usuarios.
+- Roles y permisos.
+- Comercios.
+- Productos y categorías.
+- Carritos y pedidos.
+- Detalles de pedidos.
+- Direcciones de entrega.
+- Repartidores y asignaciones.
+- Tarifas y zonas de cobertura.
+- Planes comerciales y suscripciones.
+- Campañas y espacios publicitarios.
+- Comisiones y registros financieros.
+- Pagos y devoluciones.
+- Notificaciones.
+- Registro de auditoría.
+
+Definir claves foráneas, índices, restricciones y reglas de integridad.
+
+### Seguridad obligatoria
+
+- Aplicar políticas RLS en las tablas que contengan información protegida.
+- Verificar permisos también en las operaciones del servidor.
+- Evitar que un comercio consulte o modifique datos de otro.
+- Proteger el panel administrativo.
+- Validar los datos de entrada.
+- Calcular importes, comisiones y totales en el servidor.
+- Gestionar el stock de forma consistente y prevenir pedidos duplicados.
+- Evitar que dos compras simultáneas generen ventas superiores al stock disponible.
+- No exponer claves privadas ni credenciales administrativas en el frontend.
+- No almacenar datos completos de tarjetas bancarias.
+- Limitar la información personal visible a cada rol.
+- Aplicar controles de acceso a imágenes y archivos privados.
+- Registrar operaciones importantes para facilitar auditorías.
+
+### Pagos
+
+Permitir inicialmente métodos configurables como efectivo, transferencia bancaria y pago al recibir.
+
+Preparar una integración futura con Mercado Pago u otro proveedor compatible para cobrar pedidos, abonos y publicidad.
+
+No almacenar datos sensibles de tarjetas. Verificar las confirmaciones de pago en el servidor mediante mecanismos oficiales del proveedor, evitando confiar únicamente en redirecciones del navegador.
+
+No dar por implementados los cobros online hasta que la integración esté configurada y probada.
+
+### Requisitos legales y operativos
+
+Preparar páginas editables para:
+
+- Términos y condiciones.
+- Política de privacidad.
+- Condiciones para comercios.
+- Política de cancelaciones y devoluciones.
+- Condiciones de entrega.
+- Información sobre comisiones y publicidad.
+
+No inventar requisitos legales ni afirmar que la plataforma cumple automáticamente con todas las obligaciones fiscales o regulatorias argentinas. Documentar qué debe revisarse antes de operar comercialmente.
+
+# ETAPA 6 — Pruebas y entrega del proyecto
+
+Antes de publicar, comprobar los siguientes escenarios:
+
+1. Un cliente realiza una compra y el pedido aparece en el panel correcto.
+2. Un comercio puede administrar sus productos sin acceder a los de otros.
+3. El administrador puede aprobar negocios y controlar todos los pedidos.
+4. Una compra con productos de dos comercios no se mezcla accidentalmente.
+5. Un pedido puede asignarse a un repartidor de acoYAradas!.
+6. Otro pedido puede gestionarse mediante entrega propia del comercio.
+7. Los costos de envío y las comisiones se calculan correctamente.
+8. Las campañas publicitarias respetan sus fechas y estados.
+9. Las suscripciones vencidas se procesan según las reglas configuradas.
+10. Los pagos no se marcan como confirmados sin una verificación válida.
+11. Los permisos impiden el acceso a datos ajenos.
+12. La aplicación funciona correctamente en teléfonos y computadoras.
+
+Preparar pruebas automatizadas para las funciones críticas y corregir los errores antes de publicar.
+
+### Entrega final
+
+Entregar:
+
+- Código fuente organizado.
+- Base de datos y migraciones.
+- Políticas de seguridad.
+- Archivo de variables de entorno de ejemplo, sin secretos reales.
+- Instrucciones de instalación y ejecución.
+- Guía para configurar Supabase.
+- Guía para publicar la aplicación.
+- Procedimiento para crear el primer administrador.
+- Datos de demostración claramente identificados.
+- Guía de uso para administradores, comercios y repartidores.
+- Lista de integraciones pendientes y sus requisitos.
+- Informe de pruebas realizadas.
+
+# METODOLOGÍA DE DESARROLLO
+
+No intentes desarrollar todo de golpe.
+
+Primero, inspecciona el entorno de trabajo y presenta una arquitectura breve con el esquema de base de datos y las etapas de implementación.
+
+Después trabaja en este orden:
+
+1. Tienda pública, comercios y catálogo.
+2. Autenticación, paneles y pedidos reales.
+3. Repartidores, entregas y seguimiento.
+4. Publicidad, abonos, comisiones y registros financieros.
+5. Seguridad, pruebas, documentación y publicación.
+
+Al terminar cada etapa, ejecutar la aplicación, probar sus funciones, corregir errores y explicar cómo verificar el resultado.
+
+No reemplazar funciones reales por botones decorativos. No afirmar que una integración, un pago o una notificación funcionan sin haberlo comprobado.
+
+**OBJETIVO FINAL:** entregar una plataforma funcional llamada acoYAradas! que conecte comercios y clientes, permita gestionar compras y entregas con dos modalidades logísticas y genere ingresos mediante una combinación configurable de abonos, publicidad y comisiones.

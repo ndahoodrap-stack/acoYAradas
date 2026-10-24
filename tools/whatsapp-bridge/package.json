@@ -1,0 +1,16 @@
+{
+  "name": "acoyaradas-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "Puente local que envía mensajes por WhatsApp usando whatsapp-web.js",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

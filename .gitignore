@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Entorno
+.env
+.env.local
+
+# Base de datos embebida
+.data/
+.tmp/
+
+# Builds
+apps/api/dist/
+apps/web/dist/
+
+# Subidas locales
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
