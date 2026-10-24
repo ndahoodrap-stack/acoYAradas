@@ -9,10 +9,10 @@ async function main() {
   const app = createApp(db);
   const stopJobs = startJobs(db);
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, '0.0.0.0', () => {
     // eslint-disable-next-line no-console
     console.log(
-      `acoYAradas! API escuchando en http://localhost:${config.port}${config.apiPrefix} (motor: ${db.kind}, auth: ${config.authMode})`,
+      `acoYAradas! API escuchando en http://0.0.0.0:${config.port}${config.apiPrefix} (motor: ${db.kind}, auth: ${config.authMode})`,
     );
   });
 

@@ -18,6 +18,7 @@ export async function createPostgresDatabase(connectionString: string): Promise<
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 15_000,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
   });
 
   const makeExecutor = (runner: {
