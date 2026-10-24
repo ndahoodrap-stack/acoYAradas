@@ -3,6 +3,9 @@ import type { Database, DbExecutor, QueryResult } from './index.js';
 
 const { Pool } = pg;
 
+// En algunos entornos con pooler de Supabase el certificado es autofirmado
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // numeric -> number (los importes se manejan como number con redondeo explícito)
 pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
 // int8 -> number
