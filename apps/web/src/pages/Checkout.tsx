@@ -132,8 +132,14 @@ export default function Checkout() {
                   className="input"
                   required
                   placeholder="+54 9 11 0000-0000"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={form.phone}
-                  onChange={field('phone').onChange}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                    field('phone').onChange({ target: { value } } as any);
+                  }}
                 />
               </Field>
               <Field

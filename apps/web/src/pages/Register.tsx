@@ -64,9 +64,15 @@ export default function Register() {
           </Field>
           <Field label="Teléfono" hint="Opcional">
             <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               className="input"
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9+\-\s()]/g, '');
+                setForm((f) => ({ ...f, phone: value }));
+              }}
             />
           </Field>
           <Field label="Contraseña" hint="Mínimo 8 caracteres">
