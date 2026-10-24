@@ -1,0 +1,218 @@
+================================================================================
+PASOS EXACTOS PARA SUBIR ACOYARADAS! A PRODUCCIÓN
+================================================================================
+
+Fecha: 24/10/2026
+Repositorio listo: SI (commit fdaf4cb + cambios pendientes)
+Tests: 85/85 OK | Typecheck: OK | Build: OK
+Estado: LISTO PARA DESPLEGAR
+
+IMPORTANTE: NO SUBAS .env NI node_modules NI .data NI apps/*/dist
+El .gitignore ya los excluye.
+
+
+--------------------------------------------------------------------------------
+1) SUBIR EL CÓDIGO A GITHUB
+--------------------------------------------------------------------------------
+
+Abrí una terminal en la carpeta del proyecto:
+"E:\Nueva carpeta (15)"
+
+a) Inicializar commit (ya hecho, pero por si acaso):
+   git add .
+   git commit -m "acoYAradas! MVP listo para producción"
+
+b) Crear repositorio en GitHub
+   - Ir a https://github.com/new
+   - Nombre: acoyaradas
+   - Privado o Público (da igual)
+   - NO inicializar con README/.gitignore/LICENSE
+   - Crear repositorio
+
+c) Conectar y subir
+   Reemplazá TU-USUARIO por tu usuario de GitHub:
+
+   git branch -M master
+   git remote add origin https://github.com/TU-USUARIO/acoyaradas.git
+   git push -u origin master
+
+
+--------------------------------------------------------------------------------
+2) CREAR BASE DE DATOS EN SUPABASE
+--------------------------------------------------------------------------------
+
+a) Proyecto
+   - Ir a https://supabase.com/dashboard
+   - New Project -> elegir nombre, password de DB, región
+   - Esperar a que cree
+
+b) Copiar datos
+   Settings -> Database
+   - Connection string -> URI (Transaction mode) Puerto 6543 -> COPIAR (pooler)
+   - Connection string -> URI (Session/Direct) Puerto 5432  -> COPIAR (directa) [para migrar]
+
+   Settings -> API
+   - Project URL -> https://<ref>.supabase.co
+   - anon public key
+   - service_role key (SECRETA, NO usar en frontend)
+
+c) Crear bucket de Storage
+   Storage -> New bucket
+   - Name: public
+   - Public bucket: SI (marcado)
+   - Create bucket
+
+
+--------------------------------------------------------------------------------
+3) APLICAR MIGRACIONES DESDE TU PC
+--------------------------------------------------------------------------------
+
+Abrí terminal en "E:\Nueva carpeta (15)"
+
+Pegá TUS credenciales (reemplazá):
+   DIRECT_URL="postgresql://postgres.<ref>:<PASSWORD>@db.<ref>.supabase.co:5432/postgres?sslmode=require"
+
+Ejecutá:
+   set DB_MODE=supabase
+   set DATABASE_URL=%DIRECT_URL%
+   npm run db:migrate
+
+Deberías ver algo como:
+   [migrate] aplicando 001_schema.sql...
+   ...
+   [migrate] listo (X migraciones disponibles, motor: postgres)
+
+NOTA: NO ejecutes "npm run db:seed" en producción. Los datos demo NO van a internet.
+
+
+--------------------------------------------------------------------------------
+4) DESPLEGAR EN RENDER
+--------------------------------------------------------------------------------
+
+Opción A: Con render.yaml (recomendado)
+   - Ir a https://dashboard.render.com
+   - New + -> Blueprint
+   - Conectar tu repo acoyaradas
+   - Render leerá render.yaml y creará el servicio
+   - Rellenar las variables que piden (ver abajo) y aplicar
+
+Opción B: Manual
+   New + -> Web Service -> conectar repo
+   Runtime: Node
+   Build Command: npm ci --include=dev && npm run build
+   Start Command: node apps/api/dist/server.js
+   Health Check Path: /api/health
+   Plan: Starter (o Free para probar)
+
+Variables de entorno a poner en Render (Environment):
+
+NODE_ENV=production
+NODE_VERSION=20
+PORT=3001
+TRUST_PROXY=true
+PUBLIC_BASE_URL=https://TU-SERVICIO.onrender.com
+CORS_ORIGINS=https://TU-SERVICIO.onrender.com
+
+DB_MODE=supabase
+DATABASE_URL=postgresql://postgres.<ref>:<PASSWORD>@...pooler.supabase.com:6543/postgres?sslmode=require
+
+AUTH_MODE=local
+AUTH_SECRET=PEGAR_CLAVE_ALEATORIA_LARGA
+ACCESS_TOKEN_TTL=7200
+REFRESH_TOKEN_TTL=2592000
+
+SUPABASE_URL=https://<ref>.supabase.co
+SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+SUPABASE_STORAGE_BUCKET=public
+
+WHATSAPP_PROVIDER=links
+WHATSAPP_OWNER_PHONE=5492284555555
+WHATSAPP_AUTO_OPEN=true
+WHATSAPP_AUTO_SEND=false
+
+CONTACT_EMAIL=hola@acoyaradas.app
+CONTACT_PHONE=+54 9 2284 55-5555
+COVERAGE_TEXT=Cobertura exclusiva en San Carlos de Bolívar, Provincia de Buenos Aires.
+HOURS_TEXT=Lunes a sábado de 9:00 a 21:00 h
+
+Generar AUTH_SECRET desde tu PC (PowerShell/cmd):
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+
+Guardar y esperar el deploy (5-10 minutos la primera vez).
+
+
+--------------------------------------------------------------------------------
+5) CREAR PRIMER ADMINISTRADOR
+--------------------------------------------------------------------------------
+
+a) Registrarte en la app
+   Abrí https://TU-SERVICIO.onrender.com/registro
+   Creá tu cuenta con tu email real
+
+b) Darle rol admin desde Supabase
+   Ir a Supabase -> SQL Editor -> New query
+
+   Ejecutá (cambiá el email):
+
+   update public.profiles set role = 'admin' where email = 'TU-EMAIL@DOMINIO.COM';
+   update public.local_users set role = 'admin' where email = 'TU-EMAIL@DOMINIO.COM';
+
+   Run
+
+c) Comprobar
+   Cerrá sesión / volvé a entrar
+   Entrá a https://TU-SERVICIO.onrender.com/admin
+
+
+--------------------------------------------------------------------------------
+6) PRUEBA DE HUMO (OBLIGATORIA)
+--------------------------------------------------------------------------------
+
+- [ ] https://TU-SERVICIO.onrender.com/api/health  -> {"ok":true,"db":"postgres",...}
+- [ ] Home carga correctamente
+- [ ] Registrarse / Iniciar sesión
+- [ ] Ver comercios y productos
+- [ ] Agregar al carrito y hacer compra (efectivo o transferencia)
+- [ ] Ver pedido en "Mis pedidos" y en panel del comercio
+- [ ] Subir imagen de producto (debería ir a Supabase Storage)
+- [ ] Seguimiento de pedido funciona
+- [ ] Panel admin accesible
+
+
+--------------------------------------------------------------------------------
+7) DOMINIO PROPIO (OPCIONAL PERO RECOMENDADO)
+--------------------------------------------------------------------------------
+
+1. Comprar dominio (ej. acoyaradas.com)
+2. Render -> Settings -> Custom Domain -> Add Custom Domain
+3. Seguir las instrucciones DNS (CNAME/A)
+4. Actualizar variables:
+   PUBLIC_BASE_URL=https://tudominio.com
+   CORS_ORIGINS=https://tudominio.com,https://www.tudominio.com
+5. Redeploy
+
+
+--------------------------------------------------------------------------------
+RECORDATORIOS IMPORTANTES
+--------------------------------------------------------------------------------
+
+- Pagos online: NO implementados. Solo efectivo/transferencia. Ver docs/integraciones-pendientes.md
+- WhatsApp: Por defecto usa enlaces wa.me. Envío automático requiere Meta Cloud API
+- Disco efímero: Si NO usás Supabase Storage, las imágenes subidas se pierden al redeploy
+- Textos legales: Son de demostración, conviene revisarlos
+- Auth local: Las contraseñas se guardan hasheadas con scrypt
+- Tests locales: npm test sigue funcionando con PGlite
+- El primer deploy puede tardar ~5-10 min
+
+
+--------------------------------------------------------------------------------
+ARCHIVOS PREPARADOS
+--------------------------------------------------------------------------------
+
+- render.yaml        -> Blueprint listo para Render
+- .env.example       -> Todas las variables documentadas
+- PASOS_EXACTOS_PARA_SUBIR_ACOYARADAS.txt -> Esta guía
+
+¡Listo! Con estos pasos ya podés ponerla online para que empiece a usarla la gente.
+================================================================================
