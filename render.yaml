@@ -1,0 +1,67 @@
+# Render Blueprint para acoYAradas!
+# Uso: Render > New > Blueprint > Conectar este repositorio
+# Se creará el Web Service con build/start/healthcheck ya configurados.
+
+services:
+  - type: web
+    name: acoyaradas
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: master
+    autoDeploy: true
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: 3001
+      - key: TRUST_PROXY
+        value: true
+      # === COMPLETAR ESTOS VALORES EN RENDER TRAS EL PRIMER DEPLOY ===
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DB_MODE
+        value: supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_MODE
+        value: local
+      - key: AUTH_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_TTL
+        value: 7200
+      - key: REFRESH_TOKEN_TTL
+        value: 2592000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: public
+      - key: WHATSAPP_PROVIDER
+        value: links
+      - key: WHATSAPP_OWNER_PHONE
+        sync: false
+      - key: WHATSAPP_AUTO_OPEN
+        value: true
+      - key: WHATSAPP_AUTO_SEND
+        value: false
+      - key: CONTACT_EMAIL
+        value: hola@acoyaradas.app
+      - key: CONTACT_PHONE
+        value: +54 9 2284 55-5555
+      - key: COVERAGE_TEXT
+        value: Cobertura exclusiva en San Carlos de Bolívar, Provincia de Buenos Aires.
+      - key: HOURS_TEXT
+        value: Lunes a sábado de 9:00 a 21:00 h
+      - key: UPLOADS_DIR
+        value: ./uploads
