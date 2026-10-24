@@ -20,9 +20,11 @@ publicRouter.get(
   '/settings',
   route(async (ctx) => {
     const { rows } = await ctx.db.system.query('select key, value from public.settings');
+    const settings = Object.fromEntries(rows.map((r: any) => [r.key, r.value]));
+    const platform = { ...config.platform, ...(settings.platform ?? {}) };
     return {
-      platform: config.platform,
-      settings: Object.fromEntries(rows.map((r: any) => [r.key, r.value])),
+      platform,
+      settings,
     };
   }),
 );
