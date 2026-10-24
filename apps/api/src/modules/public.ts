@@ -21,7 +21,8 @@ publicRouter.get(
   route(async (ctx) => {
     const { rows } = await ctx.db.system.query('select key, value from public.settings');
     const settings = Object.fromEntries(rows.map((r: any) => [r.key, r.value]));
-    const platform = { ...config.platform, ...(settings.platform ?? {}) };
+    const hoursText = settings?.hours?.text ?? settings?.platform?.hoursText;
+    const platform = { ...config.platform, ...(settings.platform ?? {}), ...(hoursText ? { hoursText } : {}) };
     return {
       platform,
       settings,
