@@ -1,17 +1,1 @@
-Analiza toda la carpeta de la aplicación luego >
-
-Quiero que todos los mensajes automatizados por ej: enviar el pedido al delivery o al restaurante/kiosco etc, salga directamente de un solo whatsapp que sería el mío, dime si hay una forma de conectarse a mi aplicacion de whatsapp de escritorio que ya tiene mi cuenta abierta y configurar en la aplicacion de acoYAradas que al recibir un pedido etc salga directamente en mi whatsapp.
-
-Ejemplo de uso de esta función: El cliente normal hace un pedido, al hacer el pedido me llega a mi propio numero del encargue por si no estoy usando el programa actualmente, luego de confirmar el pedido y elegir el delivery automaticamente se abra un chat en el numero del delivery con todos los datos del pedido
-Tambien estaría bueno añadir para hacer algo como por ejemplo: El cliente normal hace el pedido, yo al confirmar el pedido tengo que primero llamar al kiosco/restaurante para que arme el pedido, entonces estaría bueno que tambien se pueda mandar automaticamente un mensaje con el pedido que necesita recoger el delivery
-
-Mejoras esteticas:
-
-En el panel de comercio y otros paneles en general > solo se puede usar URL para subir una imagen, no hay boton que sea mas fácil el updateo.
-Los paneles de admin/comercio se ven demasiado sosos, me gustaría que se usen mas botones para hacer cosas y no tanto click, hacerla mas didactica y agradable ya que se ve medio compacta, mejora por completo su estetica visual sin alterar las funciones ni nada de eso, solo la estetica.
-
-Otras implementaciones: 
-
-La pagina/programa por ahora solo va a funcionar en un pueblo no en muchas zonas, adapta todo lo que tenga que ver con eso y cambialo a San Carlos de Bolívar, Pvcia de Buenos Aires, que es la ciudad donde va a funcionar esta aplicación y solo ahí.
-
-Estaría bueno que en todos los paneles se pueda eliminar, por ejemplo en el panel admin no puedo eliminar repartidores.
+Al hacer cambios como admin en el panel de configuración ej: cambiar los horarios de atención, no se actualiza en la pagina principal, soluciona este bug y haz testeo de todas las configuraciones en todos los paneles admin/comercio/cliente etc para ver si hay otros errores de configuración que no se apliquen/actualicen en tiempo real.

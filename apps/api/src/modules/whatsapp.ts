@@ -79,7 +79,7 @@ whatsappRouter.patch(
       bridge_token: z.string().nullable().optional(),
       auto_send: z.boolean().optional(),
       auto_open: z.boolean().optional(),
-      events: z.record(z.boolean()).optional(),
+      events: z.record(z.string(), z.boolean()).optional(),
     });
     const body = validate(schema, req.body);
     return run(ctx, async (tx) => {

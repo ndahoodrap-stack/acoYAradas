@@ -9,6 +9,7 @@ import AdminPlans from './AdminPlans';
 import AdminCommissions from './AdminCommissions';
 import AdminLogistics from './AdminLogistics';
 import AdminCategories from './AdminCategories';
+import AdminPlatformProducts from './AdminPlatformProducts';
 import AdminUsers from './AdminUsers';
 import AdminAudit from './AdminAudit';
 import AdminSettings from './AdminSettings';
@@ -25,6 +26,7 @@ const links: PanelLink[] = [
   { to: '/admin/comisiones', label: 'Comisiones', icon: '📊' },
   { to: '/admin/logistica', label: 'Logística', icon: '🚚' },
   { to: '/admin/categorias', label: 'Categorías', icon: '🗂️' },
+  { to: '/admin/productos-no-afiliados', label: 'Productos no afiliados', icon: '🛒' },
   { to: '/admin/usuarios', label: 'Usuarios', icon: '👥' },
   { to: '/admin/reportes', label: 'Reportes', icon: '📥' },
   { to: '/admin/whatsapp', label: 'WhatsApp', icon: '💬' },
@@ -49,6 +51,7 @@ export default function AdminPanel() {
         <Route path="comisiones" element={<AdminCommissions />} />
         <Route path="logistica" element={<AdminLogistics />} />
         <Route path="categorias" element={<AdminCategories />} />
+        <Route path="productos-no-afiliados" element={<AdminPlatformProducts />} />
         <Route path="usuarios" element={<AdminUsers />} />
         <Route path="reportes" element={<AdminReports />} />
         <Route path="whatsapp" element={<AdminWhatsapp />} />

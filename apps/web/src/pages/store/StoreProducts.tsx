@@ -5,6 +5,7 @@ import { formatMoney } from '../../lib/format';
 import { DataTable } from '../../components/PanelShell';
 import { ErrorState, Field, Modal, Spinner } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
+import { IconPicker } from '../../components/IconPicker';
 import type { CategoryDto } from '@acoyaradas/shared';
 
 interface StoreProduct {
@@ -270,9 +271,13 @@ export default function StoreProducts() {
               ))}
             </select>
           </Field>
+          <IconPicker
+            value={form.image_url}
+            onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+          />
           <FileUpload
-            label="Imagen del producto"
-            hint="Opcional. Se muestra en el catálogo y en la ficha."
+            label="Foto personalizada (opcional)"
+            hint="Si subís una foto, reemplaza al icono elegido."
             value={form.image_url}
             onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
           />

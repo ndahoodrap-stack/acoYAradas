@@ -35,6 +35,7 @@ interface HomeData {
   promotions: Promotion[];
   popular: ProductDto[];
   newest: ProductDto[];
+  unaffiliated: ProductDto[];
 }
 
 export default function Home() {
@@ -250,6 +251,18 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* Productos no afiliados */}
+        {(data?.unaffiliated ?? []).length ? (
+          <section>
+            <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {(data?.unaffiliated ?? []).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );

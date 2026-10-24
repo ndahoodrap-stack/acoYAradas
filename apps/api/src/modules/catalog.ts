@@ -29,7 +29,7 @@ catalogRouter.get(
   '/home',
   route(async (ctx) => {
     return withPublic(ctx.db, ctx.guestToken, async (tx) => {
-      const [categories, stores, banners, promotions, popular, newest, settings] = await Promise.all([
+      const [categories, stores, banners, promotions, popular, newest, unaffiliated, settings] = await Promise.all([
         tx.query(
           `select c.id, c.name, c.slug, c.icon_url, c.sort_order, c.active,
                   (select count(*) from public.stores s2
@@ -99,6 +99,16 @@ catalogRouter.get(
             order by p.created_at desc
             limit 8`,
         ),
+        tx.query(
+          `select pp.id, pp.name, pp.description, pp.price, pp.stock, pp.image_url,
+                  pp.category_id, c.name as category_name, pp.is_available, pp.featured,
+                  pp.status, pp.created_at, null::uuid as store_id, null::text as store_name, null::text as store_slug
+             from public.platform_products pp
+             left join public.categories c on c.id = pp.category_id
+            where pp.status = 'active' and pp.deleted_at is null and pp.is_available = true
+            order by pp.created_at desc
+            limit 8`,
+        ),
         tx.query(`select key, value from public.settings where key in
                   ('contact','social','coverage','hours','platform','payment_methods','features')`),
       ]);
@@ -114,6 +124,7 @@ catalogRouter.get(
         promotions: promotions.rows,
         popular: popular.rows.map(mapProduct),
         newest: newest.rows.map(mapProduct),
+        unaffiliated: unaffiliated.rows.map(mapProduct),
         settings: Object.fromEntries(settings.rows.map((r: any) => [r.key, r.value])),
       };
     });

@@ -9,6 +9,7 @@ import {
   storeReviewSchema,
   tariffSchema,
 } from '@acoyaradas/shared';
+import { z } from 'zod';
 import type { DbExecutor } from '../db/index.js';
 import { applyClaims } from '../db/index.js';
 import { requireAdmin } from '../http/context.js';
@@ -1961,5 +1962,131 @@ adminRouter.get(
     }
 
     throw notFound('Reporte desconocido');
+  }),
+);
+
+/* ------------------------------------------------------------------ */
+/* Productos no afiliados (platform products)                          */
+/* ------------------------------------------------------------------ */
+adminRouter.get(
+  '/platform-products',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    return run(ctx, async (tx) => {
+      const { rows } = await tx.query(
+        `select pp.id, pp.name, pp.description, pp.price, pp.stock, pp.image_url,
+                pp.category_id, c.name as category_name, pp.is_available, pp.featured,
+                pp.status, pp.created_at
+           from public.platform_products pp
+           left join public.categories c on c.id = pp.category_id
+          where pp.deleted_at is null
+          order by pp.created_at desc`,
+      );
+      return { items: rows };
+    });
+  }),
+);
+
+adminRouter.post(
+  '/platform-products',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    const body = validate(
+      z.object({
+        name: z.string().min(1).max(120),
+        description: z.string().max(2000).optional().or(z.literal('')),
+        price: z.number().min(0),
+        stock: z.number().int().min(0).optional(),
+        image_url: z.string().max(500).optional().or(z.literal('')),
+        category_id: z.string().uuid().nullable().optional(),
+        is_available: z.boolean().optional(),
+        featured: z.boolean().optional(),
+      }),
+      ctx.req.body,
+    );
+    return run(ctx, async (tx) => {
+      const { rows } = await tx.query(
+        `insert into public.platform_products (name, description, price, stock, image_url, category_id, is_available, featured, created_by)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
+        [
+          body.name,
+          body.description || null,
+          body.price,
+          body.stock ?? 0,
+          body.image_url || null,
+          body.category_id || null,
+          body.is_available ?? true,
+          body.featured ?? false,
+          ctx.claims.sub,
+        ],
+      );
+      await audit(tx, { actorId: ctx.claims.sub, actorRole: ctx.claims.role, action: 'platform_product.create', entityType: 'platform_product', entityId: rows[0].id, metadata: body });
+      return { id: rows[0].id };
+    });
+  }),
+);
+
+adminRouter.patch(
+  '/platform-products/:id',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    const body = validate(
+      z.object({
+        name: z.string().min(1).max(120).optional(),
+        description: z.string().max(2000).optional().or(z.literal('')),
+        price: z.number().min(0).optional(),
+        stock: z.number().int().min(0).optional(),
+        image_url: z.string().max(500).optional().or(z.literal('')),
+        category_id: z.string().uuid().nullable().optional(),
+        is_available: z.boolean().optional(),
+        featured: z.boolean().optional(),
+        status: z.enum(['active', 'inactive']).optional(),
+      }),
+      ctx.req.body,
+    );
+    return run(ctx, async (tx) => {
+      const fields: string[] = [];
+      const vals: any[] = [];
+      let i = 1;
+      const push = (col: string, v: any) => {
+        fields.push(`${col} = $${i++}`);
+        vals.push(v);
+      };
+      if (body.name !== undefined) push('name', body.name);
+      if (body.description !== undefined) push('description', body.description || null);
+      if (body.price !== undefined) push('price', body.price);
+      if (body.stock !== undefined) push('stock', body.stock);
+      if (body.image_url !== undefined) push('image_url', body.image_url || null);
+      if (body.category_id !== undefined) push('category_id', body.category_id || null);
+      if (body.is_available !== undefined) push('is_available', body.is_available);
+      if (body.featured !== undefined) push('featured', body.featured);
+      if (body.status !== undefined) push('status', body.status);
+      if (fields.length === 0) throw badRequest('Sin cambios');
+      vals.push(ctx.req.params.id);
+      const { rowCount } = await tx.query(
+        `update public.platform_products set ${fields.join(', ')} where id = $${i} and deleted_at is null`,
+        vals,
+      );
+      if (!rowCount) throw notFound('Producto no encontrado');
+      await audit(tx, { actorId: ctx.claims.sub, actorRole: ctx.claims.role, action: 'platform_product.update', entityType: 'platform_product', entityId: ctx.req.params.id, metadata: body });
+      return { ok: true };
+    });
+  }),
+);
+
+adminRouter.delete(
+  '/platform-products/:id',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    return run(ctx, async (tx) => {
+      const { rowCount } = await tx.query(
+        `update public.platform_products set deleted_at = now(), status = 'inactive'
+          where id = $1 and deleted_at is null`,
+        [ctx.req.params.id],
+      );
+      if (!rowCount) throw notFound('Producto no encontrado');
+      await audit(tx, { actorId: ctx.claims.sub, actorRole: ctx.claims.role, action: 'platform_product.delete', entityType: 'platform_product', entityId: ctx.req.params.id, metadata: {} });
+      return { ok: true };
+    });
   }),
 );

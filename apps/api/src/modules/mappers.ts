@@ -50,7 +50,7 @@ export function mapStore(row: any): StoreDto {
 export function mapProduct(row: any): ProductDto {
   return {
     id: row.id,
-    store_id: row.store_id,
+    store_id: row.store_id ?? null,
     store_name: row.store_name,
     store_slug: row.store_slug,
     name: row.name,

@@ -158,9 +158,7 @@ export const storeApplicationSchema = z.object({
   category_id: idSchema,
   email: z.string().email().optional().or(z.literal('')),
   notes: z.string().max(1000).optional().or(z.literal('')),
-  accepted_terms: z.literal(true, {
-    errorMap: () => ({ message: 'Debés aceptar las condiciones para comercios' }),
-  }),
+  accepted_terms: z.literal(true, 'Debés aceptar las condiciones para comercios'),
 });
 export type StoreApplicationInput = z.infer<typeof storeApplicationSchema>;
 
@@ -361,7 +359,7 @@ export interface CategoryDto {
 
 export interface ProductDto {
   id: string;
-  store_id: string;
+  store_id: string | null;
   store_name?: string;
   store_slug?: string;
   name: string;

@@ -24,11 +24,18 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.9",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "esbuild": "0.28.2",
+    "vite": "8.3.5"
   }
 }
