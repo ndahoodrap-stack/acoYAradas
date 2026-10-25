@@ -220,22 +220,26 @@ export default function StoreProducts() {
           </>
         }
       >
-        <Field label="Nombre">
-          <input
-            className="input"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-        </Field>
-        <Field label="Descripción">
-          <textarea
-            rows={3}
-            className="input"
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          />
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Field label="Nombre">
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Descripción">
+              <textarea
+                rows={3}
+                className="input"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </Field>
+          </div>
           <Field label="Precio (ARS)">
             <input
               type="number"
@@ -255,49 +259,55 @@ export default function StoreProducts() {
               onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
             />
           </Field>
+          <div className="sm:col-span-2">
+            <Field label="Categoría">
+              <select
+                className="input"
+                value={form.category_id}
+                onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+              >
+                <option value="">Sin categoría</option>
+                {(categories?.items ?? []).map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <div className="space-y-3 rounded-2xl border border-ink-200 p-4">
+              <IconPicker
+                value={form.image_url}
+                onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+              />
+              <FileUpload
+                label="Foto personalizada (opcional)"
+                hint="Si subís una foto, reemplaza al icono elegido."
+                value={form.image_url}
+                onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+              />
+            </div>
+          </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Categoría">
-            <select
-              className="input"
-              value={form.category_id}
-              onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
-            >
-              <option value="">Sin categoría</option>
-              {(categories?.items ?? []).map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <IconPicker
-            value={form.image_url}
-            onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
-          />
-          <FileUpload
-            label="Foto personalizada (opcional)"
-            hint="Si subís una foto, reemplaza al icono elegido."
-            value={form.image_url}
-            onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
-          />
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.is_available}
+              onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
+            />
+            Disponible para la venta
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.featured}
+              onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+            />
+            Destacado en el catálogo
+          </label>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.is_available}
-            onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
-          />
-          Disponible para la venta
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.featured}
-            onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
-          />
-          Destacado en el catálogo
-        </label>
       </Modal>
     </div>
   );
