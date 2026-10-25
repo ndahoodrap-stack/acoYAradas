@@ -120,6 +120,10 @@
   .table tbody tr {
     @apply transition-colors hover:bg-brand-50/40;
   }
+  /* Animación suave de aparición de tarjetas */
+  .card {
+    @apply transition-all duration-200;
+  }
   .table tbody tr:last-child td {
     @apply border-b-0;
   }

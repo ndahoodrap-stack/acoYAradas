@@ -94,7 +94,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-ink-200/80 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-ink-200/80 bg-white/90 backdrop-blur transition-shadow duration-200 shadow-sm">
         <div className="container-app flex items-center gap-3 py-3">
           <Logo />
 

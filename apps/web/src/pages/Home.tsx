@@ -117,7 +117,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 transition-all duration-500">
             {banners.slice(0, 4).map((banner) => (
               <div
                 key={banner.id}
