@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { formatMoney } from '../lib/format';
 import { ProductCard, StoreCard } from '../components/Cards';
+import { Icon } from '../components/Icon';
 import { EmptyState, ErrorState, SectionTitle, Spinner, SponsoredTag } from '../components/ui';
 import type { CategoryDto, ProductDto, StoreDto } from '@acoyaradas/shared';
 
@@ -92,14 +93,17 @@ export default function Home() {
                   : '/buscar';
               }}
             >
-              <input
-                value={term}
-                onChange={(e) => setTerm(e.target.value)}
-                placeholder="¿Qué estás buscando?"
-                aria-label="Buscar"
-                className="input flex-1 border-transparent"
-              />
-              <button type="submit" className="btn bg-ink-900 text-white hover:bg-ink-800">
+              <div className="relative flex-1">
+                <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                <input
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  placeholder="¿Qué estás buscando?"
+                  aria-label="Buscar"
+                  className="input h-12 pl-10 text-base"
+                />
+              </div>
+              <button type="submit" className="btn h-12 bg-ink-900 px-6 text-white hover:bg-ink-800 active:scale-[0.98]">
                 Buscar
               </button>
             </form>
@@ -117,7 +121,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 transition-all duration-500">
             {banners.slice(0, 4).map((banner) => (
               <div
                 key={banner.id}
@@ -159,6 +163,7 @@ export default function Home() {
           <SectionTitle
             title="Categorías"
             subtitle="Explorá por tipo de comercio"
+            icon="🗂️"
             action={
               <Link to="/categorias" className="btn-ghost">
                 Ver todas →
@@ -191,6 +196,7 @@ export default function Home() {
           <SectionTitle
             title="Comercios destacados"
             subtitle="Los negocios más elegidos de la plataforma"
+            icon="🏪"
             action={
               <Link to="/comercios" className="btn-ghost">
                 Ver todos →
@@ -251,7 +257,7 @@ export default function Home() {
 
         {/* Novedades */}
         <section>
-          <SectionTitle title="Novedades" subtitle="Lo último quefearon los comercios" />
+          <SectionTitle title="Novedades" subtitle="Lo último que agregaron los comercios" icon="🆕" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {(data?.newest ?? []).map((product) => (
               <ProductCard key={product.id} product={product} />

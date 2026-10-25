@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { useCart } from '../lib/cart';
 import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
+import { Icon } from './Icon';
 
 interface PlatformSettings {
   platform: {
@@ -56,17 +57,25 @@ function SearchBox({ onDone }: { onDone?: () => void }) {
 
   return (
     <form onSubmit={submit} className="relative w-full">
+      <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
       <input
         type="search"
         value={term}
         onChange={(e) => setTerm(e.target.value)}
         placeholder="Buscar productos y comercios…"
         aria-label="Buscar productos y comercios"
-        className="input pl-9"
+        className="input pl-9 pr-9"
       />
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
-        🔎
-      </span>
+      {term ? (
+        <button
+          type="button"
+          onClick={() => setTerm('')}
+          className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+          aria-label="Limpiar búsqueda"
+        >
+          <Icon name="close" className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
     </form>
   );
 }
@@ -75,6 +84,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useSession();
   const { count, subtotal } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const { data: settings } = useQuery({
     queryKey: ['platform-settings'],
@@ -94,7 +110,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-ink-200/80 bg-white/95 backdrop-blur">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1200] focus:rounded-lg focus:bg-brand-500 focus:px-4 focus:py-2 focus:text-white"
+      >
+        Saltar al contenido
+      </a>
+      <header
+        className={`sticky top-0 z-40 border-b border-ink-200/80 bg-white/90 backdrop-blur transition-shadow duration-200 ${
+          scrolled ? 'shadow-md' : 'shadow-sm'
+        }`}
+      >
         <div className="container-app flex items-center gap-3 py-3">
           <Logo />
 
@@ -102,7 +128,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/comercios"
               className={({ isActive }) =>
-                `btn-ghost px-3 ${isActive ? 'text-brand-600' : ''}`
+                `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
               Comercios
@@ -110,7 +136,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/categorias"
               className={({ isActive }) =>
-                `btn-ghost px-3 ${isActive ? 'text-brand-600' : ''}`
+                `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
               Categorías
@@ -118,7 +144,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/publicidad"
               className={({ isActive }) =>
-                `btn-ghost px-3 ${isActive ? 'text-brand-600' : ''}`
+                `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
               Publicidad
@@ -126,7 +152,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               to="/sumate"
               className={({ isActive }) =>
-                `btn-ghost px-3 ${isActive ? 'text-brand-600' : ''}`
+                `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
               Sumate
@@ -140,15 +166,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-1">
             <Link
               to="/carrito"
-              className="btn-secondary relative px-3"
+              className="btn-secondary relative gap-1.5 px-3 tabular-nums"
               aria-label={`Carrito con ${count} productos`}
             >
-              <span aria-hidden>🛒</span>
+              <Icon name="cart" className="h-4 w-4" />
               <span className="hidden sm:inline">Carrito</span>
               {count > 0 ? (
-                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-xs font-bold text-white">
-                  {count}
-                </span>
+                <>
+                  <span className="hidden text-xs font-bold text-brand-600 sm:inline">
+                    {formatMoney(subtotal)}
+                  </span>
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-xs font-bold text-white animate-scale-in">
+                    {count}
+                  </span>
+                </>
               ) : null}
             </Link>
 
@@ -251,7 +282,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">{children}</main>
 
       <footer className="mt-12 border-t border-ink-200 bg-white">
         <div className="container-app grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-4">

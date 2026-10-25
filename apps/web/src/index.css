@@ -81,7 +81,7 @@
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition
-      disabled:cursor-not-allowed disabled:opacity-50;
+      disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98];
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-brand-500 text-white shadow-sm hover:bg-brand-600 active:bg-brand-700;
@@ -112,7 +112,7 @@
     @apply w-full border-collapse text-left text-sm;
   }
   .table th {
-    @apply border-b border-ink-200 bg-ink-50/70 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500;
+    @apply sticky top-0 z-10 border-b border-ink-200 bg-ink-50/90 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500 backdrop-blur;
   }
   .table td {
     @apply border-b border-ink-100 px-3 py-3 align-top;
@@ -120,11 +120,22 @@
   .table tbody tr {
     @apply transition-colors hover:bg-brand-50/40;
   }
+  /* Animación suave de aparición de tarjetas */
+  .card {
+    @apply transition-all duration-200;
+  }
   .table tbody tr:last-child td {
     @apply border-b-0;
   }
   .skeleton {
-    @apply animate-pulse rounded-lg bg-ink-200/70;
+    @apply rounded-lg bg-ink-200/70;
+    background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
   /* Encabezado de los paneles */
   .panel-hero {
@@ -160,6 +171,27 @@
 /* Ocultar el scrollbar en carruseles horizontales */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Accesibilidad: respetar preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Números tabulares para precios y contadores */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Tap targets mínimos en mobile */
+@media (max-width: 640px) {
+  .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger {
+    min-height: 44px;
+  }
+  input, select, textarea { font-size: 16px; }
 }
 .no-scrollbar {
   -ms-overflow-style: none;
