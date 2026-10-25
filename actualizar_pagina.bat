@@ -1,84 +1,75 @@
 @echo off
-setlocal enabledelayedexpansion
 chcp 65001 > nul
-title Actualizar acoYAradas! - Git/Render
+title Actualizar acoYAradas! 
 
-echo ===================================
-echo   Actualizar acoYAradas! en Git/Render
-echo ===================================
-echo.
-
-cd /d "%~dp0"
-
-where git >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-  echo [ERROR] No se encontro Git en el PATH.
-  echo Instalala o ejecuta desde Git Bash/Terminal con Git disponible.
-  echo.
-  pause
-  exit /b 1
-)
-
-git rev-parse --is-inside-work-tree >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-  echo [ERROR] Esta carpeta no es un repositorio Git.
-  echo.
-  pause
-  exit /b 1
-)
-
-echo [1/4] Verificando cambios...
-git status --short
-echo.
-
-set "COMMIT_MSG=Update: mejoras UI"
-set /p "COMMIT_MSG=Mensaje del commit (ENTER para usar por defecto): "
-if "%COMMIT_MSG%"=="" set "COMMIT_MSG=Update: mejoras UI"
+REM Forzar uso de cmd
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
 
 echo.
-echo [2/4] Agregando cambios...
-git add -A
-if %ERRORLEVEL% NEQ 0 (
-  echo [ERROR] Fallo git add
-  pause
-  exit /b 1
-)
-echo [OK]
-
+echo ===========================================
+echo   ACTUALIZAR PAGINA - acoYAradas!
+echo ===========================================
 echo.
-echo [3/4] Creando commit...
-git diff --cached --quiet
-if %ERRORLEVEL% EQU 0 (
-  echo [AVISO] Sin cambios staged, intentando push igual...
-  echo.
-) else (
-  git commit -m "%COMMIT_MSG%"
-  if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Fallo git commit
+echo Carpeta: %CD%
+echo.
+
+REM Verificar git
+git --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Git no encontrado.
+    echo Abrí este archivo desde "Git Bash Here" o instalá Git.
+    echo.
     pause
-    exit /b 1
-  )
-  echo [OK]
-  echo.
+    exit /b
 )
 
-echo [4/4] Subiendo a GitHub...
+REM Verificar si es repo
+git rev-parse --git-dir >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] No es un repositorio git.
+    echo.
+    pause
+    exit /b
+)
+
+echo [PASO 1] Estado actual:
+git status -s
+echo.
+
+set /p COMMIT_MSG="Escribí el mensaje del commit (ENTER = auto): "
+if "%COMMIT_MSG%"=="" set COMMIT_MSG=chore: actualizar pagina
+
+echo.
+echo [PASO 2] git add .
+git add .
+if errorlevel 1 (
+    echo [ERROR] Fallo al agregar archivos
+    pause
+    exit /b
+)
+
+echo.
+echo [PASO 3] git commit
+git commit -m "%COMMIT_MSG%"
+if errorlevel 1 (
+    echo.
+    echo [INFO] Puede que no haya cambios nuevos, igual intento subir.
+    echo.
+)
+
+echo.
+echo [PASO 4] git push origin master
 git push origin master
-if %ERRORLEVEL% NEQ 0 (
-  echo.
-  echo Intentando git push -u origin master...
-  git push -u origin master
-  if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Fallo el push
-    pause
-    exit /b 1
-  )
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Fallo al subir. Probando con HEAD:master...
+    git push origin HEAD:master
 )
 
 echo.
-echo ===================================
-echo   Listo! Subido a GitHub. Render desplegará.
-echo ===================================
+echo ===========================================
+echo   PROCESO FINALIZADO
+echo ===========================================
 echo.
 pause
-endlocal
