@@ -1,7 +1,9 @@
-haz una auditoría de vulnerabilidades, resuelve las que encuentres y luego actualiza todo.
+[Etapa 1]
 
+Actua como un tester y busca bugs o problemas relacionados al cliente cuando quiere comprar.
+Tambien busca bugs o problemas en los paneles tanto de admin/comercio/delivery, etc
+luego soluciona y mejora todo.
 
+[Etapa 2]
 
-Analiza toda mi aplicación luego > en la parte de agregar productos en todos los perfiles, hay una sección dónde va la foto si el usuario quiere subir una, pero estaría bueno que aparezca un listado de iconos predeterminados de comidas/bebidas, por ejemplo si una empresa quiere agregar Empanadas a su catalogo, que pueda seleccionar entre dejarle un ícono de empanadas por defecto o subir una foto personalizada de su producto, así con todos o la gran mayoría de productos en formato icono sin que contengan marcas.
-
-También me gustaría poder añadir "Productos no afiliados", que aparezcan en la tienda sin ser afiliados a alguien, por ejemplo "Cigarrillos" pero ninguna de las empresas afiliadas vende eso, entonces el motomandado iría a comprar eso a cualquier lado con un precio que nos favorezca a nosotros, esta sección de Productos no afiliados, solamente la debería de poder gestionar el perfil que sea ADMIN, en la parte de la tienda principal, me gustaría que esta sección de productos no afiliados aparezca debajo de "Novedades"
+Mejora visualmente la estética de los paneles a la hora de agregar un producto, ya que se queda compactado y bugueado al querer añadir un producto.

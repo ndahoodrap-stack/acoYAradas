@@ -1,0 +1,6 @@
+[Etapa 1]
+
+Actúa como un diseñador web UI/UX experto
+
+[ ] Mejora visualmente la estética de todos los paneles (admin/comercio/etc) a la hora de agregar un producto, ya que se queda compactado y bugueado al querer añadir un producto.
+[ ] Mejora la visual en general de toda la pagina, sin cambiarla mucho actualmente, solo agregarle pequeños detalles que la mejorarían.
