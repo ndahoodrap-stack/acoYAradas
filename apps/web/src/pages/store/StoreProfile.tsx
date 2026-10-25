@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Field, Spinner } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
+import { TimeRangeSelect } from '../../components/TimeRangeSelect';
 import type { CategoryDto } from '@acoyaradas/shared';
 
 interface StoreProfileResponse {
@@ -272,18 +273,16 @@ export default function StoreProfile() {
         </div>
 
         <h2 className="pt-2 text-lg font-bold text-ink-900">Horarios</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {DAYS.map((day) => (
-            <Field key={day} label={day}>
-              <input
-                className="input"
-                value={form.open_hours?.[day] ?? ''}
-                onChange={(e) =>
-                  set('open_hours', { ...(form.open_hours ?? {}), [day]: e.target.value })
-                }
-                placeholder="09:00 - 21:00"
-              />
-            </Field>
+            <TimeRangeSelect
+              key={day}
+              dayLabel={day}
+              value={form.open_hours?.[day] ?? ''}
+              onChange={(v) =>
+                set('open_hours', { ...(form.open_hours ?? {}), [day]: v })
+              }
+            />
           ))}
         </div>
 
