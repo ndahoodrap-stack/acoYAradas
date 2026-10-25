@@ -162,7 +162,7 @@ ordersRouter.post(
       if (!cartItems.rows.length) throw badRequest('Tu carrito está vacío');
       const hasPlatformProduct = cartItems.rows.some((r: any) => !r.store_id);
       if (hasPlatformProduct) {
-        for (const item of cartItems.rows) { if (hasPlatformProduct) continue;
+        for (const item of cartItems.rows) {
           if (!item.store_id) {
             const pp = await tx.query(
               `select id, name, price, stock, status, is_available from public.platform_products where id = $1 and deleted_at is null`,
@@ -223,7 +223,7 @@ ordersRouter.post(
 
       // Totales calculados en el servidor
       let subtotal = 0;
-      for (const item of cartItems.rows) { if (hasPlatformProduct) continue;
+      for (const item of cartItems.rows) {
         if (item.product_status !== 'active' || !item.is_available) {
           throw conflict(`El producto "${item.name}" ya no está disponible`);
         }
@@ -266,7 +266,7 @@ ordersRouter.post(
       const total = money(Math.max(0, subtotal - discount + shipping.cost));
 
       // Descuento de stock (bloquea la fila para evitar oversell)
-      for (const item of cartItems.rows) { if (hasPlatformProduct) continue;
+      for (const item of cartItems.rows) {
         try {
           await tx.query('select public.decrement_stock($1, $2, null) as stock', [
             item.product_id,
@@ -304,7 +304,7 @@ ordersRouter.post(
         [
           code,
           publicToken(),
-          store.store_id ?? null,
+          store.store_id,
           ctx.user?.id ?? null,
           body.customer_name,
           body.phone,
@@ -327,7 +327,7 @@ ordersRouter.post(
       );
       const orderId = inserted.rows[0].id;
 
-      for (const item of cartItems.rows) { if (hasPlatformProduct) continue;
+      for (const item of cartItems.rows) {
         await tx.query(
           `insert into public.order_items
              (order_id, product_id, store_id, name_snapshot, price_snapshot, quantity, notes, line_total)
@@ -335,7 +335,7 @@ ordersRouter.post(
           [
             orderId,
             item.product_id,
-            hasPlatformProduct ? null : item.store_id,
+            item.store_id,
             item.name,
             Number(item.price),
             Number(item.quantity),
@@ -343,12 +343,10 @@ ordersRouter.post(
             money(Number(item.price) * Number(item.quantity)),
           ],
         );
-        if (!hasPlatformProduct) {
-          await tx.query('update public.stock_movements set order_id = $1 where product_id = $2 and order_id is null', [
-            orderId,
-            item.product_id,
-          ]);
-        }
+        await tx.query('update public.stock_movements set order_id = $1 where product_id = $2 and order_id is null', [
+          orderId,
+          item.product_id,
+        ]);
       }
 
       await tx.query(
@@ -391,9 +389,11 @@ ordersRouter.post(
       return {
         order,
         duplicate: false,
-        store_owner_id: store.store_id ? (
-          (await tx.query<{ owner_id: string }>('select owner_id from public.stores where id = $1', [store.store_id])).rows[0]?.owner_id
-        ) : undefined,
+        store_owner_id: (
+          await tx.query<{ owner_id: string }>('select owner_id from public.stores where id = $1', [
+            store.store_id,
+          ])
+        ).rows[0]?.owner_id,
       };
     });
 
