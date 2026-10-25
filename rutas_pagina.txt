@@ -1,0 +1,33 @@
+RUTAS PARA MODIFICAR LA PÁGINA - acoYAradas!
+
+== HOME / BANNER ==
+- apps/web/src/pages/Home.tsx
+  - Hero (sección con gradiente naranja): líneas ~64-147
+  - Banner imagen: /acoyaradasBANNER.png (en apps/web/public/)
+
+== HEADER / NAVEGACIÓN ==
+- apps/web/src/App.tsx (layout principal)
+- apps/web/src/components/ (revisar componentes generales)
+
+== FOOTER ==
+- apps/web/src/App.tsx o componentes de footer
+
+== PANELES (PRODUCTOS) ==
+- apps/web/src/components/ui.tsx (Modal, estilos generales)
+- apps/web/src/components/IconPicker.tsx (selector de íconos)
+- apps/web/src/lib/productIcons.ts (catálogo de íconos)
+- apps/web/src/pages/store/StoreProducts.tsx (panel comercio)
+- apps/web/src/pages/admin/AdminPlatformProducts.tsx (productos no afiliados)
+
+== ESTILOS GLOBALES ==
+- apps/web/src/index.css
+- apps/web/tailwind.config.js
+
+== API / BACKEND ==
+- apps/api/src/ (módulos)
+- packages/shared/src/ (tipos compartidos)
+
+== SUBIR IMÁGENES ==
+- Colocar en apps/web/public/ para que se accedan con /
+
+NOTA: Render hace auto-deploy desde master. Con git push se actualiza automáticamente.
