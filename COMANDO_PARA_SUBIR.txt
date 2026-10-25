@@ -1,0 +1,17 @@
+COMANDO PARA SUBIR CAMBIOS A GITHUB (AUTO-DEPLOY EN RENDER)
+
+Abrí una terminal (Git Bash, CMD o PowerShell) en esta carpeta:
+E:\Nueva carpeta (15)
+
+Copiá y pegá este comando completo:
+
+git add -A && git commit -m "Update: mejoras UI" && git push origin master
+
+Si querés poner un mensaje distinto, cambiá lo que va entre comillas.
+
+También podés hacerlo paso a paso:
+git add -A
+git commit -m "tu mensaje aquí"
+git push origin master
+
+Listo. Render despliega automáticamente al pushear a master.
