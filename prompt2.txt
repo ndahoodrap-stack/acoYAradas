@@ -1,1 +1,7 @@
-Al hacer cambios como admin en el panel de configuración ej: cambiar los horarios de atención, no se actualiza en la pagina principal, soluciona este bug y haz testeo de todas las configuraciones en todos los paneles admin/comercio/cliente etc para ver si hay otros errores de configuración que no se apliquen/actualicen en tiempo real.
+Comprueba porque por ejemplo el icono de los cigarrillos no se ve igual a los de por ejemplo "empanadas" "gaseosa" son basicamente el icono en tamaño chico con texto abajo y un fondo llamativo, porque el de cigarrillos y etc en general de productos no afiliados se ve asi?
+
+Al añadir un producto tanto como admin como comercio, el popup de añadir el nombre del producto y demas visualmente por debajo del header de la pagina principal, tambien se ve demasiado chico en pc, creo que tiene q ver conque el popup tiene 512px de ancho nada más, soluciona esto para todos los perfiles
+
+Encontré un bug que al añadir producto no afiliado y querer comprarlo aparece "El producto no existe"
+
+Encontré un bug que tiene que ver con la disponibilidad del negocio/comercio, por ejemplo, configuré Pizzería Napolí para que los sábados marque como "Abierto" en el horario de 09:00 a 17:30, pero al testear y ver que pasaron las 17:35, el negocio seguía apareciendo como "Abierto" en vez de Cerrado, cambia esto de los horarios para que funcione realmente y se actualice en tiempo real.

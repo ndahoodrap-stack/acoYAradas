@@ -178,7 +178,38 @@ cartRouter.post(
         [body.product_id],
       );
       const row = product.rows[0];
-      if (!row) throw notFound('El producto no existe');
+      if (!row) {
+        const platform = await tx.query(
+          `select id, name, price, stock, status, is_available
+             from public.platform_products
+            where id = $1 and deleted_at is null`,
+          [body.product_id],
+        );
+        const prow = platform.rows[0];
+        if (!prow || prow.status !== 'active' || !prow.is_available) {
+          throw notFound('El producto no existe');
+        }
+        const cart = await findOrCreateCart(tx, ctx.user?.id ?? null, guest);
+        const current = await tx.query<{ store_id: string; store_name: string; items: number }>(
+          `select 'platform' as store_id, 'Productos no afiliados' as store_name, count(*)::int as items
+             from public.cart_items
+            where cart_id = $1`,
+          [cart.id],
+        );
+        if (current.rows[0]?.items && !body.replace) {
+          throw conflict('Tu carrito tiene productos. Un pedido corresponde a un solo comercio.');
+        }
+        if (current.rows[0]?.items && body.replace) {
+          await tx.query('delete from public.cart_items where cart_id = $1', [cart.id]);
+        }
+        await tx.query(
+          `insert into public.cart_items (id, cart_id, product_id, quantity)
+           values (gen_random_uuid(), $1, $2, $3)
+           on conflict (cart_id, product_id) do update set quantity = public.cart_items.quantity + $3`,
+          [cart.id, prow.id, body.quantity],
+        );
+        return readCart(tx, cart.id);
+      }
       if (row.status !== 'active' || row.store_status !== 'active') {
         throw conflict('El producto no está disponible');
       }

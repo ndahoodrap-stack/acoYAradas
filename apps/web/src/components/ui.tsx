@@ -194,7 +194,7 @@ export function Modal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="animate-fade-up max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
+      <div className="animate-fade-up max-h-[92vh] w-full max-w-2xl overflow-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
         <div className="mb-4 flex items-start justify-between gap-4">
           <h3 className="text-lg font-bold text-ink-900">{title}</h3>
           <button

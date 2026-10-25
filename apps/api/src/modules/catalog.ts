@@ -329,13 +329,17 @@ catalogRouter.get(
     return withPublic(ctx.db, ctx.guestToken, async (tx) => {
       const { rows } = await tx.query(
         `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug,
-                s.logo_url as store_logo_url, s.is_open, s.locality
+                s.logo_url as store_logo_url, s.is_open, s.open_hours, s.locality, s.status as store_status
            from public.products p join public.stores s on s.id = p.store_id
           where p.id = $1`,
         [id],
       );
       if (!rows.length) throw notFound('El producto no existe');
-      return mapProduct(rows[0]);
+      const product = mapProduct(rows[0]);
+      if (rows[0].store_status === 'active') {
+        product.store_id = rows[0].store_id ?? null;
+      }
+      return product;
     });
   }),
 );
