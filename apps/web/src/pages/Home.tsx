@@ -66,7 +66,7 @@ export default function Home() {
           src="/acoyaradasBANNER.png"
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover object-center opacity-25 mix-blend-overlay"
+          className="absolute inset-0 h-full w-full object-cover object-center mix-blend-overlay"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500/80 via-brand-600/70 to-ink-900/90" />
         <div className="container-app relative grid gap-8 py-12 lg:grid-cols-2 lg:items-center lg:py-16">
