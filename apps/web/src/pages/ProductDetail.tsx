@@ -81,7 +81,7 @@ export default function ProductDetail() {
 
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-brand-600">
-            {data.store_name}
+            {data.store_name ?? 'Productos no afiliados'}
           </p>
           <h1 className="mt-1 text-3xl font-black tracking-tight text-ink-900">{data.name}</h1>
           <p className="mt-3 text-3xl font-black text-brand-600">{formatMoney(data.price)}</p>
@@ -130,7 +130,7 @@ export default function ProductDetail() {
             <button
               type="button"
               className="btn-primary"
-              disabled={data.stock <= 0}
+              disabled={data.stock <= 0 || !data.is_available}
               onClick={() => void handleAdd()}
             >
               Agregar al carrito

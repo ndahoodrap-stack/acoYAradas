@@ -189,12 +189,12 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[999] flex items-start justify-center overflow-y-auto bg-ink-900/60 p-3 pt-20 sm:items-center sm:p-4 sm:pt-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="animate-fade-up max-h-[92vh] w-full max-w-2xl overflow-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
+      <div className="animate-fade-up my-4 max-h-[calc(100vh-6rem)] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-5 shadow-2xl sm:max-h-[calc(100vh-2rem)]">
         <div className="mb-4 flex items-start justify-between gap-4">
           <h3 className="text-lg font-bold text-ink-900">{title}</h3>
           <button

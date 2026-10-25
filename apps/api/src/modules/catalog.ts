@@ -334,12 +334,23 @@ catalogRouter.get(
           where p.id = $1`,
         [id],
       );
-      if (!rows.length) throw notFound('El producto no existe');
-      const product = mapProduct(rows[0]);
-      if (rows[0].store_status === 'active') {
-        product.store_id = rows[0].store_id ?? null;
+      if (rows.length) {
+        const product = mapProduct(rows[0]);
+        if (rows[0].store_status === 'active') {
+          product.store_id = rows[0].store_id ?? null;
+        }
+        return product;
       }
-      return product;
+      const pp = await tx.query(
+        `select pp.id, pp.name, pp.description, pp.price, pp.stock, pp.image_url,
+                pp.category_id, pp.is_available, pp.featured, pp.status, pp.created_at,
+                null::text as store_name, null::text as store_slug
+           from public.platform_products pp
+          where pp.id = $1 and pp.deleted_at is null`,
+        [id],
+      );
+      if (!pp.rows.length) throw notFound('El producto no existe');
+      return mapProduct(pp.rows[0]);
     });
   }),
 );
