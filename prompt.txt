@@ -1,9 +1,0 @@
-[Etapa 1]
-
-Actua como un tester y busca bugs o problemas relacionados al cliente cuando quiere comprar.
-Tambien busca bugs o problemas en los paneles tanto de admin/comercio/delivery, etc
-luego soluciona y mejora todo.
-
-[Etapa 2]
-
-Mejora visualmente la estética de los paneles a la hora de agregar un producto, ya que se queda compactado y bugueado al querer añadir un producto.
