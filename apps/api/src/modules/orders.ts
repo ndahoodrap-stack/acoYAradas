@@ -152,23 +152,44 @@ ordersRouter.post(
                 s.preparation_time_minutes
            from public.cart_items ci
            join public.products p on p.id = ci.product_id
-           join public.stores s on s.id = p.store_id
+           left join public.stores s on s.id = p.store_id
           where ci.cart_id = $1
           order by ci.created_at`,
         [cart.id],
       );
+      let store: any = null;
 
       if (!cartItems.rows.length) throw badRequest('Tu carrito está vacío');
-      const storeIds = [...new Set(cartItems.rows.map((r: any) => r.store_id))];
-      if (storeIds.length > 1) {
-        throw conflict('Un pedido corresponde a un solo comercio: vaciá el carrito para cambiar de negocio', {
-          reason: 'mixed_stores',
-        });
-      }
-
-      const store = cartItems.rows[0];
-      if (store.store_status !== 'active' || store.deleted_at) {
-        throw conflict('El comercio no está accepting pedidos en este momento');
+      const hasPlatformProduct = cartItems.rows.some((r: any) => !r.store_id);
+      if (hasPlatformProduct) {
+        for (const item of cartItems.rows) {
+          if (!item.store_id) {
+            const pp = await tx.query(
+              `select id, name, price, stock, status, is_available from public.platform_products where id = $1 and deleted_at is null`,
+              [item.product_id],
+            );
+            if (!pp.rows[0] || pp.rows[0].status !== 'active' || !pp.rows[0].is_available) {
+              throw conflict('El producto no está disponible');
+            }
+          } else if (item.product_status !== 'active' || !item.is_available || item.store_status !== 'active' || item.deleted_at) {
+            throw conflict('El producto no está disponible');
+          }
+        }
+        if (body.fulfillment_type === 'pickup') throw conflict('Este pedido no permite retiro en el local');
+        if (body.fulfillment_type === 'delivery' && body.delivery_mode === 'merchant') throw conflict('Entrega propia no disponible para este pedido');
+        // ... continue with platformStore
+      } else {
+        const storeIds = [...new Set(cartItems.rows.map((r: any) => r.store_id))];
+        if (storeIds.length > 1) {
+          throw conflict('Un pedido corresponde a un solo comercio: vaciá el carrito para cambiar de negocio', {
+            reason: 'mixed_stores',
+          });
+        }
+        const store = cartItems.rows[0];
+        if (store.store_status !== 'active' || store.deleted_at) {
+          throw conflict('El comercio no está accepting pedidos en este momento');
+        }
+        // ... rest same
       }
 
       // Modalidad de entrega
