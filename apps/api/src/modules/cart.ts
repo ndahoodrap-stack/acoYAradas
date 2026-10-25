@@ -81,13 +81,36 @@ async function readCart(tx: DbExecutor, cartId: string) {
             p.store_id, s.name as store_name, s.slug as store_slug, s.is_open, s.status as store_status
        from public.cart_items ci
        join public.products p on p.id = ci.product_id
-       join public.stores s on s.id = p.store_id
+       left join public.stores s on s.id = p.store_id
       where ci.cart_id = $1
       order by ci.created_at`,
     [cartId],
   );
 
-  const mapped = items.rows.map((r: any) => ({
+  const platform = await tx.query(
+    `select ci.id, ci.product_id, ci.quantity, ci.notes,
+            pp.name as product_name, pp.price, pp.image_url, pp.stock, pp.is_available, pp.status
+       from public.cart_items ci
+       join public.platform_products pp on pp.id = ci.product_id
+       left join public.products p on p.id = ci.product_id
+      where ci.cart_id = $1 and p.id is null
+      order by ci.created_at`,
+    [cartId],
+  );
+
+  const merged = [
+    ...items.rows,
+    ...platform.rows.map((r: any) => ({
+      ...r,
+      store_id: null,
+      store_name: 'Productos no afiliados',
+      store_slug: null,
+      is_open: true,
+      store_status: 'active',
+    })),
+  ];
+
+  const mapped = merged.map((r: any) => ({
     id: r.id,
     product_id: r.product_id,
     store_id: r.store_id,
@@ -107,13 +130,14 @@ async function readCart(tx: DbExecutor, cartId: string) {
   let subtotal = 0;
   for (const item of mapped) {
     subtotal += item.line_total;
-    const entry = byStore.get(item.store_id) ?? {
+    const key = item.store_id || 'platform';
+    const entry = byStore.get(key) ?? {
       store_id: item.store_id,
       store_name: item.store_name,
       items: 0,
     };
     entry.items += 1;
-    byStore.set(item.store_id, entry);
+    byStore.set(key, entry);
   }
   const stores = [...byStore.values()];
   const primary = stores[0] ?? null;
