@@ -7,18 +7,19 @@ export function StoreCard({ store }: { store: StoreDto }) {
   return (
     <Link
       to={`/comercios/${store.slug}`}
-      className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
+      className="card group flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card"
     >
-      <div className="relative h-28 w-full overflow-hidden bg-ink-100">
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-ink-100">
         {store.cover_url ? (
           <img
             src={store.cover_url}
             alt=""
             loading="lazy"
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl">🏪</div>
+          <div className="flex h-full items-center justify-center text-3xl text-ink-400">🏪</div>
         )}
         {store.is_sponsored ? (
           <span className="absolute left-2 top-2">
@@ -52,16 +53,17 @@ export function ProductCard({ product }: { product: ProductDto }) {
       to={`/productos/${product.id}`}
       className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <div className="h-32 w-full overflow-hidden bg-ink-100">
+      <div className="aspect-square w-full overflow-hidden bg-ink-100">
         {product.image_url ? (
           <img
             src={product.image_url}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl">🍽️</div>
+          <div className="flex h-full items-center justify-center text-3xl text-ink-400">🍽️</div>
         )}
       </div>
       <div className="flex flex-1 flex-col p-3">

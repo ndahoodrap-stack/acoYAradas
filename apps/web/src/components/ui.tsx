@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Icon } from './Icon';
 import { ORDER_STATUS_LABELS, SPONSORED_LABEL, type OrderStatus } from '@acoyaradas/shared';
 
 export function Spinner({ label = 'Cargando…' }: { label?: string }) {
@@ -63,12 +65,7 @@ const ALERT_TONES = {
   danger: 'border-red-200 bg-red-50 text-red-900',
 } as const;
 
-const ALERT_ICONS = {
-  info: '💡',
-  success: '✅',
-  warn: '⚠️',
-  danger: '⛔',
-} as const;
+
 
 /** Mensaje informativo con tono, para reemplazar divs sueltos. */
 export function Alert({
@@ -85,7 +82,10 @@ export function Alert({
       role={tone === 'danger' ? 'alert' : 'status'}
       className={`flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${ALERT_TONES[tone]} ${className}`}
     >
-      <span aria-hidden>{ALERT_ICONS[tone]}</span>
+      <Icon
+        name={tone === 'success' ? 'success' : tone === 'info' ? 'info' : 'warning'}
+        className="mt-0.5 h-4 w-4 shrink-0"
+      />
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -186,6 +186,27 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // focus first focusable
+    const t = window.setTimeout(() => {
+      const el = ref.current?.querySelector<HTMLElement>('button, input, select, textarea, a, [tabindex]:not([tabindex="-1"])');
+      el?.focus();
+    }, 50);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+      window.clearTimeout(t);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
     <div
@@ -194,7 +215,7 @@ export function Modal({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="animate-fade-up my-4 max-h-[calc(100vh-8rem)] w-full max-w-4xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-ink-900/5 sm:max-h-[calc(100vh-3rem)] sm:p-8">
+      <div ref={ref} className="animate-fade-up my-4 max-h-[calc(100vh-8rem)] w-full max-w-3xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-ink-900/5 sm:max-h-[calc(100vh-3rem)] sm:p-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">{title}</h3>
@@ -206,7 +227,7 @@ export function Modal({
             onClick={onClose}
             aria-label="Cerrar"
           >
-            ✕
+            <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
         <div className="space-y-5">{children}</div>

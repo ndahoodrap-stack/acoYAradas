@@ -50,6 +50,7 @@ export default {
       },
       boxShadow: {
         card: '0 1px 2px rgba(15,23,42,.06), 0 8px 24px -12px rgba(15,23,42,.18)',
+        'card-hover': '0 4px 12px rgba(15,23,42,.08), 0 16px 40px -16px rgba(249,115,22,.25)',
       },
       keyframes: {
         'fade-up': {
