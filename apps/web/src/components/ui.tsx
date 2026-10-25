@@ -189,25 +189,28 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-[999] flex items-start justify-center overflow-y-auto bg-ink-900/60 p-3 pt-20 sm:items-center sm:p-4 sm:pt-4"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-ink-900/70 p-3 pt-16 backdrop-blur-sm transition-all sm:items-center sm:p-6 sm:pt-6"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="animate-fade-up my-4 max-h-[calc(100vh-6rem)] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-5 shadow-2xl sm:max-h-[calc(100vh-2rem)]">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <h3 className="text-lg font-bold text-ink-900">{title}</h3>
+      <div className="animate-fade-up my-4 max-h-[calc(100vh-8rem)] w-full max-w-4xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-ink-900/5 sm:max-h-[calc(100vh-3rem)] sm:p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">{title}</h3>
+            <div className="mt-1 h-1 w-12 rounded-full bg-gradient-to-r from-brand-500 to-amber-500" />
+          </div>
           <button
             type="button"
-            className="btn-ghost -mr-2 -mt-1 px-2 py-1"
+            className="btn-ghost -mr-2 -mt-1 grid h-9 w-9 place-items-center rounded-full p-0"
             onClick={onClose}
             aria-label="Cerrar"
           >
             ✕
           </button>
         </div>
-        <div className="space-y-3">{children}</div>
-        {footer ? <div className="mt-5 flex flex-wrap justify-end gap-2">{footer}</div> : null}
+        <div className="space-y-5">{children}</div>
+        {footer ? <div className="mt-7 flex flex-wrap justify-end gap-2 border-t border-ink-100 pt-5">{footer}</div> : null}
       </div>
     </div>
   );

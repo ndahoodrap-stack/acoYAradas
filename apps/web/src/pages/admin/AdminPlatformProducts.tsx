@@ -207,89 +207,113 @@ export default function AdminPlatformProducts() {
               disabled={save.isPending}
               onClick={() => save.mutate()}
             >
-              Guardar
+              {save.isPending ? 'Guardando...' : 'Guardar producto'}
             </button>
           </>
         }
       >
-        <Field label="Nombre">
-          <input
-            className="input"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-        </Field>
-        <Field label="Descripción">
-          <textarea
-            rows={3}
-            className="input"
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          />
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Precio (ARS)">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={form.price}
-              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-            />
-          </Field>
-          <Field label="Stock">
-            <input
-              type="number"
-              min={0}
-              className="input"
-              value={form.stock}
-              onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-            />
-          </Field>
+        <div className="rounded-2xl border border-ink-100 bg-ink-50/40 p-4 sm:p-5">
+          <p className="mb-3 text-sm font-semibold text-ink-900">Información básica</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Field label="Nombre">
+                <input
+                  className="input"
+                  placeholder="Ej. Combo promocional"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Descripción">
+                <textarea
+                  rows={4}
+                  className="input min-h-[96px]"
+                  placeholder="Descripción del producto..."
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <Field label="Precio (ARS)">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className="input"
+                placeholder="0.00"
+                value={form.price}
+                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+              />
+            </Field>
+            <Field label="Stock">
+              <input
+                type="number"
+                min={0}
+                className="input"
+                placeholder="0"
+                value={form.stock}
+                onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Categoría">
+                <select
+                  className="input"
+                  value={form.category_id}
+                  onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+                >
+                  <option value="">Sin categoría</option>
+                  {(categories?.items ?? []).map((cat: any) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Categoría">
-            <select
-              className="input"
-              value={form.category_id}
-              onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
-            >
-              <option value="">Sin categoría</option>
-              {(categories?.items ?? []).map((cat: any) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <IconPicker
-            value={form.image_url}
-            onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
-          />
+
+        <div className="rounded-2xl border border-ink-100 bg-white p-4 sm:p-5">
+          <p className="mb-3 text-sm font-semibold text-ink-900">Imagen o ícono</p>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-ink-200/80 bg-ink-50/30 p-4">
+              <IconPicker
+                value={form.image_url}
+                onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+              />
+            </div>
+            <FileUpload
+              label="Foto personalizada (opcional)"
+              hint="Si subís una foto, reemplaza al icono elegido. Se recomienda imagen cuadrada."
+              value={form.image_url}
+              onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+            />
+          </div>
         </div>
-        <FileUpload
-          label="Foto personalizada (opcional)"
-          hint="Si subís una foto, reemplaza al icono elegido."
-          value={form.image_url}
-          onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
-        />
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.is_available}
-            onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
-          />
-          Disponible para la venta
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.featured}
-            onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
-          />
-          Destacado
-        </label>
+
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-ink-100 bg-ink-50/40 px-4 py-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+              checked={form.is_available}
+              onChange={(e) => setForm((f) => ({ ...f, is_available: e.target.checked }))}
+            />
+            Disponible para la venta
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+              checked={form.featured}
+              onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+            />
+            Destacado
+          </label>
+        </div>
       </Modal>
     </div>
   );
