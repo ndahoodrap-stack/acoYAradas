@@ -11,6 +11,7 @@ import { insertNotificationsAs } from '../lib/notify.js';
 import { computeCommission, computeDiscount, computeShipping } from './pricing.js';
 import { applyOrderStatus } from './orderStatus.js';
 import { notifyOrderWhatsApp } from '../lib/whatsapp.js';
+import { config } from '../config.js';
 
 /** Pedidos (Etapa 1 y 3). */
 export const ordersRouter = Router();
