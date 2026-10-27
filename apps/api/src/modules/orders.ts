@@ -270,14 +270,26 @@ ordersRouter.post(
       }
       const { discount, promotion } = computeDiscount(subtotal, matching);
 
+      // Para entregas platform (productos no afiliados), usar tarifas globales (store_id = null)
+      // ya que el envío lo gestiona acoYAradas!, no un comercio específico
+      const isPlatformDelivery = body.delivery_mode === 'platform';
+      const shippingStore = isPlatformDelivery
+        ? {
+            id: null, // fuerza tarifas globales (store_id IS NULL)
+            zone_id: store.zone_id, // mantiene zona para tarifas por zona globales
+            merchant_delivery_fee: 0,
+            merchant_delivery_notes: null,
+          }
+        : {
+            id: store.store_id,
+            zone_id: store.zone_id,
+            merchant_delivery_fee: Number(store.merchant_delivery_fee ?? 0),
+            merchant_delivery_notes: store.merchant_delivery_notes,
+          };
+
       const shipping = await computeShipping(
         tx,
-        {
-          id: store.store_id,
-          zone_id: store.zone_id,
-          merchant_delivery_fee: Number(store.merchant_delivery_fee ?? 0),
-          merchant_delivery_notes: store.merchant_delivery_notes,
-        },
+        shippingStore,
         body.fulfillment_type,
         body.delivery_mode,
       );
