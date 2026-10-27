@@ -45,15 +45,14 @@ export default function AdminUsers() {
 
   const createUser = useMutation({
     mutationFn: async (input: typeof createForm) => {
-      const res = await api.post<{ user: { id: string } }>('/auth/register', {
+      // Usa endpoint de admin para permitir dominio @acoyaradas.app
+      const res = await api.post<{ id: string; email: string; full_name: string; role: string }>('/admin/users', {
         email: input.email,
         password: input.password,
         full_name: input.full_name,
         phone: input.phone || undefined,
+        role: input.role,
       });
-      if (input.role !== 'customer') {
-        await api.patch(`/admin/users/${res.user.id}`, { role: input.role });
-      }
       return res;
     },
     onSuccess: async () => {

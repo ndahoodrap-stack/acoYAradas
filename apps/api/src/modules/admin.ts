@@ -1742,6 +1742,48 @@ adminRouter.patch(
   }),
 );
 
+/** Admin crea usuario (permite dominio @acoyaradas.app para pruebas de comercios). */
+adminRouter.post(
+  '/users',
+  route(async (ctx, req) => {
+    const admin = requireAdmin(ctx);
+    const { email, password, full_name, phone, role = 'customer' } = ctx.req.body ?? {};
+    if (!email || !password || !full_name) throw badRequest('Faltan datos obligatorios');
+    if (!['admin', 'store_owner', 'store_staff', 'courier', 'customer'].includes(role)) {
+      throw badRequest('Rol inválido');
+    }
+    // Validación de email: admite @acoyaradas.app solo para admins creando usuarios de prueba
+    const isTestDomain = email.endsWith('@acoyaradas.app');
+    if (isTestDomain && ctx.claims.role !== 'admin') {
+      throw badRequest('Solo administradores pueden usar el dominio de pruebas');
+    }
+
+    return run(ctx, async (tx) => {
+      // Crear usuario via auth local (bypass Supabase domain restrictions)
+      const userId = await tx.query<{ id: string }>(`select public.gen_random_uuid() as id`).then(r => r.rows[0].id);
+      await tx.query(
+        `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,'customer')`,
+        [userId, email.toLowerCase(), await (await import('../auth/password.js')).hashPassword(password)],
+      );
+      await tx.query(
+        `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)`,
+        [userId, email.toLowerCase(), full_name, phone?.trim() || null, role],
+      );
+      await audit(tx, {
+        actorId: admin.id,
+        actorRole: admin.role,
+        actorName: admin.full_name ?? admin.email,
+        action: 'user_created',
+        entityType: 'profile',
+        entityId: userId,
+        metadata: { email, role, testDomain: isTestDomain },
+        ip: ctx.ip,
+      });
+      return { id: userId, email, full_name, role };
+    });
+  }),
+);
+
 adminRouter.delete(
   '/users/:id',
   route(async (ctx, req) => {
@@ -1760,6 +1802,7 @@ adminRouter.delete(
       }
       await tx.query('update public.profiles set deleted_at = now(), updated_at = now() where id = $1', [id]);
       await tx.query('update public.riders set deleted_at = now(), active = false, available = false where user_id = $1', [id]);
+      await tx.query('delete from public.local_users where id = $1', [id]);
       await audit(tx, {
         actorId: admin.id,
         actorRole: admin.role,
