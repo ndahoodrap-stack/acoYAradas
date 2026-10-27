@@ -123,7 +123,6 @@ export function FileUpload({
       {showCropper && cropperSrc && (
         <ImageCropper src={cropperSrc} aspectRatio={effectiveAspectRatio}
           onCropComplete={handleCropComplete} onCancel={handleCropCancel}
-          circular={effectiveAspectRatio === 1}
           recommendedWidth={recommendedWidth} recommendedHeight={recommendedHeight} />
       )}
     </div>

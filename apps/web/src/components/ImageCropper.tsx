@@ -5,7 +5,6 @@ interface ImageCropperProps {
   aspectRatio: number;
   onCropComplete: (blob: Blob) => void;
   onCancel: () => void;
-  circular?: boolean;
   recommendedWidth?: number;
   recommendedHeight?: number;
 }
@@ -21,7 +20,6 @@ export function ImageCropper({
   aspectRatio,
   onCropComplete,
   onCancel,
-  circular = false,
   recommendedWidth,
   recommendedHeight,
 }: ImageCropperProps) {
@@ -41,7 +39,8 @@ export function ImageCropper({
     startCrop: CropState;
   } | null>(null);
 
-  const isCircle = circular && Math.abs(aspectRatio - 1) < 0.01;
+  // For 1:1 aspect ratio, use square mask (not circular)
+  const isSquare = Math.abs(aspectRatio - 1) < 0.01;
   const animationRef = useRef<number>();
 
   // Track container CSS size with ResizeObserver
@@ -72,7 +71,7 @@ export function ImageCropper({
 
   // Load image
   useEffect(() => {
-    if (!cssWidth || !cssHeight) return; // wait for container size
+    if (!cssWidth || !cssHeight) return;
 
     setImgLoaded(false);
     setImgError(false);
@@ -91,7 +90,6 @@ export function ImageCropper({
       if (cancelled) return;
       clearTimeout(timeout);
       setImgLoaded(true);
-      // Initialize centered crop
       const imgAR = img.naturalWidth / img.naturalHeight;
       const cropAR = aspectRatio;
       let initScale: number;
@@ -124,7 +122,7 @@ export function ImageCropper({
     };
   }, [src, aspectRatio, cssWidth, cssHeight]);
 
-  // Render loop - draw image + WhatsApp-style mask
+  // Render loop
   useEffect(() => {
     if (!imgLoaded || !canvasRef.current || !imgRef.current || !cssWidth || !cssHeight) return;
 
@@ -133,15 +131,12 @@ export function ImageCropper({
       const img = imgRef.current!;
       const ctx = canvas.getContext('2d')!;
 
-      // Clear (context is already scaled to CSS pixels via setTransform)
       ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-      // Draw image
       const imgW = img.naturalWidth * crop.scale;
       const imgH = img.naturalHeight * crop.scale;
       ctx.drawImage(img, crop.x, crop.y, imgW, imgH);
 
-      // Draw WhatsApp-style mask overlay
       drawMask(ctx, cssWidth, cssHeight);
 
       animationRef.current = requestAnimationFrame(draw);
@@ -149,72 +144,90 @@ export function ImageCropper({
 
     draw();
     return () => cancelAnimationFrame(animationRef.current!);
-  }, [imgLoaded, crop, aspectRatio, isCircle, cssWidth, cssHeight]);
+  }, [imgLoaded, crop, aspectRatio, isSquare, cssWidth, cssHeight]);
 
   const drawMask = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => {
     const centerX = w / 2;
     const centerY = h / 2;
 
-    if (isCircle) {
-      const radius = Math.min(w, h) / 2 * 0.92;
+    if (isSquare) {
+      // Square crop area - 85% of smaller dimension
+      const size = Math.min(w, h) * 0.85;
+      const x = centerX - size / 2;
+      const y = centerY - size / 2;
+      const r = 8; // rounded corners
 
-      // 1. Dark overlay everywhere
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      // 1. Dark semi-transparent overlay everywhere
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
       ctx.fillRect(0, 0, w, h);
 
-      // 2. Cut out bright center circle (destination-out makes it transparent)
+      // 2. Cut out transparent square center (destination-out)
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.roundRect(x, y, size, size, r);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // 3. White border ring
+      // 3. White border around the transparent square
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.roundRect(x, y, size, size, r);
       ctx.stroke();
 
       // 4. Subtle inner highlight
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
+      ctx.roundRect(x + 2, y + 2, size - 4, size - 4, r - 2);
       ctx.stroke();
+
+      // 5. Corner handles for visual resize affordance
+      const handleSize = 18;
+      const handlePositions = [
+        { x: x - handleSize/2, y: y - handleSize/2 }, // top-left
+        { x: x + size - handleSize/2, y: y - handleSize/2 }, // top-right
+        { x: x - handleSize/2, y: y + size - handleSize/2 }, // bottom-left
+        { x: x + size - handleSize/2, y: y + size - handleSize/2 }, // bottom-right
+      ];
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.strokeStyle = 'rgba(59, 130, 246, 1)';
+      ctx.lineWidth = 2;
+      for (const pos of handlePositions) {
+        ctx.beginPath();
+        ctx.roundRect(pos.x, pos.y, handleSize, handleSize, 4);
+        ctx.fill();
+        ctx.stroke();
+      }
     } else {
-      // Rectangular mask with rounded corners
-      const cropW = w * 0.88;
+      // Rectangular mask (banner, 16:9, 3:4) - same logic but rectangular
+      const cropW = w * 0.85;
       const cropH = cropW / aspectRatio;
       const x = centerX - cropW / 2;
       const y = centerY - cropH / 2;
       const r = 12;
 
-      // Dark overlay
       ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.fillRect(0, 0, w, h);
 
-      // Cut out rectangle
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.roundRect(x, y, cropW, cropH, r);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // White border
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(x, y, cropW, cropH, r);
       ctx.stroke();
     }
-  }, [aspectRatio, isCircle]);
+  }, [aspectRatio, isSquare]);
 
-  // Interaction handlers
+  // Interaction
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (!imgLoaded) return;
     const rect = canvasRef.current!.getBoundingClientRect();
-    // Ignore clicks on top bar area
     if (e.clientY < rect.top + 60) return;
 
     setDragState({
@@ -229,19 +242,14 @@ export function ImageCropper({
     if (!dragState || dragState.type !== 'move') return;
     e.preventDefault();
 
-    const dx = e.clientX - dragState.startX;
-    const dy = e.clientY - dragState.startY;
-
     setCrop({
       ...dragState.startCrop,
-      x: dragState.startCrop.x + dx,
-      y: dragState.startCrop.y + dy,
+      x: dragState.startCrop.x + (e.clientX - dragState.startX),
+      y: dragState.startCrop.y + (e.clientY - dragState.startY),
     });
   }, [dragState]);
 
-  const handlePointerUp = useCallback(() => {
-    setDragState(null);
-  }, []);
+  const handlePointerUp = useCallback(() => setDragState(null), []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (!imgLoaded) return;
@@ -264,27 +272,17 @@ export function ImageCropper({
   const handleZoomIn = useCallback(() => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const newScale = Math.min(6, crop.scale * 1.25);
-    setCrop({
-      x: centerX - (centerX - crop.x) * (newScale / crop.scale),
-      y: centerY - (centerY - crop.y) * (newScale / crop.scale),
-      scale: newScale,
-    });
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const ns = Math.min(6, crop.scale * 1.25);
+    setCrop({ x: cx - (cx - crop.x) * (ns / crop.scale), y: cy - (cy - crop.y) * (ns / crop.scale), scale: ns });
   }, [crop]);
 
   const handleZoomOut = useCallback(() => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const newScale = Math.max(0.4, crop.scale / 1.25);
-    setCrop({
-      x: centerX - (centerX - crop.x) * (newScale / crop.scale),
-      y: centerY - (centerY - crop.y) * (newScale / crop.scale),
-      scale: newScale,
-    });
+    const cx = rect.width / 2, cy = rect.height / 2;
+    const ns = Math.max(0.4, crop.scale / 1.25);
+    setCrop({ x: cx - (cx - crop.x) * (ns / crop.scale), y: cy - (cy - crop.y) * (ns / crop.scale), scale: ns });
   }, [crop]);
 
   // Generate cropped blob
@@ -300,16 +298,18 @@ export function ImageCropper({
 
     let cropX: number, cropY: number, cropW: number, cropH: number;
 
-    if (isCircle) {
-      const radius = Math.min(w, h) / 2 * 0.92;
+    if (isSquare) {
+      const size = Math.min(w, h) * 0.85;
       const centerX = w / 2;
       const centerY = h / 2;
-      cropW = radius * 2;
-      cropH = radius * 2;
-      cropX = (centerX - crop.x - radius) / crop.scale;
-      cropY = (centerY - crop.y - radius) / crop.scale;
+      const x = centerX - size / 2;
+      const y = centerY - size / 2;
+      cropW = size;
+      cropH = size;
+      cropX = (x - crop.x) / crop.scale;
+      cropY = (y - crop.y) / crop.scale;
     } else {
-      const cropW_ = w * 0.88;
+      const cropW_ = w * 0.85;
       const cropH_ = cropW_ / aspectRatio;
       const centerX = w / 2;
       const centerY = h / 2;
@@ -321,7 +321,6 @@ export function ImageCropper({
       cropY = (y - crop.y) / crop.scale;
     }
 
-    // Output canvas
     const outCanvas = document.createElement('canvas');
     const outCtx = outCanvas.getContext('2d')!;
     const maxW = recommendedWidth || 2048;
@@ -336,10 +335,10 @@ export function ImageCropper({
     outCanvas.width = outW;
     outCanvas.height = outH;
 
-    if (isCircle) {
+    if (isSquare) {
       outCtx.save();
       outCtx.beginPath();
-      outCtx.arc(outW/2, outH/2, Math.min(outW, outH)/2, 0, Math.PI * 2);
+      outCtx.roundRect(0, 0, outW, outH, Math.min(outW, outH) * 0.08);
       outCtx.clip();
       outCtx.drawImage(img, cropX, cropY, cropW / crop.scale, cropH / crop.scale, 0, 0, outW, outH);
       outCtx.restore();
@@ -352,14 +351,11 @@ export function ImageCropper({
       'image/jpeg',
       0.92
     );
-  }, [crop, aspectRatio, isCircle, recommendedWidth, recommendedHeight, onCropComplete]);
+  }, [crop, aspectRatio, isSquare, recommendedWidth, recommendedHeight, onCropComplete]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
-      if (src.startsWith('blob:') || src.startsWith('data:')) {
-        URL.revokeObjectURL(src);
-      }
+      if (src.startsWith('blob:') || src.startsWith('data:')) URL.revokeObjectURL(src);
     };
   }, [src]);
 
@@ -382,28 +378,28 @@ export function ImageCropper({
          onPointerUp={handlePointerUp}
          onPointerLeave={handlePointerUp}
          onWheel={handleWheel}>
-      <div ref={containerRef} className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col">
-        {/* Top bar - always on top */}
+      <div ref={containerRef} className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+        {/* Top bar */}
         <div className="flex items-center justify-between p-4 border-b border-ink-200 bg-white flex-shrink-0 z-10 relative">
           <h2 className="text-lg font-semibold text-ink-900">
-            {isCircle ? 'Recortar foto de perfil' : 'Recortar imagen'}
+            {isSquare ? 'Recortar foto de perfil (cuadrado)' : 'Recortar imagen'}
           </h2>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-ink-100 rounded-lg p-1">
-              <button onClick={handleZoomOut} className="p-2 rounded hover:bg-ink-200" aria-label="Alejar" disabled={!imgLoaded}>
+              <button onClick={handleZoomOut} className="p-2 rounded hover:bg-ink-200 transition-colors" aria-label="Alejar" disabled={!imgLoaded}>
                 <svg className="w-5 h-5 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </button>
-              <button onClick={handleZoomIn} className="p-2 rounded hover:bg-ink-200" aria-label="Acercar" disabled={!imgLoaded}>
+              <button onClick={handleZoomIn} className="p-2 rounded hover:bg-ink-200 transition-colors" aria-label="Acercar" disabled={!imgLoaded}>
                 <svg className="w-5 h-5 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m0-6H6"/></svg>
               </button>
             </div>
-            <button onClick={onCancel} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500" aria-label="Cancelar">
+            <button onClick={onCancel} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500 transition-colors" aria-label="Cancelar">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
         </div>
 
-        {/* Canvas area - fills remaining space */}
+        {/* Canvas area */}
         <div className="relative bg-ink-100 flex-1 min-h-[300px] max-h-[60vh] overflow-hidden">
           <canvas
             ref={canvasRef}
@@ -412,7 +408,6 @@ export function ImageCropper({
           />
           <img ref={imgRef} style={{ display: 'none' }} aria-hidden="true" />
 
-          {/* Loading overlay */}
           {!imgLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-ink-100 z-10">
               <div className="text-center">
@@ -423,15 +418,15 @@ export function ImageCropper({
           )}
 
           <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
-            {isCircle ? 'Círculo (1:1)' : aspectRatio === 3 ? 'Banner 3:1' : aspectRatio === 16/9 ? '16:9' : '3:4'}
+            {isSquare ? 'Cuadrado 1:1' : aspectRatio === 3 ? 'Banner 3:1' : aspectRatio === 16/9 ? '16:9' : '3:4'}
           </div>
 
           <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg p-1.5 text-xs text-ink-600 z-10">
-            Arrastra para mover · Rueda para zoom
+            Arrastra · Rueda para zoom
           </div>
         </div>
 
-        {/* Bottom bar - always visible, never covered */}
+        {/* Bottom bar - always visible */}
         <div className="flex justify-end gap-3 p-4 border-t border-ink-200 bg-ink-50 flex-shrink-0 z-10 relative">
           <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
           <button className="btn-primary" onClick={handleApply} disabled={!imgLoaded}>
