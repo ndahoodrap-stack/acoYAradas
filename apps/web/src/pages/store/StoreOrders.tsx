@@ -33,7 +33,6 @@ export default function StoreOrders() {
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<Record<string, string>>({});
-  const [responsible, setResponsible] = useState<Record<string, string>>({});
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['store-orders', status],
@@ -155,25 +154,19 @@ export default function StoreOrders() {
                   <div className="grid gap-2 sm:grid-cols-3">
                     <label className="text-xs text-ink-600">
                       Tiempo de preparación (min)
-                      <input
-                        type="number"
-                        min={0}
+                      <select
                         className="input mt-1"
-                        value={prepMinutes[order.id] ?? ''}
+                        value={prepMinutes[order.id] ?? '15'}
                         onChange={(e) =>
                           setPrepMinutes((m) => ({ ...m, [order.id]: e.target.value }))
                         }
-                      />
-                    </label>
-                    <label className="text-xs text-ink-600">
-                      Responsable del envío
-                      <input
-                        className="input mt-1"
-                        value={responsible[order.id] ?? ''}
-                        onChange={(e) =>
-                          setResponsible((m) => ({ ...m, [order.id]: e.target.value }))
-                        }
-                      />
+                      >
+                        {[5, 10, 15, 20, 30, 45, 60].map((m) => (
+                          <option key={m} value={m}>
+                            {m} min
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <div className="flex items-end gap-2">
                       {NEXT_ACTIONS[order.status].map((action) => (
