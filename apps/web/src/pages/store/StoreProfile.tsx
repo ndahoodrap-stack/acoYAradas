@@ -108,20 +108,6 @@ export default function StoreProfile() {
 
   return (
     <div className="space-y-4">
-      {data?.limits ? (
-        <div className="card bg-brand-50 p-4 text-sm text-brand-900">
-          <strong>Plan actual:</strong> {data.limits.name}. Máximo{' '}
-          {data.limits.product_limit} productos y {data.limits.promo_limit} promociones activas.
-          {data.subscription ? (
-            <>
-              {' '}
-              Suscripción {data.subscription.status} hasta{' '}
-              {new Date(data.subscription.ends_at).toLocaleDateString('es-AR')}.
-            </>
-          ) : null}
-        </div>
-      ) : null}
-
       {message ? (
         <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
