@@ -233,6 +233,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 { to: '/categorias', label: 'Categorías' },
                 { to: '/publicidad', label: 'Publicidad' },
                 { to: '/sumate', label: 'Sumate como comercio' },
+                { to: '/mi-perfil', label: 'Mi perfil' },
                 { to: '/mis-pedidos', label: 'Mis pedidos' },
                 { to: '/seguimiento', label: 'Seguir un pedido' },
               ].map((link) => (

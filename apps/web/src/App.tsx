@@ -17,6 +17,7 @@ import Track from './pages/Track';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MyOrders from './pages/MyOrders';
+import MyProfile from './pages/MyProfile';
 import Legal from './pages/Legal';
 import BecomeStore from './pages/BecomeStore';
 import Advertising from './pages/Advertising';
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="/ingresar" element={<Login />} />
           <Route path="/registrarse" element={<Register />} />
           <Route path="/mis-pedidos" element={<MyOrders />} />
+          <Route path="/mi-perfil" element={<MyProfile />} />
           <Route path="/legal/:slug" element={<Legal />} />
           <Route path="/sumate" element={<BecomeStore />} />
           <Route path="/publicidad" element={<Advertising />} />

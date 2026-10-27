@@ -47,6 +47,51 @@ authRouter.get(
   '/me',
   route(async (ctx) => {
     if (!ctx.user) return { user: null };
-    return { user: ctx.user };
+    const profile = await ctx.db.transaction(async (tx) => {
+      await applyClaims(tx, ctx.claims);
+      const { rows } = await tx.query(
+        'select id, email, full_name, phone, role, avatar_url from public.profiles where id = $1 and deleted_at is null',
+        [ctx.user!.id],
+      );
+      return rows[0] ?? null;
+    });
+    return { user: ctx.user, profile };
+  }),
+);
+
+authRouter.patch(
+  '/me',
+  route(async (ctx, req) => {
+    if (!ctx.user) throw badRequest('Necesitás iniciar sesión');
+    const full_name = String(req.body?.full_name ?? '').trim() || null;
+    const phone = String(req.body?.phone ?? '').trim() || null;
+    const avatar_url = req.body?.avatar_url === undefined ? undefined : (String(req.body.avatar_url ?? '').trim() || null);
+    return ctx.db.transaction(async (tx) => {
+      await applyClaims(tx, ctx.claims);
+      const fields = ['full_name = $2', 'phone = $3', 'updated_at = now()'];
+      const params: unknown[] = [ctx.user!.id, full_name, phone];
+      if (avatar_url !== undefined) {
+        fields.push(`avatar_url = $${params.length + 1}`);
+        params.push(avatar_url);
+      }
+      await tx.query(`update public.profiles set ${fields.join(', ')} where id = $1`, params);
+      const { rows } = await tx.query(
+        'select id, email, full_name, phone, role, avatar_url from public.profiles where id = $1',
+        [ctx.user!.id],
+      );
+      return rows[0];
+    });
+  }),
+);
+
+authRouter.delete(
+  '/me',
+  route(async (ctx) => {
+    if (!ctx.user) throw badRequest('Necesitás iniciar sesión');
+    await ctx.db.transaction(async (tx) => {
+      await applyClaims(tx, ctx.claims);
+      await tx.query('update public.profiles set deleted_at = now(), updated_at = now() where id = $1', [ctx.user!.id]);
+    });
+    return { ok: true };
   }),
 );
