@@ -46,6 +46,7 @@ export function ImageCropper({
   const [cropperReady, setCropperReady] = useState(false);
   const [isCircular, setIsCircular] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('Iniciando...');
 
   // Determine if circular mask should be used
   useEffect(() => {
@@ -58,63 +59,75 @@ export function ImageCropper({
     if (!imageRef.current || cropperRef.current) return;
     setImageError(false);
     setCropperReady(false);
+    setDebugInfo('Esperando imagen...');
 
     const image = imageRef.current;
 
     const initCropper = () => {
       if (!imageRef.current) return;
+      setDebugInfo('Inicializando cropper...');
 
-      // Use type assertion to bypass TypeScript issues with cropperjs types
-      const cropper = new Cropper(imageRef.current, {
-        aspectRatio: aspectRatio,
-        viewMode: 2,
-        dragMode: 'move',
-        autoCropArea: 0.9,
-        restore: false,
-        guides: false,
-        center: false,
-        highlight: false,
-        background: false,
-        modal: true,
-        movable: true,
-        rotatable: false,
-        scalable: false,
-        zoomable: true,
-        zoomOnTouch: true,
-        zoomOnWheel: true,
-        wheelZoomRatio: 0.1,
-        minContainerWidth: 320,
-        minContainerHeight: 200,
-        ready() {
-          setCropperReady(true);
-          // Apply circular/rectangular class to cropper elements
-          applyCropperStyles();
-          // Set initial zoom to fit nicely
-          setTimeout(() => {
-            if (cropperRef.current) {
-              cropperRef.current.zoomTo(1);
-            }
-          }, 50);
-        },
-        cropmove() {
-          // Reapply styles on move in case elements are recreated
-          applyCropperStyles();
-        },
-        zoom() {
-          applyCropperStyles();
-        },
-      } as any) as unknown as CropperInstance;
+      try {
+        // Use type assertion to bypass TypeScript issues with cropperjs types
+        const cropper = new Cropper(imageRef.current, {
+          aspectRatio: aspectRatio,
+          viewMode: 1, // Changed from 2 to 1 - less restrictive
+          dragMode: 'move',
+          autoCropArea: 0.9,
+          restore: false,
+          guides: false,
+          center: false,
+          highlight: false,
+          background: false,
+          modal: true,
+          movable: true,
+          rotatable: false,
+          scalable: false,
+          zoomable: true,
+          zoomOnTouch: true,
+          zoomOnWheel: true,
+          wheelZoomRatio: 0.1,
+          minContainerWidth: 300,
+          minContainerHeight: 200,
+          ready() {
+            setDebugInfo('Cropper listo');
+            setCropperReady(true);
+            // Apply circular/rectangular class to cropper elements
+            applyCropperStyles();
+            // Set initial zoom to fit nicely
+            setTimeout(() => {
+              if (cropperRef.current) {
+                cropperRef.current.zoomTo(1);
+              }
+            }, 50);
+          },
+          cropmove() {
+            // Reapply styles on move in case elements are recreated
+            applyCropperStyles();
+          },
+          zoom() {
+            applyCropperStyles();
+          },
+        } as any) as unknown as CropperInstance;
 
-      cropperRef.current = cropper;
+        cropperRef.current = cropper;
+        setDebugInfo('Cropper creado exitosamente');
+      } catch (error) {
+        console.error('Error creating cropper:', error);
+        setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
+        setImageError(true);
+      }
     };
 
     const handleLoad = () => {
+      setDebugInfo('Imagen cargada, creando cropper...');
       initCropper();
     };
 
-    const handleError = () => {
+    const handleError = (e: Event) => {
+      console.error('Failed to load image for cropper:', src, e);
+      setDebugInfo('Error cargando imagen');
       setImageError(true);
-      console.error('Failed to load image for cropper:', src);
     };
 
     // Add event listeners
@@ -123,7 +136,10 @@ export function ImageCropper({
 
     // If image is already loaded (cached), trigger load handler manually
     if (image.complete && image.naturalWidth > 0) {
+      setDebugInfo('Imagen ya cargada (caché)');
       handleLoad();
+    } else {
+      setDebugInfo('Cargando imagen...');
     }
 
     return () => {
@@ -212,6 +228,7 @@ export function ImageCropper({
           <div className="text-red-600 text-4xl mb-3">⚠️</div>
           <h3 className="text-lg font-semibold text-ink-900 mb-2">Error al cargar la imagen</h3>
           <p className="text-ink-600 mb-4">No se pudo cargar la imagen para recortar. Intenta con otra imagen.</p>
+          <p className="text-xs text-ink-400 mb-4">{debugInfo}</p>
           <button
             type="button"
             className="btn-secondary"
@@ -231,6 +248,7 @@ export function ImageCropper({
           <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-600 border-t-transparent mx-auto mb-3" />
           <div className="text-lg font-medium text-ink-900">Cargando imagen...</div>
           <div className="text-sm text-ink-500 mt-1">Preparando editor de recorte</div>
+          <div className="text-xs text-ink-400 mt-2 font-mono">{debugInfo}</div>
         </div>
       </div>
     );
