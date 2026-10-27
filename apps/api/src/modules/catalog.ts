@@ -3,6 +3,7 @@ import type { DbExecutor } from '../db/index.js';
 import { applyClaims } from '../db/index.js';
 import { intParam, route } from '../http/router.js';
 import { notFound } from '../lib/errors.js';
+import { isStoreOpenNow } from '../lib/storeHours.js';
 import { mapProduct, mapStore, PRODUCT_SELECT, STORE_SELECT } from './mappers.js';
 
 /**
@@ -342,6 +343,10 @@ catalogRouter.get(
         if (rows[0].store_status === 'active') {
           product.store_id = rows[0].store_id ?? null;
         }
+        (product as any).is_open =
+          rows[0].store_status === 'active'
+            ? isStoreOpenNow(rows[0].open_hours ?? {})
+            : Boolean(rows[0].is_open);
         return product;
       }
       const pp = await tx.query(
