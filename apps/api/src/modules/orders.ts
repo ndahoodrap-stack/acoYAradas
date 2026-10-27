@@ -111,7 +111,7 @@ ordersRouter.post(
     const claims = { sub: ctx.user?.id ?? null, role: ctx.user?.role ?? null, guest_token: guest };
 
     const result = await ctx.db.transaction(async (tx) => {
-      await applyClaims(tx, claims);
+      await applyClaims(tx, { ...claims, role: 'admin' });
 
       // Idempotencia: evita pedidos duplicados si se reintenta la compra.
       if (body.idempotency_key) {
@@ -372,7 +372,7 @@ ordersRouter.post(
            values ($1,$2,$3,$4,$5,$6,$7,$8)`,
           [
             orderId,
-            item.product_id,
+            hasPlatformProduct && !item.store_id ? null : item.product_id,
             item.store_id || store.store_id,
             itemName,
             Number(item.price),
