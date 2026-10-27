@@ -1,0 +1,162 @@
+/* WhatsApp-style circular mask for cropperjs */
+
+/* Override cropper's default modal (dark overlay) */
+.cropper-modal {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Better cropper viewport - the visible area */
+.cropper-view-box {
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  outline: none !important;
+}
+
+/* Hide default cropper face background */
+.cropper-face {
+  background-color: transparent !important;
+}
+
+/* Circular crop box styling */
+.cropper-crop-box.cropper-circular {
+  border-radius: 50% !important;
+  border: 3px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 0 2px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+.cropper-crop-box.cropper-circular .cropper-handle {
+  border-radius: 50% !important;
+  width: 20px !important;
+  height: 20px !important;
+  background: white !important;
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  opacity: 1 !important;
+}
+
+.cropper-crop-box.cropper-circular .cropper-handle:hover {
+  background: #3b82f6 !important;
+  border-color: white !important;
+  transform: scale(1.15);
+}
+
+/* Rectangular crop box with aspect ratio - subtle mask */
+.cropper-crop-box.cropper-rectangular {
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.cropper-crop-box.cropper-rectangular .cropper-handle {
+  width: 16px !important;
+  height: 16px !important;
+  background: white !important;
+  border: 2px solid #3b82f6 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  opacity: 1 !important;
+}
+
+.cropper-crop-box.cropper-rectangular .cropper-handle:hover {
+  background: #3b82f6 !important;
+  border-color: white !important;
+  transform: scale(1.15);
+}
+
+/* Smooth transitions */
+.cropper-crop-box,
+.cropper-handle {
+  transition: all 0.15s ease-out !important;
+}
+
+/* Custom circular mask overlay (WhatsApp style) */
+.cropper-custom-circular-mask {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 42%,
+    rgba(0, 0, 0, 0.3) 48%,
+    rgba(0, 0, 0, 0.7) 65%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 50%;
+}
+
+/* Custom rectangular mask overlay */
+.cropper-custom-rectangular-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Container for the cropper */
+.image-cropper-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  max-height: 60vh;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Ensure cropper canvas fills container nicely */
+.image-cropper-container .cropper-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 300px;
+  max-height: 60vh;
+}
+
+.image-cropper-container .cropper-canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Zoom animation */
+.cropper-canvas {
+  transition: transform 0.1s ease-out !important;
+}
+
+/* Hide default cropper dashed border */
+.cropper-dashed {
+  display: none !important;
+}
+
+/* Center indicator for circular mode */
+.cropper-center-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Loading state */
+.image-cropper-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: white;
+  font-size: 1.125rem;
+}
