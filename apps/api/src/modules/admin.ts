@@ -22,6 +22,8 @@ import { insertNotificationsAs } from '../lib/notify.js';
 import { notifyOrderStatusWhatsApp } from '../lib/whatsapp.js';
 import { applyOrderStatus } from './orderStatus.js';
 import { mapOrder, ORDER_SELECT } from './orders.js';
+import { uuid } from '../lib/ids.js';
+import { hashPassword } from '../auth/password.js';
 
 /** Panel administrativo (Etapa 4). Exclusivo del administrador de acoYAradas!. */
 export const adminRouter = Router();
@@ -1758,12 +1760,14 @@ adminRouter.post(
       throw badRequest('Solo administradores pueden usar el dominio de pruebas');
     }
 
+    const userId = uuid();
+    const passwordHash = await hashPassword(password);
+
     return run(ctx, async (tx) => {
       // Crear usuario via auth local (bypass Supabase domain restrictions)
-      const userId = await tx.query<{ id: string }>(`select public.gen_random_uuid() as id`).then(r => r.rows[0].id);
       await tx.query(
         `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,'customer')`,
-        [userId, email.toLowerCase(), await (await import('../auth/password.js')).hashPassword(password)],
+        [userId, email.toLowerCase(), passwordHash],
       );
       await tx.query(
         `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)`,

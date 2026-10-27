@@ -2,7 +2,7 @@ Analiza toda la pagina, entiende como funciona, y que funciona en render atraves
 
 [Etapa 1]
 Actúa como un diseñador web y de UI experto luego >
-Soluciona que al entrar al panel como cliente/usuario normal, al entrar a configurar perfil y llenar los cambios y darle "Guardar", no se guardan los cambios.
+
 
 
 
