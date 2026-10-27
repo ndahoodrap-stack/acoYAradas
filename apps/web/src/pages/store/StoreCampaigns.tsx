@@ -82,7 +82,7 @@ export default function StoreCampaigns() {
     title: '',
     body: '',
     image_url: '',
-    link_url: '',
+    days: '7',
     starts_at: defaultDates().starts_at,
     ends_at: defaultDates().ends_at,
     price: '0',
@@ -101,9 +101,9 @@ export default function StoreCampaigns() {
         title: form.title,
         body: form.body,
         image_url: form.image_url,
-        link_url: form.link_url,
+        link_url: null,
         starts_at: new Date().toISOString(),
-        ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        ends_at: new Date(Date.now() + Number(form.days) * 24 * 60 * 60 * 1000).toISOString(),
         price: Number(form.price || 0),
       }),
     onSuccess: async () => {
@@ -234,30 +234,35 @@ export default function StoreCampaigns() {
           </>
         }
       >
-        <Field label="Ubicación">
-          <select
-            className="input"
-            value={form.placement}
-            onChange={(e) => {
-              const p = e.target.value as AdPlacement;
-              const pl = (placements?.placements ?? []).find((x) => x.key === p);
-              setForm((f) => ({
-                ...f,
-                placement: p,
-                price: pl ? String(pl.price_per_day * 7) : f.price,
-              }));
-            }}
-          >
-            {AD_PLACEMENTS.map((p) => {
-              const pl = (placements?.placements ?? []).find((x) => x.key === p);
-              return (
-                <option key={p} value={p}>
-                  {PLACEMENT_LABELS[p]} — {pl ? formatMoney(pl.price_per_day) + '/día' : ''}
-                </option>
-              );
-            })}
-          </select>
-        </Field>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {AD_PLACEMENTS.map((p) => {
+            const pl = (placements?.placements ?? []).find((x) => x.key === p);
+            const selected = form.placement === p;
+            return (
+              <button
+                type="button"
+                key={p}
+                onClick={() => {
+                  setForm((f) => ({
+                    ...f,
+                    placement: p,
+                    price: pl ? String(pl.price_per_day * Number(f.days || 7)) : f.price,
+                  }));
+                }}
+                className={`rounded-xl border p-3 text-left text-sm transition ${
+                  selected
+                    ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-200'
+                    : 'border-ink-200 hover:border-brand-300'
+                }`}
+              >
+                <p className="font-semibold text-ink-900">{PLACEMENT_LABELS[p]}</p>
+                <p className="mt-1 text-xs text-ink-500">
+                  {pl ? `${formatMoney(pl.price_per_day)} / día` : '—'}
+                </p>
+              </button>
+            );
+          })}
+        </div>
         <Field label="Título">
           <input
             className="input"
@@ -279,13 +284,6 @@ export default function StoreCampaigns() {
           value={form.image_url}
           onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
         />
-        <Field label="Link de destino" hint="Opcional. A dónde lleva el banner.">
-          <input
-            className="input"
-            value={form.link_url}
-            onChange={(e) => setForm((f) => ({ ...f, link_url: e.target.value }))}
-          />
-        </Field>
         {form.image_url ? (
           <div className="overflow-hidden rounded-xl ring-1 ring-ink-200">
             <img src={form.image_url} alt={form.title} className="h-40 w-full object-cover" />
@@ -295,16 +293,30 @@ export default function StoreCampaigns() {
             </div>
           </div>
         ) : null}
-        <Field label="Precio (ARS)" hint="Calculado automáticamente según la ubicación (7 días).">
-          <input
-            type="number"
-            min={0}
-            step="0.01"
+        <Field label="Días de publicidad (máx. 7)">
+          <select
             className="input"
-            value={form.price}
-            readOnly
-          />
+            value={form.days}
+            onChange={(e) => {
+              const days = e.target.value;
+              const pl = (placements?.placements ?? []).find((x) => x.key === form.placement);
+              setForm((f) => ({
+                ...f,
+                days,
+                price: pl ? String(pl.price_per_day * Number(days)) : f.price,
+              }));
+            }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+              <option key={d} value={d}>
+                {d} día{d > 1 ? 's' : ''}
+              </option>
+            ))}
+          </select>
         </Field>
+        <p className="text-sm text-ink-600">
+          Total: <strong>{formatMoney(Number(form.price || 0))}</strong>
+        </p>
       </Modal>
     </div>
   );
