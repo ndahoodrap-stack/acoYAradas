@@ -29,10 +29,40 @@ export default function AdminUsers() {
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [role, setRole] = useState<UserRole>('customer');
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    phone: '',
+    role: 'store_owner' as UserRole,
+  });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => api.get<{ items: AdminUser[] }>('/admin/users'),
+  });
+
+  const createUser = useMutation({
+    mutationFn: async (input: typeof createForm) => {
+      const res = await api.post<{ user: { id: string } }>('/auth/register', {
+        email: input.email,
+        password: input.password,
+        full_name: input.full_name,
+        phone: input.phone || undefined,
+      });
+      if (input.role !== 'customer') {
+        await api.patch(`/admin/users/${res.user.id}`, { role: input.role });
+      }
+      return res;
+    },
+    onSuccess: async () => {
+      setCreating(false);
+      setCreateForm({ email: '', password: '', full_name: '', phone: '', role: 'store_owner' });
+      setMessage('Usuario creado.');
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (err) => setMessage((err as Error).message),
   });
 
   const changeRole = useMutation({
@@ -60,14 +90,26 @@ export default function AdminUsers() {
     return <ErrorState message={(error as Error).message} onRetry={() => void refetch()} />;
   }
 
-  const users = data?.items ?? [];
+  const ROLE_ORDER: Record<UserRole, number> = {
+    admin: 0,
+    store_owner: 1,
+    store_staff: 2,
+    courier: 3,
+    customer: 4,
+  };
+  const users = [...(data?.items ?? [])].sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9));
 
   return (
     <div className="space-y-4">
-      <SectionTitle
-        title="Usuarios y roles"
-        subtitle="Permisos asignados a cada cuenta de la plataforma"
-      />
+      <div className="flex items-center justify-between gap-3">
+        <SectionTitle
+          title="Usuarios y roles"
+          subtitle="Permisos asignados a cada cuenta de la plataforma"
+        />
+        <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+          + Crear usuario
+        </button>
+      </div>
 
       {message ? (
         <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
@@ -144,6 +186,71 @@ export default function AdminUsers() {
             className="input"
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
+          >
+            {USER_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Modal>
+
+      <Modal
+        open={creating}
+        title="Crear usuario"
+        onClose={() => setCreating(false)}
+        footer={
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setCreating(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={createUser.isPending}
+              onClick={() => createUser.mutate(createForm)}
+            >
+              Crear
+            </button>
+          </>
+        }
+      >
+        <Field label="Nombre">
+          <input
+            className="input"
+            value={createForm.full_name}
+            onChange={(e) => setCreateForm((f) => ({ ...f, full_name: e.target.value }))}
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            type="email"
+            className="input"
+            value={createForm.email}
+            onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+          />
+        </Field>
+        <Field label="Contraseña">
+          <input
+            type="password"
+            className="input"
+            value={createForm.password}
+            onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+          />
+        </Field>
+        <Field label="Teléfono">
+          <input
+            className="input"
+            value={createForm.phone}
+            onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
+          />
+        </Field>
+        <Field label="Rol">
+          <select
+            className="input"
+            value={createForm.role}
+            onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as UserRole }))}
           >
             {USER_ROLES.map((r) => (
               <option key={r} value={r}>
