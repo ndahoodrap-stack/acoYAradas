@@ -338,7 +338,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </li>
               <li>
                 <Link to="/publicidad" className="text-ink-500 hover:text-brand-600">
-                  Publicidad y planes
+                  Publicidad
                 </Link>
               </li>
               <li>
