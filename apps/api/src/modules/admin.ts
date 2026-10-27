@@ -1831,18 +1831,33 @@ adminRouter.delete(
     const id = String(ctx.req.params.id);
     if (id === admin.id) throw badRequest('No podés eliminar tu propia cuenta');
     return run(ctx, async (tx) => {
-      const user = await tx.query<any>('select id, email, role from public.profiles where id = $1 and deleted_at is null', [id]);
+      const user = await tx.query<any>('select id, email, role from public.profiles where id = $1', [id]);
       if (!user.rows.length) throw notFound('El usuario no existe');
-      const stores = await tx.query(
+
+      // Verificar comercios activos (no eliminados)
+      const activeStores = await tx.query(
         'select 1 from public.stores where owner_id = $1 and deleted_at is null limit 1',
         [id],
       );
-      if (stores.rows.length) {
+      if (activeStores.rows.length) {
         throw badRequest('El usuario es dueño de un comercio activo: primero dá de baja el comercio');
       }
-      await tx.query('update public.profiles set deleted_at = now(), updated_at = now() where id = $1', [id]);
-      await tx.query('update public.riders set deleted_at = now(), active = false, available = false where user_id = $1', [id]);
+
+      // Eliminar comercios del usuario (incluyendo los soft-deleted) para liberar FK
+      await tx.query('delete from public.stores where owner_id = $1', [id]);
+
+      // Eliminar membresías de comercios
+      await tx.query('delete from public.store_members where user_id = $1', [id]);
+
+      // Eliminar perfil (hard delete - libera el email en el índice único)
+      await tx.query('delete from public.profiles where id = $1', [id]);
+
+      // Eliminar rider si existe
+      await tx.query('delete from public.riders where user_id = $1', [id]);
+
+      // Eliminar usuario de auth local
       await tx.query('delete from public.local_users where id = $1', [id]);
+
       await audit(tx, {
         actorId: admin.id,
         actorRole: admin.role,
