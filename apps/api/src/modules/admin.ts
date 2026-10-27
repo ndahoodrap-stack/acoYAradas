@@ -1773,6 +1773,42 @@ adminRouter.post(
         `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)`,
         [userId, email.toLowerCase(), full_name, phone?.trim() || null, role],
       );
+
+      // Si el rol es store_owner, crear un comercio asociado automáticamente
+      let storeId: string | null = null;
+      if (role === 'store_owner') {
+        storeId = uuid();
+        // Generar slug único basado en el nombre
+        const baseSlug = full_name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 50);
+        const slug = `${baseSlug}-${storeId.slice(0, 8)}`;
+
+        await tx.query(
+          `insert into public.stores (id, owner_id, name, slug, phone, email, address, status, accepts_terms, open_hours)
+           values ($1,$2,$3,$4,$5,$6,$7,'active',true,'{}'::jsonb)`,
+          [
+            storeId,
+            userId,
+            full_name,
+            slug,
+            phone?.trim() || null,
+            email.toLowerCase(),
+            phone?.trim() || null, // usamos phone como address inicial si no hay otro dato
+          ],
+        );
+
+        // Agregar al owner como miembro del comercio
+        await tx.query(
+          `insert into public.store_members (store_id, user_id, role) values ($1,$2,'store_owner')`,
+          [storeId, userId],
+        );
+      }
+
       await audit(tx, {
         actorId: admin.id,
         actorRole: admin.role,
@@ -1780,10 +1816,10 @@ adminRouter.post(
         action: 'user_created',
         entityType: 'profile',
         entityId: userId,
-        metadata: { email, role, testDomain: isTestDomain },
+        metadata: { email, role, testDomain: isTestDomain, storeId },
         ip: ctx.ip,
       });
-      return { id: userId, email, full_name, role };
+      return { id: userId, email, full_name, role, storeId };
     });
   }),
 );
