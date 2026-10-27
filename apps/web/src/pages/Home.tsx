@@ -41,10 +41,24 @@ interface HomeData {
 
 export default function Home() {
   const [term, setTerm] = useState('');
+  const [showAd, setShowAd] = useState(false);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeData>('/home'),
   });
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const cycle = () => {
+      setShowAd(false);
+      timeout = setTimeout(() => {
+        setShowAd(true);
+        timeout = setTimeout(cycle, 15000);
+      }, 5000);
+    };
+    cycle();
+    return () => clearTimeout(timeout);
+  }, []);
 
   if (isLoading) return <Spinner label="Cargando la tienda…" />;
   if (error) {
@@ -59,19 +73,6 @@ export default function Home() {
   const banners = data?.banners ?? [];
   const categories = data?.categories ?? [];
   const paidBanner = banners.find((b: any) => b.is_sponsored) ?? banners[0] ?? null;
-  const [showAd, setShowAd] = useState(false);
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const cycle = () => {
-      setShowAd(false);
-      timeout = setTimeout(() => {
-        setShowAd(true);
-        timeout = setTimeout(cycle, 15000);
-      }, 5000);
-    };
-    cycle();
-    return () => clearTimeout(timeout);
-  }, []);
 
   return (
     <div>
