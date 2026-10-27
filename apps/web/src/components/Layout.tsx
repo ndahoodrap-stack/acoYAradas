@@ -290,8 +290,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         type="button"
         aria-label="Volver arriba"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={`fixed bottom-6 right-6 z-50 grid h-10 w-10 place-items-center rounded-full bg-brand-500 text-white shadow-lg transition-all duration-300 hover:bg-brand-600 active:scale-95 ${
-          showTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+        className={`fixed bottom-6 right-6 z-50 grid h-11 w-11 place-items-center rounded-full bg-brand-500 text-white shadow-xl transition-all duration-500 ease-out hover:bg-brand-600 active:scale-95 ${
+          showTop ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-6 scale-90 opacity-0'
         }`}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
