@@ -56,6 +56,7 @@ export default function StoreOrders() {
       }),
     onSuccess: async () => {
       setMessage('Estado actualizado.');
+      setStatus('');
       await queryClient.invalidateQueries({ queryKey: ['store-orders'] });
     },
     onError: (err) => setMessage((err as Error).message),
