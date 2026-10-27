@@ -256,7 +256,7 @@ ordersRouter.post(
         `select id, title, discount_type, discount_value, min_subtotal, code, store_id
            from public.promotions
           where active = true
-            and (store_id = $1 or store_id is null)
+            and store_id is null
             and (starts_at is null or starts_at <= now())
             and (ends_at is null or ends_at >= now())
           order by (store_id is null) desc`,
