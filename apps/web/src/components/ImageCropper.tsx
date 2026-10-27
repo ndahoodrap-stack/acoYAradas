@@ -32,8 +32,10 @@ export function ImageCropper({
   const [crop, setCrop] = useState<CropState>({ x: 0, y: 0, scale: 1 });
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [cssWidth, setCssWidth] = useState(0);
+  const [cssHeight, setCssHeight] = useState(0);
   const [dragState, setDragState] = useState<{
-    type: 'move' | 'zoom' | null;
+    type: 'move' | null;
     startX: number;
     startY: number;
     startCrop: CropState;
@@ -42,169 +44,183 @@ export function ImageCropper({
   const isCircle = circular && Math.abs(aspectRatio - 1) < 0.01;
   const animationRef = useRef<number>();
 
-  // Set canvas drawing buffer size to match CSS size
+  // Track container CSS size with ResizeObserver
   useLayoutEffect(() => {
-    const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
 
-    const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(dpr, dpr);
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setCssWidth(width);
+          setCssHeight(height);
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(width * dpr);
+          canvas.height = Math.floor(height * dpr);
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${height}px`;
+          const ctx = canvas.getContext('2d')!;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+      }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
   }, []);
 
-  // Cargar imagen - attach handlers BEFORE setting src
+  // Load image
   useEffect(() => {
+    if (!cssWidth || !cssHeight) return; // wait for container size
+
     setImgLoaded(false);
     setImgError(false);
     const img = imgRef.current;
     if (!img) return;
 
-    const onLoad = () => {
-      setImgLoaded(true);
-      // Inicializar crop centrado
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        const containerW = canvas.width / (window.devicePixelRatio || 1);
-        const containerH = canvas.height / (window.devicePixelRatio || 1);
-
-        // Escala para que la imagen cubra el área de recorte
-        const imgAR = img.naturalWidth / img.naturalHeight;
-        const cropAR = aspectRatio;
-
-        let initScale: number;
-        if (imgAR > cropAR) {
-          initScale = containerH / img.naturalHeight;
-        } else {
-          initScale = containerW / img.naturalWidth;
-        }
-
-        setCrop({
-          x: (containerW - img.naturalWidth * initScale) / 2,
-          y: (containerH - img.naturalHeight * initScale) / 2,
-          scale: initScale,
-        });
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled && !img.complete) {
+        cancelled = true;
+        setImgError(true);
       }
+    }, 15000);
+
+    const onLoad = () => {
+      if (cancelled) return;
+      clearTimeout(timeout);
+      setImgLoaded(true);
+      // Initialize centered crop
+      const imgAR = img.naturalWidth / img.naturalHeight;
+      const cropAR = aspectRatio;
+      let initScale: number;
+      if (imgAR > cropAR) {
+        initScale = cssHeight / img.naturalHeight;
+      } else {
+        initScale = cssWidth / img.naturalWidth;
+      }
+      setCrop({
+        x: (cssWidth - img.naturalWidth * initScale) / 2,
+        y: (cssHeight - img.naturalHeight * initScale) / 2,
+        scale: initScale,
+      });
     };
-    const onError = () => setImgError(true);
+    const onError = () => {
+      if (cancelled) return;
+      clearTimeout(timeout);
+      setImgError(true);
+    };
 
     img.onload = onLoad;
     img.onerror = onError;
     img.src = src;
 
     return () => {
+      cancelled = true;
+      clearTimeout(timeout);
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, aspectRatio]);
+  }, [src, aspectRatio, cssWidth, cssHeight]);
 
-  // Loop de renderizado
+  // Render loop - draw image + WhatsApp-style mask
   useEffect(() => {
-    if (!imgLoaded || !canvasRef.current || !imgRef.current) return;
+    if (!imgLoaded || !canvasRef.current || !imgRef.current || !cssWidth || !cssHeight) return;
 
     const draw = () => {
       const canvas = canvasRef.current!;
       const img = imgRef.current!;
       const ctx = canvas.getContext('2d')!;
-      const { width, height } = canvas;
 
-      // Clear
-      ctx.clearRect(0, 0, width, height);
+      // Clear (context is already scaled to CSS pixels via setTransform)
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
 
       // Draw image
       const imgW = img.naturalWidth * crop.scale;
       const imgH = img.naturalHeight * crop.scale;
       ctx.drawImage(img, crop.x, crop.y, imgW, imgH);
 
-      // Draw mask overlay
-      drawMask(ctx, width, height);
+      // Draw WhatsApp-style mask overlay
+      drawMask(ctx, cssWidth, cssHeight);
 
       animationRef.current = requestAnimationFrame(draw);
     };
 
     draw();
     return () => cancelAnimationFrame(animationRef.current!);
-  }, [imgLoaded, crop, aspectRatio, isCircle]);
+  }, [imgLoaded, crop, aspectRatio, isCircle, cssWidth, cssHeight]);
 
   const drawMask = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => {
-    if (isCircle) {
-      // Máscara circular estilo WhatsApp
-      const centerX = w / 2;
-      const centerY = h / 2;
-      const radius = Math.min(w, h) / 2 * 0.95;
+    const centerX = w / 2;
+    const centerY = h / 2;
 
-      // Fondo semitransparente oscuro
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    if (isCircle) {
+      const radius = Math.min(w, h) / 2 * 0.92;
+
+      // 1. Dark overlay everywhere
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
       ctx.fillRect(0, 0, w, h);
 
-      // Recortar círculo central (globalCompositeOperation)
+      // 2. Cut out bright center circle (destination-out makes it transparent)
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // Borde blanco brillante
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      // 3. White border ring
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Borde interno sutil
+      // 4. Subtle inner highlight
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius - 2, 0, Math.PI * 2);
       ctx.stroke();
     } else {
-      // Máscara rectangular con aspect ratio
-      const cropW = isCircle ? Math.min(w, h) * 0.95 : w * 0.9;
+      // Rectangular mask with rounded corners
+      const cropW = w * 0.88;
       const cropH = cropW / aspectRatio;
-      const centerX = w / 2;
-      const centerY = h / 2;
       const x = centerX - cropW / 2;
       const y = centerY - cropH / 2;
+      const r = 12;
 
-      // Fondo semitransparente
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      // Dark overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.fillRect(0, 0, w, h);
 
-      // Recortar rectángulo
+      // Cut out rectangle
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.roundRect(x, y, cropW, cropH, 12);
+      ctx.roundRect(x, y, cropW, cropH, r);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
 
-      // Borde
+      // White border
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x, y, cropW, cropH, 12);
+      ctx.roundRect(x, y, cropW, cropH, r);
       ctx.stroke();
     }
   }, [aspectRatio, isCircle]);
 
-  // Handlers de interacción
+  // Interaction handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (!imgLoaded) return;
     const rect = canvasRef.current!.getBoundingClientRect();
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-
-    // Check if clicking on zoom controls area (top-right)
-    if (clientX > rect.right - 80 && clientY < rect.top + 60) return;
+    // Ignore clicks on top bar area
+    if (e.clientY < rect.top + 60) return;
 
     setDragState({
       type: 'move',
-      startX: clientX,
-      startY: clientY,
+      startX: e.clientX,
+      startY: e.clientY,
       startCrop: { ...crop },
     });
   }, [imgLoaded, crop]);
@@ -213,8 +229,8 @@ export function ImageCropper({
     if (!dragState || dragState.type !== 'move') return;
     e.preventDefault();
 
-    const dx = (e.clientX - dragState.startX);
-    const dy = (e.clientY - dragState.startY);
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
 
     setCrop({
       ...dragState.startCrop,
@@ -236,9 +252,8 @@ export function ImageCropper({
     const mouseY = e.clientY - rect.top;
 
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.5, Math.min(5, crop.scale * zoomFactor));
+    const newScale = Math.max(0.4, Math.min(6, crop.scale * zoomFactor));
 
-    // Zoom hacia el cursor
     setCrop({
       x: mouseX - (mouseX - crop.x) * (newScale / crop.scale),
       y: mouseY - (mouseY - crop.y) * (newScale / crop.scale),
@@ -251,7 +266,7 @@ export function ImageCropper({
     const rect = canvasRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const newScale = Math.min(5, crop.scale * 1.2);
+    const newScale = Math.min(6, crop.scale * 1.25);
     setCrop({
       x: centerX - (centerX - crop.x) * (newScale / crop.scale),
       y: centerY - (centerY - crop.y) * (newScale / crop.scale),
@@ -264,7 +279,7 @@ export function ImageCropper({
     const rect = canvasRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const newScale = Math.max(0.5, crop.scale / 1.2);
+    const newScale = Math.max(0.4, crop.scale / 1.25);
     setCrop({
       x: centerX - (centerX - crop.x) * (newScale / crop.scale),
       y: centerY - (centerY - crop.y) * (newScale / crop.scale),
@@ -272,48 +287,46 @@ export function ImageCropper({
     });
   }, [crop]);
 
-  // Generar blob recortado
+  // Generate cropped blob
   const handleApply = useCallback(async () => {
     if (!imgRef.current || !canvasRef.current) return;
 
     const img = imgRef.current;
     const canvas = canvasRef.current;
-    const { width, height } = canvas;
+    const dpr = window.devicePixelRatio || 1;
+    const { width: bufW, height: bufH } = canvas;
+    const w = bufW / dpr;
+    const h = bufH / dpr;
 
-    // Calcular área de recorte en coordenadas de la imagen original
     let cropX: number, cropY: number, cropW: number, cropH: number;
 
     if (isCircle) {
-      const radius = Math.min(width, height) / 2 * 0.95;
-      const centerX = width / 2;
-      const centerY = height / 2;
-
-      // Convertir a coordenadas de imagen
+      const radius = Math.min(w, h) / 2 * 0.92;
+      const centerX = w / 2;
+      const centerY = h / 2;
       cropW = radius * 2;
       cropH = radius * 2;
       cropX = (centerX - crop.x - radius) / crop.scale;
       cropY = (centerY - crop.y - radius) / crop.scale;
     } else {
-      const cropW_ = width * 0.9;
+      const cropW_ = w * 0.88;
       const cropH_ = cropW_ / aspectRatio;
-      const centerX = width / 2;
-      const centerY = height / 2;
+      const centerX = w / 2;
+      const centerY = h / 2;
       const x = centerX - cropW_ / 2;
       const y = centerY - cropH_ / 2;
-
       cropW = cropW_;
       cropH = cropH_;
       cropX = (x - crop.x) / crop.scale;
       cropY = (y - crop.y) / crop.scale;
     }
 
-    // Crear canvas de salida
+    // Output canvas
     const outCanvas = document.createElement('canvas');
     const outCtx = outCanvas.getContext('2d')!;
     const maxW = recommendedWidth || 2048;
     const maxH = recommendedHeight || 2048;
 
-    // Mantener aspect ratio en salida
     let outW = cropW / crop.scale;
     let outH = cropH / crop.scale;
 
@@ -324,23 +337,14 @@ export function ImageCropper({
     outCanvas.height = outH;
 
     if (isCircle) {
-      // Recorte circular
       outCtx.save();
       outCtx.beginPath();
       outCtx.arc(outW/2, outH/2, Math.min(outW, outH)/2, 0, Math.PI * 2);
       outCtx.clip();
-      outCtx.drawImage(
-        img,
-        cropX, cropY, cropW / crop.scale, cropH / crop.scale,
-        0, 0, outW, outH
-      );
+      outCtx.drawImage(img, cropX, cropY, cropW / crop.scale, cropH / crop.scale, 0, 0, outW, outH);
       outCtx.restore();
     } else {
-      outCtx.drawImage(
-        img,
-        cropX, cropY, cropW / crop.scale, cropH / crop.scale,
-        0, 0, outW, outH
-      );
+      outCtx.drawImage(img, cropX, cropY, cropW / crop.scale, cropH / crop.scale, 0, 0, outW, outH);
     }
 
     outCanvas.toBlob(
@@ -378,8 +382,9 @@ export function ImageCropper({
          onPointerUp={handlePointerUp}
          onPointerLeave={handlePointerUp}
          onWheel={handleWheel}>
-      <div ref={containerRef} className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-ink-200 bg-white">
+      <div ref={containerRef} className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col">
+        {/* Top bar - always on top */}
+        <div className="flex items-center justify-between p-4 border-b border-ink-200 bg-white flex-shrink-0 z-10 relative">
           <h2 className="text-lg font-semibold text-ink-900">
             {isCircle ? 'Recortar foto de perfil' : 'Recortar imagen'}
           </h2>
@@ -398,17 +403,18 @@ export function ImageCropper({
           </div>
         </div>
 
-        <div className="relative bg-ink-100" style={{ minHeight: '300px', maxHeight: '60vh' }}>
+        {/* Canvas area - fills remaining space */}
+        <div className="relative bg-ink-100 flex-1 min-h-[300px] max-h-[60vh] overflow-hidden">
           <canvas
             ref={canvasRef}
             className="w-full h-full cursor-grab active:cursor-grabbing"
-            style={{ display: 'block', width: '100%', height: '100%', opacity: imgLoaded ? 1 : 0 }}
+            style={{ display: 'block', width: '100%', height: '100%' }}
           />
           <img ref={imgRef} style={{ display: 'none' }} aria-hidden="true" />
 
           {/* Loading overlay */}
           {!imgLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-ink-100">
+            <div className="absolute inset-0 flex items-center justify-center bg-ink-100 z-10">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-3 border-brand-600 border-t-transparent mx-auto mb-3"/>
                 <div className="text-lg font-medium text-ink-900">Cargando imagen...</div>
@@ -416,16 +422,17 @@ export function ImageCropper({
             </div>
           )}
 
-          <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
             {isCircle ? 'Círculo (1:1)' : aspectRatio === 3 ? 'Banner 3:1' : aspectRatio === 16/9 ? '16:9' : '3:4'}
           </div>
 
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg p-1.5 text-xs text-ink-600">
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg p-1.5 text-xs text-ink-600 z-10">
             Arrastra para mover · Rueda para zoom
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-4 border-t border-ink-200 bg-ink-50">
+        {/* Bottom bar - always visible, never covered */}
+        <div className="flex justify-end gap-3 p-4 border-t border-ink-200 bg-ink-50 flex-shrink-0 z-10 relative">
           <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
           <button className="btn-primary" onClick={handleApply} disabled={!imgLoaded}>
             {imgLoaded ? 'Aplicar recorte' : 'Cargando...'}
