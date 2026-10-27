@@ -289,15 +289,8 @@ ordersRouter.post(
       for (const item of cartItems.rows) {
         try {
           if (hasPlatformProduct && !item.store_id) {
-            await ctx.db.system.query('update public.platform_products set stock = stock - $2, updated_at = now() where id = $1 and stock >= $2', [
-              item.product_id,
-              Number(item.quantity),
-            ]);
-            await ctx.db.system.query('insert into public.stock_movements (product_id, order_id, delta, reason) values ($1, null, $2, $3)', [
-              item.product_id,
-              -Number(item.quantity),
-              'pedido',
-            ]);
+            await ctx.db.system.query(`update public.platform_products set stock = stock - ${Number(item.quantity)}, updated_at = now() where id = '${item.product_id}' and stock >= ${Number(item.quantity)}`);
+            await ctx.db.system.query(`insert into public.stock_movements (product_id, order_id, delta, reason) values ('${item.product_id}', null, ${-Number(item.quantity)}, 'pedido')`);
           } else {
             await tx.query('select public.decrement_stock($1, $2, null) as stock', [
               item.product_id,
@@ -381,10 +374,7 @@ ordersRouter.post(
             money(Number(item.price) * Number(item.quantity)),
           ],
         );
-        await ctx.db.system.query('update public.stock_movements set order_id = $1 where product_id = $2 and order_id is null', [
-          orderId,
-          item.product_id,
-        ]);
+        await ctx.db.system.query(`update public.stock_movements set order_id = '${orderId}' where product_id = '${item.product_id}' and order_id is null`);
       }
 
       await tx.query(
