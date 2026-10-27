@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, api } from '../lib/api';
 import { formatMoney, formatDateTime } from '../lib/format';
@@ -17,7 +17,7 @@ const STEPS: Array<{ key: string; label: string }> = [
 ];
 
 function TrackForm({ code, token }: { code: string; token: string }) {
-  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [codeValue, setCodeValue] = useState(code);
   const [tokenValue, setTokenValue] = useState(token);
 
@@ -31,9 +31,7 @@ function TrackForm({ code, token }: { code: string; token: string }) {
     const c = codeValue.trim().toUpperCase();
     const t = tokenValue.trim();
     if (!c) return;
-    const next = new URLSearchParams(params);
-    next.set('token', t);
-    setParams(next);
+    navigate(`/seguimiento/${encodeURIComponent(c)}${t ? `?token=${encodeURIComponent(t)}` : ''}`);
   };
 
   return (
