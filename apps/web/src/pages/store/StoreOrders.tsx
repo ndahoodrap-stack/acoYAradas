@@ -111,7 +111,10 @@ export default function StoreOrders() {
                   <p className="mt-1 text-sm font-bold text-ink-900">
                     {formatMoney((order.total - (order.shipping_cost ?? 0)) * 0.92)}
                   </p>
-                  <p className="text-xs text-ink-500">Total a recibir (sin envío ni comisión)</p>
+                  <p className="text-xs text-ink-500">
+                    Total a recibir (menos el costo de la comisión{' '}
+                    <span className="font-semibold text-brand-600">8%</span>)
+                  </p>
                 </div>
               </div>
 
