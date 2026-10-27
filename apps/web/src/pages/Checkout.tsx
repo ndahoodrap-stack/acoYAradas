@@ -45,8 +45,8 @@ export default function Checkout() {
   const cvu = String(publicSettings?.settings?.transfer_cvu ?? '0000003100000758197056');
 
   const [form, setForm] = useState({
-    customer_name: '',
-    phone: '',
+    customer_name: user?.full_name ?? '',
+    phone: user?.phone ?? '',
     address: '',
     locality: '',
     references: '',
@@ -55,6 +55,22 @@ export default function Checkout() {
     delivery_mode: 'platform' as DeliveryMode,
     payment_method: 'transfer' as PaymentMethod,
   });
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<{ profile: any }>('/me'),
+    enabled: Boolean(user),
+  });
+  useEffect(() => {
+    const p = me?.profile;
+    if (p) {
+      setForm((f) => ({
+        ...f,
+        customer_name: f.customer_name || p.full_name || '',
+        phone: f.phone || p.phone || '',
+      }));
+    }
+  }, [me]);
   const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
