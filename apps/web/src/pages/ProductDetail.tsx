@@ -130,7 +130,7 @@ export default function ProductDetail() {
             <button
               type="button"
               className="btn-primary"
-              disabled={data.stock <= 0 || !data.is_available}
+              disabled={data.stock <= 0 || !data.is_available || data.store_is_open === false}
               onClick={() => void handleAdd()}
             >
               Agregar al carrito

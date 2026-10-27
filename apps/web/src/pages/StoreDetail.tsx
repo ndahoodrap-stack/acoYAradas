@@ -305,10 +305,14 @@ export default function StoreDetail() {
                     <button
                       type="button"
                       className="btn-primary mt-3 w-full"
-                      disabled={product.stock <= 0}
+                      disabled={product.stock <= 0 || !store?.is_open}
                       onClick={() => void handleAdd(product.id, product.name)}
                     >
-                      {product.stock > 0 ? 'Agregar al carrito' : 'Sin stock'}
+                      {!store?.is_open
+                        ? 'Comercio cerrado'
+                        : product.stock > 0
+                          ? 'Agregar al carrito'
+                          : 'Sin stock'}
                     </button>
                   </div>
                 </div>
