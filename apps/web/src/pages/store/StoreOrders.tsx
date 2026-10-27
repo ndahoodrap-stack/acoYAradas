@@ -21,11 +21,8 @@ const NEXT_ACTIONS: Record<string, { status: string; label: string }[]> = {
     { status: 'cancelled', label: 'Rechazar' },
   ],
   confirmed: [{ status: 'preparing', label: 'Marcar en preparación' }],
-  preparing: [{ status: 'ready', label: 'Marcar listo' }],
-  ready: [
-    { status: 'delivered', label: 'Entregado al delivery' },
-    { status: 'incident', label: 'Reportar incidencia' },
-  ],
+  preparing: [{ status: 'ready', label: 'Entregado al delivery' }],
+  ready: [{ status: 'incident', label: 'Reportar incidencia' }],
 };
 
 export default function StoreOrders() {
