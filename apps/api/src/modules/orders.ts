@@ -260,7 +260,6 @@ ordersRouter.post(
             and (starts_at is null or starts_at <= now())
             and (ends_at is null or ends_at >= now())
           order by (store_id is null) desc`,
-        [promoStoreId],
       );
       const promoCode = (req.body?.promo_code as string | undefined)?.trim().toUpperCase();
       const matching = promoCode

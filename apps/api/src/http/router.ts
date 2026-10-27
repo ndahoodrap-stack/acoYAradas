@@ -51,7 +51,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
   // eslint-disable-next-line no-console
-  console.error('[api] error no controlado:', err);
+  console.error('[api] error no controlado:', err?.message, err?.query, err?.code, err?.stack);
   res.status(500).json({
     error: 'internal_error',
     message: e?.message || 'Ocurrió un error inesperado. Intentá de nuevo.',
