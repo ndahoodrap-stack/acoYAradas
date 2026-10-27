@@ -10,7 +10,7 @@ export default function MyProfile() {
   const { user, logout } = useSession();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
-  const [form, setForm] = useState({ full_name: '', phone: '', avatar_url: '' });
+  const [form, setForm] = useState({ full_name: '', phone: '', address: '', avatar_url: '' });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -25,18 +25,25 @@ export default function MyProfile() {
       setForm({
         full_name: p.full_name ?? '',
         phone: p.phone ?? '',
+        address: p.address ?? '',
         avatar_url: p.avatar_url ?? '',
       });
     }
   }, [data]);
 
   const save = useMutation({
-    mutationFn: () =>
-      api.patch('/auth/me', {
+    mutationFn: () => {
+      const body: Record<string, any> = {
         full_name: form.full_name,
         phone: form.phone,
-        avatar_url: form.avatar_url || null,
-      }),
+        address: form.address,
+      };
+      // Solo enviar avatar_url si hay un valor real (no vacío), para no borrar el existente
+      if (form.avatar_url) {
+        body.avatar_url = form.avatar_url;
+      }
+      return api.patch('/auth/me', body);
+    },
     onSuccess: async () => {
       setMessage('Perfil guardado.');
       await queryClient.invalidateQueries({ queryKey: ['me'] });
@@ -106,6 +113,13 @@ export default function MyProfile() {
             className="input"
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+          />
+        </Field>
+        <Field label="Dirección">
+          <input
+            className="input"
+            value={form.address}
+            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
           />
         </Field>
 
