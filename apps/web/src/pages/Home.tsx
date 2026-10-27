@@ -16,6 +16,8 @@ interface Banner {
   link_url: string | null;
   placement: string;
   is_sponsored: boolean;
+  store_id?: string | null;
+  store_slug?: string | null;
 }
 
 interface Promotion {
@@ -136,47 +138,55 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 transition-all duration-500">
-            {!showAd ? (
-              <Link to="/buscar" className="block">
+          <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20">
+            <div
+              className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                showAd ? 'opacity-0 -translate-x-4' : 'opacity-100 translate-x-0'
+              }`}
+            >
+              <Link to="/#no-afiliados" className="block h-full">
                 <img
                   src="/AcoyaradasCarrousel.jpg"
                   alt="acoYAradas!"
-                  className="h-72 w-full object-cover animate-fade-up"
+                  className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
                   <p className="text-lg font-bold text-white">Productos no afiliados</p>
                   <p className="text-xs text-white/80">Envío por acoYAradas!</p>
                 </div>
               </Link>
-            ) : paidBanner ? (
-              <Link to={paidBanner.link_url || '/comercios'} className="block">
-                {paidBanner.image_url ? (
-                  <img
-                    src={paidBanner.image_url}
-                    alt={paidBanner.title}
-                    className="h-72 w-full object-cover animate-fade-up"
-                  />
-                ) : (
-                  <div className="flex h-72 items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
-                    🎉
+            </div>
+            {paidBanner ? (
+              <div
+                className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                  showAd ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+                }`}
+              >
+                <Link
+                  to={paidBanner.link_url || (paidBanner.store_slug ? `/comercios/${paidBanner.store_slug}` : '/comercios')}
+                  className="block h-full"
+                >
+                  {paidBanner.image_url ? (
+                    <img
+                      src={paidBanner.image_url}
+                      alt={paidBanner.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
+                      🎉
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
+                    {paidBanner.is_sponsored ? <SponsoredTag className="mb-1" /> : null}
+                    <p className="text-lg font-bold text-white">{paidBanner.title}</p>
+                    {paidBanner.subtitle ? (
+                      <p className="text-xs text-white/80">{paidBanner.subtitle}</p>
+                    ) : null}
                   </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
-                  {paidBanner.is_sponsored ? <SponsoredTag className="mb-1" /> : null}
-                  <p className="text-lg font-bold text-white">{paidBanner.title}</p>
-                  {paidBanner.subtitle ? (
-                    <p className="text-xs text-white/80">{paidBanner.subtitle}</p>
-                  ) : null}
-                </div>
-              </Link>
-            ) : (
-              <img
-                src="/AcoyaradasCarrousel.jpg"
-                alt="acoYAradas!"
-                className="h-72 w-full object-cover"
-              />
-            )}
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -291,7 +301,7 @@ export default function Home() {
 
         {/* Productos no afiliados */}
         {(data?.unaffiliated ?? []).length ? (
-          <section>
+          <section id="no-afiliados">
             <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {(data?.unaffiliated ?? []).map((product) => (
