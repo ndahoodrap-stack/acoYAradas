@@ -1,27 +1,10 @@
 Analiza toda la pagina, entiende como funciona, y que funciona en render atraves de supabase/github luego >
 
 [Etapa 1]
-Elimina todas las formas de pago y deja únicamente que a los comercios afiliados se les va a cobrar por comisiones (8% actualmente) y que van a tener la posibilidad de comprar los espacios publicitarios que ya existen (Banner en la página de inicio,Comercio destacado, producto patrocinado)
-Elimina todos las formas de envio ya que solo va a existir el envio por parte de nuestra empresa acoYAradas, elimina todo rastro de esto tanto como en los formularios que los comercios mandan para ser aprobados en la pagina como en otros lugares que aparezca, el envio es unicamente por acoYAradas.
-En el panel de admin, en el apartado comercios, no queda claro si a un comercio se le está cobrando por comision/publicidad (y cuanto es que se le cobra), agrega este apartado para facilicitar la visibilidad de esto o si ya estan en otras partes del dashboard unificalos para verlos en un mismo lado aunque bien aclarado.
-
-[Etapa 2]
-En el carrito > al añadir un producto y llegar a la parte de confirmar pedido ocurre este error "Cannot read properties of null (reading 'allows_platform_delivery')"
-En el carrito de productos no afiliados > al agregar al carrito y llegar a la parte de > confirmar pedido ocurre "Tu carrito está vacio".
-
-[Etapa 2.5]
-Haz que al estar en el carrito en una compra y al hacer click en pago por transferencia aparezca con una animación agradable un enlace directo a este cvu (0000003100000758197056), haz que en el panel de admin se pueda modificar este cvu.
-
-[Etapa 3]
-Cambios en el carrito en general > solo se puede agregar 1 producto por compra, cambia esto ya que si quiero pedir una pizza y una gaseosa (por ej) no se puede.
-
-[Etapa 4]
-Haz un testeo de los cambios y corrobora si se puede comprar tanto como en los productos de empresas afiliados como con los productos no afiliados propios del negocio acoYAradas, tambien haz testeo creando un comercio nuevo y producto nuevo para testear que funcione correctamente y nunca haya problemas.
-
-[Etapa 4.5]
 Actúa como un diseñador web y de UI experto luego >
-En el panel de admin mejora la sección publicidad para que sea mas intuitivo a la hora de agregar un comercio para que aparezca ahí, añade una previsualización de dónde quedaría úbicado
-Haz que el espacio en el banner donde aparece la publicidad en la pagina principal, sea un carrousel con una animación agradable, haz que se vea mas comodo dentro de la pagina ya que por ahora se ve muy chico y tiene mucho espacio libre para el lado derecho, haz que el carrousel muestre "AcoyaradasCarrousel.jpg" por 5segundos y luego cambie al banner del local que haya comprado la publicidad ahí y cambie luego de 15segundos, añade que al hacer click en la publicidad lleve a su perfil, puedes usar uno de los perfiles demo para hacer testeo de que esto funcione, al hacer click en la de "AcoyaradasCarrousel.jpg", haz que lleve a los productos no afiliados
+
+
+
 
 [Etapa 5]
 Deployea para ver los cambios solo luego de haber hecho todo y haber confirmado que todas las etapas corren sin ningun bug.

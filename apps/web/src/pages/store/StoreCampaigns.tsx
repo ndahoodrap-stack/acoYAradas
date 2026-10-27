@@ -65,6 +65,17 @@ export default function StoreCampaigns() {
   const { user } = useSession();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+
+  const { data: placements } = useQuery({
+    queryKey: ['public-placements'],
+    queryFn: () => api.get<{ placements: { key: string; name: string; price_per_day: number }[] }>('/plans'),
+  });
+  const { data: storeProfile } = useQuery({
+    queryKey: ['store-profile'],
+    queryFn: () => api.get<{ store: { name: string } }>('/store/profile'),
+    enabled: Boolean(user?.store_id),
+  });
+  const storeName = storeProfile?.store?.name ?? '';
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     placement: 'home_banner' as AdPlacement,
@@ -91,8 +102,8 @@ export default function StoreCampaigns() {
         body: form.body,
         image_url: form.image_url,
         link_url: form.link_url,
-        starts_at: new Date(form.starts_at).toISOString(),
-        ends_at: new Date(form.ends_at).toISOString(),
+        starts_at: new Date().toISOString(),
+        ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         price: Number(form.price || 0),
       }),
     onSuccess: async () => {
@@ -126,7 +137,20 @@ export default function StoreCampaigns() {
         title="Campañas publicitarias"
         subtitle="Pedí una ubicación sponsorizada para tu comercio"
         action={
-          <button type="button" className="btn-primary" onClick={() => setOpen(true)}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              const d = defaultDates();
+              setForm((f) => ({
+                ...f,
+                title: storeName || f.title,
+                starts_at: d.starts_at,
+                ends_at: d.ends_at,
+              }));
+              setOpen(true);
+            }}
+          >
             + Nueva campaña
           </button>
         }
@@ -214,13 +238,24 @@ export default function StoreCampaigns() {
           <select
             className="input"
             value={form.placement}
-            onChange={(e) => setForm((f) => ({ ...f, placement: e.target.value as AdPlacement }))}
+            onChange={(e) => {
+              const p = e.target.value as AdPlacement;
+              const pl = (placements?.placements ?? []).find((x) => x.key === p);
+              setForm((f) => ({
+                ...f,
+                placement: p,
+                price: pl ? String(pl.price_per_day * 7) : f.price,
+              }));
+            }}
           >
-            {AD_PLACEMENTS.map((p) => (
-              <option key={p} value={p}>
-                {PLACEMENT_LABELS[p]}
-              </option>
-            ))}
+            {AD_PLACEMENTS.map((p) => {
+              const pl = (placements?.placements ?? []).find((x) => x.key === p);
+              return (
+                <option key={p} value={p}>
+                  {PLACEMENT_LABELS[p]} — {pl ? formatMoney(pl.price_per_day) + '/día' : ''}
+                </option>
+              );
+            })}
           </select>
         </Field>
         <Field label="Título">
@@ -251,32 +286,23 @@ export default function StoreCampaigns() {
             onChange={(e) => setForm((f) => ({ ...f, link_url: e.target.value }))}
           />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Comienza">
-            <input
-              type="date"
-              className="input"
-              value={form.starts_at}
-              onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value }))}
-            />
-          </Field>
-          <Field label="Termina">
-            <input
-              type="date"
-              className="input"
-              value={form.ends_at}
-              onChange={(e) => setForm((f) => ({ ...f, ends_at: e.target.value }))}
-            />
-          </Field>
-        </div>
-        <Field label="Precio (ARS)" hint="Lo define acoYAradas! según la ubicación y la duración.">
+        {form.image_url ? (
+          <div className="overflow-hidden rounded-xl ring-1 ring-ink-200">
+            <img src={form.image_url} alt={form.title} className="h-40 w-full object-cover" />
+            <div className="bg-ink-50 p-3 text-sm">
+              <p className="font-semibold text-ink-900">{form.title || storeName}</p>
+              <p className="text-xs text-ink-500">{PLACEMENT_LABELS[form.placement]}</p>
+            </div>
+          </div>
+        ) : null}
+        <Field label="Precio (ARS)" hint="Calculado automáticamente según la ubicación (7 días).">
           <input
             type="number"
             min={0}
             step="0.01"
             className="input"
             value={form.price}
-            onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+            readOnly
           />
         </Field>
       </Modal>
