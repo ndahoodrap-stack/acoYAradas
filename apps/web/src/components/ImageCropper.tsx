@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
 
 interface ImageCropperProps {
   src: string;
@@ -42,58 +42,66 @@ export function ImageCropper({
   const isCircle = circular && Math.abs(aspectRatio - 1) < 0.01;
   const animationRef = useRef<number>();
 
-  // Cargar imagen
+  // Set canvas drawing buffer size to match CSS size
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+  }, []);
+
+  // Cargar imagen - attach handlers BEFORE setting src
   useEffect(() => {
     setImgLoaded(false);
     setImgError(false);
-    if (imgRef.current) {
-      imgRef.current.src = src;
-    }
-  }, [src]);
-
-  const handleImgLoad = useCallback(() => {
-    setImgLoaded(true);
-    // Inicializar crop centrado
-    if (canvasRef.current && imgRef.current) {
-      const canvas = canvasRef.current;
-      const img = imgRef.current;
-      const containerW = canvas.width;
-      const containerH = canvas.height;
-
-      // Escala para que la imagen cubra el área de recorte
-      const imgAR = img.naturalWidth / img.naturalHeight;
-      const cropAR = aspectRatio;
-
-      let initScale: number;
-      if (imgAR > cropAR) {
-        initScale = containerH / img.naturalHeight;
-      } else {
-        initScale = containerW / img.naturalWidth;
-      }
-
-      setCrop({
-        x: (containerW - img.naturalWidth * initScale) / 2,
-        y: (containerH - img.naturalHeight * initScale) / 2,
-        scale: initScale,
-      });
-    }
-  }, [aspectRatio]);
-
-  const handleImgError = useCallback(() => {
-    setImgError(true);
-  }, []);
-
-  // Attach load/error handlers to img element
-  useEffect(() => {
     const img = imgRef.current;
     if (!img) return;
-    img.onload = handleImgLoad;
-    img.onerror = handleImgError;
+
+    const onLoad = () => {
+      setImgLoaded(true);
+      // Inicializar crop centrado
+      if (canvasRef.current) {
+        const canvas = canvasRef.current;
+        const containerW = canvas.width / (window.devicePixelRatio || 1);
+        const containerH = canvas.height / (window.devicePixelRatio || 1);
+
+        // Escala para que la imagen cubra el área de recorte
+        const imgAR = img.naturalWidth / img.naturalHeight;
+        const cropAR = aspectRatio;
+
+        let initScale: number;
+        if (imgAR > cropAR) {
+          initScale = containerH / img.naturalHeight;
+        } else {
+          initScale = containerW / img.naturalWidth;
+        }
+
+        setCrop({
+          x: (containerW - img.naturalWidth * initScale) / 2,
+          y: (containerH - img.naturalHeight * initScale) / 2,
+          scale: initScale,
+        });
+      }
+    };
+    const onError = () => setImgError(true);
+
+    img.onload = onLoad;
+    img.onerror = onError;
+    img.src = src;
+
     return () => {
       img.onload = null;
       img.onerror = null;
     };
-  }, [handleImgLoad, handleImgError]);
+  }, [src, aspectRatio]);
 
   // Loop de renderizado
   useEffect(() => {
