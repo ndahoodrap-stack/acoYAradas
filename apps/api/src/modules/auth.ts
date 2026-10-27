@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { loginSchema, registerSchema } from '@acoyaradas/shared';
 import { route, validate } from '../http/router.js';
+import { applyClaims } from '../db/index.js';
 import { loginUser, registerUser, refreshSession, revokeSession } from '../auth/service.js';
 
 export const authRouter = Router();
