@@ -174,7 +174,8 @@ ordersRouter.post(
             reason: 'mixed_stores',
           });
         }
-        for (const item of cartItems.rows) {
+        // Validar solo los productos de plataforma (store_id === null)
+        for (const item of cartItems.rows.filter((r: any) => !r.store_id)) {
           const pp = await tx.query(
             `select id, name, price, stock, status, is_available from public.platform_products where id = $1 and deleted_at is null`,
             [item.product_id],
