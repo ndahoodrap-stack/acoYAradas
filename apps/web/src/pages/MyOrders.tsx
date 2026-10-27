@@ -13,7 +13,7 @@ export default function MyOrders() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '', avatar_url: '' });
+  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '', address: '', avatar_url: '' });
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -27,6 +27,7 @@ export default function MyOrders() {
       setProfileForm({
         full_name: p.full_name ?? '',
         phone: p.phone ?? '',
+        address: p.address ?? '',
         avatar_url: p.avatar_url ?? '',
       });
     }
@@ -43,6 +44,7 @@ export default function MyOrders() {
       api.patch('/me', {
         full_name: profileForm.full_name,
         phone: profileForm.phone,
+        address: profileForm.address,
         avatar_url: profileForm.avatar_url || null,
       }),
     onSuccess: async () => {
@@ -209,6 +211,13 @@ export default function MyOrders() {
             className="input"
             value={profileForm.phone}
             onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+          />
+        </Field>
+        <Field label="Dirección">
+          <input
+            className="input"
+            value={profileForm.address}
+            onChange={(e) => setProfileForm((f) => ({ ...f, address: e.target.value }))}
           />
         </Field>
         <button

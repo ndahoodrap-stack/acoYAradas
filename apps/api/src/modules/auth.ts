@@ -65,11 +65,12 @@ authRouter.patch(
     if (!ctx.user) throw badRequest('Necesitás iniciar sesión');
     const full_name = String(req.body?.full_name ?? '').trim() || null;
     const phone = String(req.body?.phone ?? '').trim() || null;
+    const address = String(req.body?.address ?? '').trim() || null;
     const avatar_url = req.body?.avatar_url === undefined ? undefined : (String(req.body.avatar_url ?? '').trim() || null);
     return ctx.db.transaction(async (tx) => {
       await applyClaims(tx, ctx.claims);
-      const fields = ['full_name = $2', 'phone = $3', 'updated_at = now()'];
-      const params: unknown[] = [ctx.user!.id, full_name, phone];
+      const fields = ['full_name = $2', 'phone = $3', 'address = $4', 'updated_at = now()'];
+      const params: unknown[] = [ctx.user!.id, full_name, phone, address];
       if (avatar_url !== undefined) {
         fields.push(`avatar_url = $${params.length + 1}`);
         params.push(avatar_url);
