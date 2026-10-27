@@ -43,7 +43,7 @@ interface HomeData {
 
 export default function Home() {
   const [term, setTerm] = useState('');
-  const [showAd, setShowAd] = useState(false);
+  const [showAd, setShowAd] = useState(true);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeData>('/home'),
@@ -52,11 +52,11 @@ export default function Home() {
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     const cycle = () => {
-      setShowAd(false);
+      setShowAd(true);
       timeout = setTimeout(() => {
-        setShowAd(true);
-        timeout = setTimeout(cycle, 15000);
-      }, 5000);
+        setShowAd(false);
+        timeout = setTimeout(cycle, 5000);
+      }, 15000);
     };
     cycle();
     return () => clearTimeout(timeout);
@@ -141,7 +141,7 @@ export default function Home() {
           <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20">
             <div
               className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                showAd ? 'opacity-0 -translate-x-4' : 'opacity-100 translate-x-0'
+                showAd ? 'opacity-0 -translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
               }`}
             >
               <Link to="/#no-afiliados" className="block h-full">
@@ -159,7 +159,7 @@ export default function Home() {
             {paidBanner ? (
               <div
                 className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                  showAd ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+                  showAd ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
                 }`}
               >
                 <Link
