@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -94,6 +94,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Smooth scroll to top with custom easing (better than native 'smooth')
+  const scrollToTop = useCallback(() => {
+    const start = window.scrollY;
+    const duration = 600; // ms
+    const startTime = performance.now();
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+      window.scrollTo(0, start * (1 - eased));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
   }, []);
 
   const { data: settings } = useQuery({
@@ -288,17 +310,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
+      {/* Scroll to Top Button - Modern polished design */}
       <button
         type="button"
         aria-label="Volver arriba"
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className={`fixed bottom-6 right-6 z-50 grid h-11 w-11 place-items-center rounded-full bg-brand-500 text-white shadow-xl transition-all duration-500 ease-out hover:bg-brand-600 active:scale-95 ${
-          showTop ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-6 scale-90 opacity-0'
-        }`}
+        onClick={scrollToTop}
+        className={`
+          fixed bottom-6 right-6 z-50 grid h-11 w-11 place-items-center rounded-full
+          bg-white/90 backdrop-blur-sm text-ink-900
+          border border-ink-200
+          shadow-[0_4px_14px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.02)]
+          transition-[transform,opacity,box-shadow,border-color]
+          duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+          hover:shadow-[0_8px_25px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.04)] hover:border-brand-300 hover:bg-white
+          active:scale-[0.92] active:shadow-[0_2px_8px_rgba(0,0,0,0.1)]
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+          pointer-events-auto
+          ${showTop ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-8 scale-95 opacity-0'}
+        `}
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 19V5M5 12l7-7 7 7" />
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M18 15l-6-6-6 6" />
         </svg>
+        {/* Subtle pulse ring for visual polish */}
+        <span className="absolute inset-0 rounded-full border-2 border-brand-500/30 opacity-0 transition-opacity duration-500 hover:opacity-100" aria-hidden="true" />
       </button>
       <main id="main-content" className="flex-1">{children}</main>
 
