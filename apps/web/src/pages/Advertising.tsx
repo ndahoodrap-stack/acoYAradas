@@ -31,11 +31,11 @@ export default function Advertising() {
   return (
     <div className="container-app py-10">
       <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">
-        Publicidad y planes para comercios
+        Publicidad para comercios
       </h1>
       <p className="mt-2 max-w-3xl text-sm text-ink-600">
-        acoYAradas! combina tres fuentes de ingresos configurables: abonos mensuales, comisiones
-        por pedido y publicidad paga. Un comercio puede contratar las tres al mismo tiempo.
+        acoYAradas! cobra a los comercios afiliados una comisión del 8% por pedido y ofrece espacios
+        publicitarios pagos: banner en la home, comercio destacado y producto patrocinado.
       </p>
 
       {isLoading ? (
@@ -46,33 +46,6 @@ export default function Advertising() {
         </div>
       ) : (
         <>
-          <section className="mt-8">
-            <SectionTitle title="Planes comerciales" subtitle="Abonos mensuales por rubro" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {(data?.plans ?? []).map((plan) => (
-                <div key={plan.id} className="card flex flex-col p-5">
-                  <h3 className="text-lg font-bold text-ink-900">{plan.name}</h3>
-                  <p className="mt-2 text-3xl font-black text-brand-600">
-                    {formatMoney(plan.price)}
-                    <span className="text-sm font-medium text-ink-500">
-                      /{plan.billing_period === 'yearly' ? 'año' : 'mes'}
-                    </span>
-                  </p>
-                  <ul className="mt-4 flex-1 space-y-1.5 text-sm text-ink-600">
-                    <li>✅ Hasta {plan.product_limit} productos publicados</li>
-                    <li>✅ Hasta {plan.promo_limit} promociones activas</li>
-                    {(plan.features ?? []).map((feature) => (
-                      <li key={feature}>✅ {feature}</li>
-                    ))}
-                  </ul>
-                  <Link to="/sumate" className="btn-secondary mt-5 w-full">
-                    Sumate al negocio
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </section>
-
           <section className="mt-10">
             <SectionTitle
               title="Espacios publicitarios"

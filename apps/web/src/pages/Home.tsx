@@ -144,7 +144,14 @@ export default function Home() {
                 showAd ? 'opacity-0 -translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
               }`}
             >
-              <Link to="/#no-afiliados" className="block h-full">
+              <button
+                type="button"
+                className="block h-full w-full text-left"
+                onClick={() => {
+                  const el = document.getElementById('no-afiliados');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
                 <img
                   src="/AcoyaradasCarrousel.jpg"
                   alt="acoYAradas!"
@@ -154,7 +161,7 @@ export default function Home() {
                   <p className="text-lg font-bold text-white">Productos no afiliados</p>
                   <p className="text-xs text-white/80">Envío por acoYAradas!</p>
                 </div>
-              </Link>
+              </button>
             </div>
             {paidBanner ? (
               <div
