@@ -205,7 +205,7 @@ export function Modal({
       document.body.style.overflow = prev;
       window.clearTimeout(t);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
