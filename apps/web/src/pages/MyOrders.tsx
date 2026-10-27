@@ -6,7 +6,7 @@ import { formatDateTime, formatMoney } from '../lib/format';
 import { useSession } from '../lib/session';
 import type { OrderDto } from '@acoyaradas/shared';
 import { EmptyState, ErrorState, Field, Modal, Spinner, StatusBadge } from '../components/ui';
-import { FileUpload } from '../../components/FileUpload';
+import { FileUpload } from '../components/FileUpload';
 
 export default function MyOrders() {
   const { user } = useSession();
