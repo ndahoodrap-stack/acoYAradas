@@ -108,7 +108,7 @@ ordersRouter.post(
   route(async (ctx, req) => {
     const body = validate(checkoutSchema, req.body);
     const guest = body.guest_token || ctx.guestToken || null;
-    const claims = { sub: ctx.user?.id ?? null, guest_token: guest };
+    const claims = { sub: ctx.user?.id ?? null, role: ctx.user?.role ?? null, guest_token: guest };
 
     const result = await ctx.db.transaction(async (tx) => {
       await applyClaims(tx, claims);
