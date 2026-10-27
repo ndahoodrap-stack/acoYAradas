@@ -70,10 +70,6 @@ export default function Advertising() {
           <section className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
               {
-                title: 'Abonos mensuales',
-                text: 'Planes con límites de productos y promociones, renewal automático y estado de suscripciones.',
-              },
-              {
                 title: 'Comisiones por pedido',
                 text: 'Porcentaje o importe fijo por comercio, con base de cálculo configurable y registro de bruto, comisión y neto.',
               },
@@ -90,7 +86,7 @@ export default function Advertising() {
           </section>
 
           <div className="card mt-10 bg-amber-50 p-5 text-sm text-amber-900">
-            <strong>Importante:</strong> los registros internos de pagos (abonos, publicidad y
+            <strong>Importante:</strong> los registros internos de pagos (publicidad y
             comisiones) se guardan como <em>pendientes</em> hasta que exista una confirmación
             verificable. La plataforma no procesa cobros en línea.
           </div>
