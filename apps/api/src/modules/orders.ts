@@ -231,7 +231,7 @@ ordersRouter.post(
               adminId,
               config.platform.contactPhone,
               config.platform.contactEmail,
-              config.platform.address ?? 'San Carlos de Bolívar',
+              config.platform.locality ?? 'San Carlos de Bolívar',
               config.platform.city,
               zoneId,
             ],
