@@ -186,16 +186,62 @@ ordersRouter.post(
         }
         body.fulfillment_type = 'delivery';
         body.delivery_mode = 'platform';
-        // Use a platform store context - get or create
-        const platformStore = await tx.query<{ id: string; name: string; zone_id: string | null; preparation_time_minutes: number | null }>(
-          `select id, name, zone_id, preparation_time_minutes from public.stores where status = 'active' and deleted_at is null order by created_at asc limit 1`,
+        // Buscar/crear tienda dedicada "acoYAradas" para productos no afiliados
+        // Esta tienda NO es un comercio real, es la entidad plataforma que gestiona estos pedidos
+        let platformStore = await tx.query<{ id: string; name: string; zone_id: string | null; preparation_time_minutes: number | null; owner_id: string }>(
+          `select id, name, zone_id, preparation_time_minutes, owner_id
+             from public.stores
+            where slug = 'acoyaradas' and deleted_at is null
+            limit 1`,
         );
+
         if (!platformStore.rows.length) {
-          throw badRequest('No hay comercios disponibles para este pedido');
+          // Buscar un admin para usar como owner de la tienda plataforma
+          const adminUser = await tx.query<{ id: string }>(
+            `select id from public.profiles where role = 'admin' and deleted_at is null limit 1`
+          );
+          if (!adminUser.rows.length) {
+            throw badRequest('No hay administrador para crear la tienda de plataforma');
+          }
+          const adminId = adminUser.rows[0].id;
+
+          // Obtener zona por defecto
+          const defaultZone = await tx.query<{ id: string }>(
+            `select id from public.coverage_zones where active = true limit 1`
+          );
+          const zoneId = defaultZone.rows[0]?.id ?? null;
+
+          // Crear tienda plataforma "acoYAradas"
+          const created = await tx.query<{ id: string; name: string; zone_id: string | null; preparation_time_minutes: number | null; owner_id: string }>(
+            `insert into public.stores
+               (owner_id, name, slug, description, phone, email, address, locality, zone_id,
+                status, is_open, featured, preparation_time_minutes,
+                allows_platform_delivery, allows_merchant_delivery, allows_pickup,
+                merchant_delivery_fee, merchant_delivery_notes, accepts_cash, accepts_transfer,
+                accepts_terms, verified, open_hours)
+             values ($1, 'acoYAradas!', 'acoyaradas', 'Tienda oficial de acoYAradas para productos no afiliados',
+                     $2, $3, $4, $5, $6,
+                     'active', true, false, 15,
+                     true, false, false,
+                     0, null, true, true,
+                     true, true, '{}'::jsonb)
+             returning id, name, zone_id, preparation_time_minutes, owner_id`,
+            [
+              adminId,
+              config.platform.contactPhone,
+              config.platform.contactEmail,
+              config.platform.address ?? 'San Carlos de Bolívar',
+              config.platform.city,
+              zoneId,
+            ],
+          );
+          platformStore = created;
         }
+
+        const ps = platformStore.rows[0];
         store = {
-          store_id: platformStore.rows[0].id,
-          store_name: platformStore.rows[0].name,
+          store_id: ps.id,
+          store_name: 'acoYAradas!',
           status: 'active',
           deleted_at: null,
           allows_platform_delivery: true,
@@ -204,8 +250,8 @@ ordersRouter.post(
           accepts_transfer: true,
           merchant_delivery_fee: 0,
           merchant_delivery_notes: null,
-          zone_id: platformStore.rows[0].zone_id,
-          preparation_time_minutes: platformStore.rows[0].preparation_time_minutes,
+          zone_id: ps.zone_id,
+          preparation_time_minutes: ps.preparation_time_minutes,
         };
       } else {
         const storeIds = [...new Set(cartItems.rows.map((r: any) => r.store_id))];
