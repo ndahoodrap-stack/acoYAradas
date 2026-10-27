@@ -45,6 +45,7 @@ export function ImageCropper({
   const containerRef = useRef<HTMLDivElement>(null);
   const [cropperReady, setCropperReady] = useState(false);
   const [isCircular, setIsCircular] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Determine if circular mask should be used
   useEffect(() => {
@@ -55,6 +56,8 @@ export function ImageCropper({
   // Initialize cropper when image loads
   useEffect(() => {
     if (!imageRef.current || cropperRef.current) return;
+    setImageError(false);
+    setCropperReady(false);
 
     const image = imageRef.current;
 
@@ -105,13 +108,27 @@ export function ImageCropper({
       cropperRef.current = cropper;
     };
 
-    if (image.complete) {
+    const handleLoad = () => {
       initCropper();
-    } else {
-      image.onload = initCropper;
+    };
+
+    const handleError = () => {
+      setImageError(true);
+      console.error('Failed to load image for cropper:', src);
+    };
+
+    // Add event listeners
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
+
+    // If image is already loaded (cached), trigger load handler manually
+    if (image.complete && image.naturalWidth > 0) {
+      handleLoad();
     }
 
     return () => {
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
       if (cropperRef.current) {
         cropperRef.current.destroy();
         cropperRef.current = null;
@@ -188,10 +205,33 @@ export function ImageCropper({
     };
   }, [src]);
 
+  if (imageError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+        <div className="bg-white rounded-2xl p-6 max-w-md mx-4 text-center">
+          <div className="text-red-600 text-4xl mb-3">⚠️</div>
+          <h3 className="text-lg font-semibold text-ink-900 mb-2">Error al cargar la imagen</h3>
+          <p className="text-ink-600 mb-4">No se pudo cargar la imagen para recortar. Intenta con otra imagen.</p>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={onCancel}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!cropperReady) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="text-white text-lg">Cargando imagen...</div>
+        <div className="bg-white rounded-2xl p-6 max-w-md mx-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-600 border-t-transparent mx-auto mb-3" />
+          <div className="text-lg font-medium text-ink-900">Cargando imagen...</div>
+          <div className="text-sm text-ink-500 mt-1">Preparando editor de recorte</div>
+        </div>
       </div>
     );
   }
@@ -256,7 +296,7 @@ export function ImageCropper({
               ref={imageRef}
               src={src}
               alt="Imagen a recortar"
-              crossOrigin="anonymous"
+              // Don't use crossOrigin for blob URLs - it causes CORS issues
             />
             {/* Custom mask overlay */}
             {isCircular ? (

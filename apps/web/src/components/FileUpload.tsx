@@ -105,10 +105,9 @@ export function FileUpload({
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
-      // Clean up object URL
-      if (cropperSrc) URL.revokeObjectURL(cropperSrc);
+      // Object URL cleanup is handled by ImageCropper component
     }
-  }, [onChange, cropperSrc]);
+  }, [onChange]);
 
   const handleCropCancel = useCallback(() => {
     setCropperSrc(null);
