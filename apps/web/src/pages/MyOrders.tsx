@@ -12,6 +12,12 @@ export default function MyOrders() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
 
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<{ profile: any }>('/me'),
+    enabled: Boolean(user),
+  });
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['my-orders'],
     queryFn: () => api.get<{ items: OrderDto[] }>('/orders/mine'),
@@ -49,6 +55,21 @@ export default function MyOrders() {
       {message ? (
         <div className="mt-4 rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
+
+      <div className="card mb-6 flex items-center gap-4 p-4">
+        {me?.profile?.avatar_url ? (
+          <img src={me.profile.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+        ) : (
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-ink-100 text-xl">👤</div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-ink-900">{me?.profile?.full_name ?? user.full_name ?? user.email}</p>
+          <p className="text-xs text-ink-500">{me?.profile?.phone ?? user.phone ?? 'Sin teléfono'}</p>
+        </div>
+        <Link to="/mi-perfil" className="btn-secondary">
+          Configurar perfil
+        </Link>
+      </div>
 
       <div className="mt-6 space-y-4">
         {orders.length === 0 ? (

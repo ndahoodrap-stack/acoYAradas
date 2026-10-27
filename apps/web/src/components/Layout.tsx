@@ -194,9 +194,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {panelLink.label}
                   </Link>
                 ) : null}
-                <Link to="/mi-perfil" className="btn-ghost px-3">
-                  Mi perfil
-                </Link>
+
                 <button
                   type="button"
                   className="btn-ghost px-3"
