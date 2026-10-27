@@ -112,7 +112,10 @@ export default function StoreCampaigns() {
       setForm((f) => ({ ...f, title: '', body: '', image_url: '', link_url: '' }));
       await queryClient.invalidateQueries({ queryKey: ['store-campaigns'] });
     },
-    onError: (err) => setMessage((err as Error).message),
+    onError: (err) => {
+      const d = (err as any)?.details;
+      setMessage((err as Error).message + (d ? `: ${JSON.stringify(d)}` : ''));
+    },
   });
 
   const remove = useMutation({
@@ -121,7 +124,10 @@ export default function StoreCampaigns() {
       setMessage('Campaña eliminada.');
       await queryClient.invalidateQueries({ queryKey: ['store-campaigns'] });
     },
-    onError: (err) => setMessage((err as Error).message),
+    onError: (err) => {
+      const d = (err as any)?.details;
+      setMessage((err as Error).message + (d ? `: ${JSON.stringify(d)}` : ''));
+    },
   });
 
   if (isLoading) return <Spinner />;

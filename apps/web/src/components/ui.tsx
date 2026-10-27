@@ -211,9 +211,7 @@ export function Modal({
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-ink-900/70 p-3 pt-16 backdrop-blur-sm transition-all sm:items-center sm:p-6 sm:pt-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      onClick={() => {}}
     >
       <div ref={ref} className="animate-fade-up my-4 max-h-[calc(100vh-8rem)] w-full max-w-3xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-ink-900/5 sm:max-h-[calc(100vh-3rem)] sm:p-8">
         <div className="mb-6 flex items-start justify-between gap-4">
