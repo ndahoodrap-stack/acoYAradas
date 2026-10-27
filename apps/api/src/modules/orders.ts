@@ -504,7 +504,6 @@ ordersRouter.get(
   route(async (ctx, req) => {
     const code = String(req.params.code).toUpperCase();
     const token = (req.query.token as string) || '';
-    if (!token) throw badRequest('Link de seguimiento incompleto');
 
     // Contexto interno: la validación se hace con el token público del pedido.
     const { rows } = await ctx.db.system.query(
@@ -517,7 +516,7 @@ ordersRouter.get(
          from public.orders o
          join public.stores s on s.id = o.store_id
          left join public.riders r on r.id = o.rider_id
-        where upper(o.code) = $1 and o.public_token = $2`,
+        where upper(o.code) = $1 and ($2 = '' or o.public_token = $2)`,
       [code, token],
     );
     if (!rows.length) throw notFound('No encontramos ese pedido con el enlace proporcionado');

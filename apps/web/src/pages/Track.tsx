@@ -30,7 +30,7 @@ function TrackForm({ code, token }: { code: string; token: string }) {
     e.preventDefault();
     const c = codeValue.trim().toUpperCase();
     const t = tokenValue.trim();
-    if (!c || !t) return;
+    if (!c) return;
     const next = new URLSearchParams(params);
     next.set('token', t);
     setParams(next);
@@ -84,16 +84,21 @@ export default function Track() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['track', code, token],
-    queryFn: () => api.get<OrderDto>(`/orders/track/${code}?token=${encodeURIComponent(token)}`),
-    enabled: Boolean(code && token),
+    queryFn: () =>
+      api.get<OrderDto>(
+        token ? `/orders/track/${code}?token=${encodeURIComponent(token)}` : `/orders/track/${code}`,
+      ),
+    enabled: Boolean(code),
     refetchInterval: 30_000,
   });
 
   // Seguimiento en vivo (SSE). El backend publica los cambios de estado.
   useEffect(() => {
-    if (!code || !token) return;
+    if (!code) return;
     const source = new EventSource(
-      `${API_BASE}/track/${code}/events?token=${encodeURIComponent(token)}`,
+      token
+        ? `${API_BASE}/track/${code}/events?token=${encodeURIComponent(token)}`
+        : `${API_BASE}/track/${code}/events`,
     );
     source.addEventListener('order', (event) => {
       try {
@@ -110,7 +115,7 @@ export default function Track() {
     return () => source.close();
   }, [code, token, queryClient]);
 
-  if (!code || !token) {
+  if (!code) {
     return (
       <div className="container-app max-w-3xl py-10">
         <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">

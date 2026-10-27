@@ -95,7 +95,7 @@ publicRouter.get(
     const code = String(ctx.req.params.code).toUpperCase();
     const token = String(req.query.token ?? '');
     const { rows } = await ctx.db.system.query<{ id: string }>(
-      'select id from public.orders where upper(code) = $1 and public_token = $2',
+      "select id from public.orders where upper(code) = $1 and ($2 = '' or public_token = $2)",
       [code, token],
     );
     if (!rows.length) throw notFound('No encontramos ese pedido con el enlace proporcionado');
