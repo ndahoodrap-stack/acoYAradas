@@ -58,12 +58,15 @@ catalogRouter.get(
         ),
         tx.query(
           `select b.id, b.title, b.subtitle, b.image_url, b.link_url, b.placement, b.sort_order,
+                  ac.store_id,
+                  (select s.slug from public.stores s where s.id = ac.store_id) as store_slug,
                   exists (
                     select 1 from public.ad_campaigns ac
                      where ac.banner_id = b.id and ac.status = 'active'
                        and ac.starts_at <= now() and ac.ends_at >= now()
                   ) as is_sponsored
              from public.banners b
+             left join public.ad_campaigns ac on ac.banner_id = b.id
             where b.active = true
               and (b.starts_at is null or b.starts_at <= now())
               and (b.ends_at is null or b.ends_at >= now())
