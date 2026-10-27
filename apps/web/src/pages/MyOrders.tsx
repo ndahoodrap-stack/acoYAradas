@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { formatDateTime, formatMoney } from '../lib/format';
 import { useSession } from '../lib/session';
 import type { OrderDto } from '@acoyaradas/shared';
-import { EmptyState, ErrorState, Spinner, StatusBadge } from '../components/ui';
+import { EmptyState, ErrorState, Field, Modal, Spinner, StatusBadge } from '../components/ui';
+import { FileUpload } from '../../components/FileUpload';
 
 export default function MyOrders() {
   const { user } = useSession();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '', avatar_url: '' });
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -18,10 +21,44 @@ export default function MyOrders() {
     enabled: Boolean(user),
   });
 
+  useEffect(() => {
+    const p = me?.profile;
+    if (p) {
+      setProfileForm({
+        full_name: p.full_name ?? '',
+        phone: p.phone ?? '',
+        avatar_url: p.avatar_url ?? '',
+      });
+    }
+  }, [me]);
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['my-orders'],
     queryFn: () => api.get<{ items: OrderDto[] }>('/orders/mine'),
     enabled: Boolean(user),
+  });
+
+  const saveProfile = useMutation({
+    mutationFn: () =>
+      api.patch('/me', {
+        full_name: profileForm.full_name,
+        phone: profileForm.phone,
+        avatar_url: profileForm.avatar_url || null,
+      }),
+    onSuccess: async () => {
+      setMessage('Perfil guardado.');
+      setProfileOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+    onError: (err) => setMessage((err as Error).message),
+  });
+
+  const deleteAccount = useMutation({
+    mutationFn: () => api.del('/me'),
+    onSuccess: () => {
+      window.location.href = '/';
+    },
+    onError: (err) => setMessage((err as Error).message),
   });
 
   const cancel = useMutation({
@@ -66,9 +103,9 @@ export default function MyOrders() {
           <p className="font-semibold text-ink-900">{me?.profile?.full_name ?? user.full_name ?? user.email}</p>
           <p className="text-xs text-ink-500">{me?.profile?.phone ?? user.phone ?? 'Sin teléfono'}</p>
         </div>
-        <Link to="/mi-perfil" className="btn-secondary">
+        <button type="button" className="btn-secondary" onClick={() => setProfileOpen(true)}>
           Configurar perfil
-        </Link>
+        </button>
       </div>
 
       <div className="mt-6 space-y-4">
@@ -134,6 +171,56 @@ export default function MyOrders() {
           ))
         )}
       </div>
+
+      <Modal
+        open={profileOpen}
+        title="Configurar perfil"
+        onClose={() => setProfileOpen(false)}
+        footer={
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setProfileOpen(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={saveProfile.isPending}
+              onClick={() => saveProfile.mutate()}
+            >
+              Guardar
+            </button>
+          </>
+        }
+      >
+        <FileUpload
+          label="Foto de perfil"
+          value={profileForm.avatar_url}
+          onChange={(url) => setProfileForm((f) => ({ ...f, avatar_url: url }))}
+        />
+        <Field label="Nombre y apellido">
+          <input
+            className="input"
+            value={profileForm.full_name}
+            onChange={(e) => setProfileForm((f) => ({ ...f, full_name: e.target.value }))}
+          />
+        </Field>
+        <Field label="Teléfono">
+          <input
+            className="input"
+            value={profileForm.phone}
+            onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+          />
+        </Field>
+        <button
+          type="button"
+          className="btn-ghost text-red-600"
+          onClick={() => {
+            if (window.confirm('Eliminar cuenta?')) deleteAccount.mutate();
+          }}
+        >
+          Eliminar cuenta
+        </button>
+      </Modal>
     </div>
   );
 }
