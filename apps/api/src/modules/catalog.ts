@@ -88,7 +88,7 @@ catalogRouter.get(
             limit 8`,
         ),
         tx.query(
-          `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug
+          `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug, s.is_open as store_is_open, s.open_hours, s.status as store_status
              from public.products p
              join public.stores s on s.id = p.store_id
             where ${ACTIVE_PRODUCT} and ${ACTIVE_STORE} and p.is_available = true
@@ -96,7 +96,7 @@ catalogRouter.get(
             limit 8`,
         ),
         tx.query(
-          `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug
+          `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug, s.is_open as store_is_open, s.open_hours, s.status as store_status
              from public.products p
              join public.stores s on s.id = p.store_id
             where ${ACTIVE_PRODUCT} and ${ACTIVE_STORE} and p.is_available = true
@@ -106,7 +106,8 @@ catalogRouter.get(
         tx.query(
           `select pp.id, pp.name, pp.description, pp.price, pp.stock, pp.image_url,
                   pp.category_id, c.name as category_name, pp.is_available, pp.featured,
-                  pp.status, pp.created_at, null::uuid as store_id, null::text as store_name, null::text as store_slug
+                  pp.status, pp.created_at, null::uuid as store_id, null::text as store_name, null::text as store_slug,
+                  true as store_is_open, null::jsonb as open_hours, 'active' as store_status
              from public.platform_products pp
              left join public.categories c on c.id = pp.category_id
             where pp.status = 'active' and pp.deleted_at is null and pp.is_available = true

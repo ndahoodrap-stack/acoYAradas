@@ -1,5 +1,6 @@
 import type { ProductDto, StoreDto } from '@acoyaradas/shared';
 import { isStoreOpenNow } from '../lib/storeHours.js';
+import { isStoreOpenNow } from '../lib/storeHours.js';
 
 export const STORE_SELECT = `
   s.id, s.name, s.slug, s.logo_url, s.cover_url, s.description, s.category_id,
@@ -50,11 +51,18 @@ export function mapStore(row: any): StoreDto {
 }
 
 export function mapProduct(row: any): ProductDto {
+  const storeOpen =
+    row.store_status !== undefined
+      ? row.store_status === 'active'
+        ? isStoreOpenNow(row.open_hours ?? {})
+        : Boolean(row.store_is_open ?? row.is_open)
+      : row.store_is_open;
   return {
     id: row.id,
     store_id: row.store_id ?? null,
     store_name: row.store_name,
     store_slug: row.store_slug,
+    store_is_open: storeOpen,
     name: row.name,
     description: row.description,
     price: Number(row.price ?? 0),

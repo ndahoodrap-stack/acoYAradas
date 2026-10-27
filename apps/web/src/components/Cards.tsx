@@ -48,12 +48,13 @@ export function StoreCard({ store }: { store: StoreDto }) {
 }
 
 export function ProductCard({ product }: { product: ProductDto }) {
+  const open = product.store_is_open !== false;
   return (
     <Link
       to={`/productos/${product.id}`}
-      className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
+      className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="aspect-square w-full overflow-hidden bg-ink-100">
+      <div className="aspect-[4/3] w-full overflow-hidden bg-ink-100">
         {product.image_url ? (
           <img
             src={product.image_url}
@@ -63,17 +64,21 @@ export function ProductCard({ product }: { product: ProductDto }) {
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl text-ink-400">🍽️</div>
+          <div className="flex h-full items-center justify-center text-2xl text-ink-400">🍽️</div>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-3">
+      <div className="flex flex-1 flex-col p-2.5">
         {product.store_name ? (
-          <p className="text-xs font-medium uppercase tracking-wide text-ink-400">
-            {product.store_name}
+          <p
+            className={`text-[11px] font-semibold uppercase tracking-wide ${
+              open ? 'text-emerald-600' : 'text-red-600'
+            }`}
+          >
+            {product.store_name} · {open ? 'Abierto' : 'Cerrado'}
           </p>
         ) : null}
-        <h3 className="line-clamp-2 text-sm font-semibold text-ink-900">{product.name}</h3>
-        <p className="mt-auto pt-2 text-base font-bold text-brand-600">
+        <h3 className="line-clamp-2 text-xs font-semibold text-ink-900">{product.name}</h3>
+        <p className="mt-auto pt-1.5 text-sm font-bold text-brand-600">
           {formatMoney(product.price)}
         </p>
       </div>

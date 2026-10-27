@@ -361,6 +361,7 @@ export interface ProductDto {
   store_id: string | null;
   store_name?: string;
   store_slug?: string;
+  store_is_open?: boolean;
   name: string;
   description: string | null;
   price: number;
