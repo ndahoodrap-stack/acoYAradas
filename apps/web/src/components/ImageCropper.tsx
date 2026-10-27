@@ -371,17 +371,6 @@ export function ImageCropper({
     );
   }
 
-  if (!imgLoaded) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="bg-white rounded-2xl p-6 max-w-md mx-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-600 border-t-transparent mx-auto mb-3"/>
-          <div className="text-lg font-medium text-ink-900">Cargando imagen...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
          onPointerDown={handlePointerDown}
@@ -396,10 +385,10 @@ export function ImageCropper({
           </h2>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-ink-100 rounded-lg p-1">
-              <button onClick={handleZoomOut} className="p-2 rounded hover:bg-ink-200" aria-label="Alejar">
+              <button onClick={handleZoomOut} className="p-2 rounded hover:bg-ink-200" aria-label="Alejar" disabled={!imgLoaded}>
                 <svg className="w-5 h-5 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </button>
-              <button onClick={handleZoomIn} className="p-2 rounded hover:bg-ink-200" aria-label="Acercar">
+              <button onClick={handleZoomIn} className="p-2 rounded hover:bg-ink-200" aria-label="Acercar" disabled={!imgLoaded}>
                 <svg className="w-5 h-5 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m0-6H6"/></svg>
               </button>
             </div>
@@ -413,9 +402,19 @@ export function ImageCropper({
           <canvas
             ref={canvasRef}
             className="w-full h-full cursor-grab active:cursor-grabbing"
-            style={{ display: 'block', width: '100%', height: '100%' }}
+            style={{ display: 'block', width: '100%', height: '100%', opacity: imgLoaded ? 1 : 0 }}
           />
           <img ref={imgRef} style={{ display: 'none' }} aria-hidden="true" />
+
+          {/* Loading overlay */}
+          {!imgLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-ink-100">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-3 border-brand-600 border-t-transparent mx-auto mb-3"/>
+                <div className="text-lg font-medium text-ink-900">Cargando imagen...</div>
+              </div>
+            </div>
+          )}
 
           <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {isCircle ? 'Círculo (1:1)' : aspectRatio === 3 ? 'Banner 3:1' : aspectRatio === 16/9 ? '16:9' : '3:4'}
@@ -428,7 +427,9 @@ export function ImageCropper({
 
         <div className="flex justify-end gap-3 p-4 border-t border-ink-200 bg-ink-50">
           <button className="btn-secondary" onClick={onCancel}>Cancelar</button>
-          <button className="btn-primary" onClick={handleApply}>Aplicar recorte</button>
+          <button className="btn-primary" onClick={handleApply} disabled={!imgLoaded}>
+            {imgLoaded ? 'Aplicar recorte' : 'Cargando...'}
+          </button>
         </div>
       </div>
     </div>
