@@ -251,7 +251,6 @@ ordersRouter.post(
       subtotal = money(subtotal);
 
       // Promociones aplicables (código explícito o la mejor vigente)
-      const promoStoreId = hasPlatformProduct ? store.store_id : store.store_id;
       const promoRows = await tx.query(
         `select id, title, discount_type, discount_value, min_subtotal, code, store_id
            from public.promotions

@@ -1,6 +1,5 @@
 import type { ProductDto, StoreDto } from '@acoyaradas/shared';
 import { isStoreOpenNow } from '../lib/storeHours.js';
-import { isStoreOpenNow } from '../lib/storeHours.js';
 
 export const STORE_SELECT = `
   s.id, s.name, s.slug, s.logo_url, s.cover_url, s.description, s.category_id,

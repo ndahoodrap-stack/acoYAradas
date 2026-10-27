@@ -10,6 +10,7 @@ import { ErrorState, Spinner } from '../components/ui';
 interface ProductPage extends ProductDto {
   store_logo_url: string | null;
   store_is_open?: boolean;
+  is_open?: boolean;
   locality?: string | null;
 }
 

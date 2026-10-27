@@ -185,7 +185,6 @@ export default function StoreOrders() {
                                   ? 'Pedido aceptado por el comercio'
                                   : undefined,
                               prepMinutes: prepMinutes[order.id],
-                              responsible: responsible[order.id],
                             })
                           }
                         >
