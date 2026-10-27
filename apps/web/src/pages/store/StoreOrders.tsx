@@ -4,7 +4,6 @@ import { api } from '../../lib/api';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { ORDER_STATUS_LABELS, type OrderDto } from '@acoyaradas/shared';
 import { EmptyState, ErrorState, Spinner, StatusBadge } from '../../components/ui';
-import { WhatsAppButton, WhatsAppSheet } from '../../components/WhatsApp';
 const FILTERS = [
   { value: '', label: 'Todos' },
   { value: 'pending_confirmation', label: 'Pendientes de aceptación' },
@@ -35,7 +34,6 @@ export default function StoreOrders() {
   const [message, setMessage] = useState<string | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<Record<string, string>>({});
   const [responsible, setResponsible] = useState<Record<string, string>>({});
-  const [waOrderId, setWaOrderId] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['store-orders', status],
@@ -110,12 +108,10 @@ export default function StoreOrders() {
                 </div>
                 <div className="text-right">
                   <StatusBadge status={order.status} />
-                  <p className="mt-1 text-sm font-bold text-ink-900">{formatMoney(order.total)}</p>
-                  <WhatsAppButton
-                    label="WhatsApp"
-                    className="mt-2 px-2 py-1 text-xs"
-                    onClick={() => setWaOrderId(order.id)}
-                  />
+                  <p className="mt-1 text-sm font-bold text-ink-900">
+                    {formatMoney((order.total - (order.shipping_cost ?? 0)) * 0.92)}
+                  </p>
+                  <p className="text-xs text-ink-500">Total a recibir (sin envío ni comisión)</p>
                 </div>
               </div>
 
@@ -223,7 +219,6 @@ export default function StoreOrders() {
         </div>
       )}
 
-      <WhatsAppSheet orderId={waOrderId} onClose={() => setWaOrderId(null)} />
     </div>
   );
 }
