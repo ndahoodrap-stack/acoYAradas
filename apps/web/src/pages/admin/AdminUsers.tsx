@@ -62,7 +62,10 @@ export default function AdminUsers() {
       setMessage('Usuario creado.');
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
-    onError: (err) => setMessage((err as Error).message),
+    onError: (err) => {
+      const d = (err as any)?.details;
+      setMessage((err as Error).message + (d ? `: ${JSON.stringify(d)}` : ''));
+    },
   });
 
   const changeRole = useMutation({
@@ -73,7 +76,10 @@ export default function AdminUsers() {
       setMessage('Rol actualizado.');
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
-    onError: (err) => setMessage((err as Error).message),
+    onError: (err) => {
+      const d = (err as any)?.details;
+      setMessage((err as Error).message + (d ? `: ${JSON.stringify(d)}` : ''));
+    },
   });
 
   const deleteUser = useMutation({
@@ -82,7 +88,10 @@ export default function AdminUsers() {
       setMessage('Usuario dado de baja.');
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
-    onError: (err) => setMessage((err as Error).message),
+    onError: (err) => {
+      const d = (err as any)?.details;
+      setMessage((err as Error).message + (d ? `: ${JSON.stringify(d)}` : ''));
+    },
   });
 
   if (isLoading) return <Spinner />;
