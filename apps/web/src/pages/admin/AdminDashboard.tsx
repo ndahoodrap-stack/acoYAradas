@@ -168,13 +168,6 @@ export default function AdminDashboard() {
         />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Abonos (confirmados)"
-            value={formatMoney(d.revenue.subscriptions)}
-            hint="Suscripciones cobradas"
-            tone="brand"
-            icon="💳"
-          />
-          <StatCard
             label="Publicidad (confirmada)"
             value={formatMoney(d.revenue.advertising)}
             hint="Campañas facturadas"
@@ -251,11 +244,6 @@ export default function AdminDashboard() {
             label="Publicidades activas"
             value={formatNumber(d.ads_active)}
             hint={`${formatNumber(d.ads_expiring)} vencen en 7 días`}
-          />
-          <StatCard
-            label="Suscripciones vigentes"
-            value={formatNumber(d.subscriptions_active)}
-            hint={`${formatNumber(d.subscriptions_expired)} vencidas o impagas`}
           />
           <StatCard
             label="Comisiones pendientes"
