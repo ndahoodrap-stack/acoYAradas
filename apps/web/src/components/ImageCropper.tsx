@@ -415,7 +415,7 @@ export function ImageCropper({
             className="w-full h-full cursor-grab active:cursor-grabbing"
             style={{ display: 'block', width: '100%', height: '100%' }}
           />
-          <img ref={imgRef} src={src} style={{ display: 'none' }} aria-hidden="true" />
+          <img ref={imgRef} style={{ display: 'none' }} aria-hidden="true" />
 
           <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {isCircle ? 'Círculo (1:1)' : aspectRatio === 3 ? 'Banner 3:1' : aspectRatio === 16/9 ? '16:9' : '3:4'}
