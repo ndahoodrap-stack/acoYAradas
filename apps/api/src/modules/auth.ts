@@ -48,10 +48,11 @@ authRouter.get(
   '/me',
   route(async (ctx) => {
     if (!ctx.user) return { user: null };
+    await ctx.db.system.query('alter table public.profiles add column if not exists address text');
     const profile = await ctx.db.transaction(async (tx) => {
       await applyClaims(tx, ctx.claims);
       const { rows } = await tx.query(
-        'select id, email, full_name, phone, role, avatar_url from public.profiles where id = $1 and deleted_at is null',
+        'select id, email, full_name, phone, address, role, avatar_url from public.profiles where id = $1 and deleted_at is null',
         [ctx.user!.id],
       );
       return rows[0] ?? null;
@@ -68,6 +69,7 @@ authRouter.patch(
     const phone = String(req.body?.phone ?? '').trim() || null;
     const address = String(req.body?.address ?? '').trim() || null;
     const avatar_url = req.body?.avatar_url === undefined ? undefined : (String(req.body.avatar_url ?? '').trim() || null);
+    await ctx.db.system.query('alter table public.profiles add column if not exists address text');
     return ctx.db.transaction(async (tx) => {
       await applyClaims(tx, ctx.claims);
       const fields = ['full_name = $2', 'phone = $3', 'address = $4', 'updated_at = now()'];
@@ -77,8 +79,9 @@ authRouter.patch(
         params.push(avatar_url);
       }
       await tx.query(`update public.profiles set ${fields.join(', ')} where id = $1`, params);
+      await ctx.db.system.query('alter table public.profiles add column if not exists address text');
       const { rows } = await tx.query(
-        'select id, email, full_name, phone, role, avatar_url from public.profiles where id = $1',
+        'select id, email, full_name, phone, address, role, avatar_url from public.profiles where id = $1',
         [ctx.user!.id],
       );
       return rows[0];
