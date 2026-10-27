@@ -5,7 +5,6 @@ import AdminStores from './AdminStores';
 import AdminOrders from './AdminOrders';
 import AdminRiders from './AdminRiders';
 import AdminAds from './AdminAds';
-import AdminPlans from './AdminPlans';
 import AdminCommissions from './AdminCommissions';
 import AdminLogistics from './AdminLogistics';
 import AdminCategories from './AdminCategories';
@@ -22,7 +21,6 @@ const links: PanelLink[] = [
   { to: '/admin/pedidos', label: 'Pedidos', icon: '🧾' },
   { to: '/admin/repartidores', label: 'Repartidores', icon: '🛵' },
   { to: '/admin/publicidad', label: 'Publicidad', icon: '📣' },
-  { to: '/admin/planes', label: 'Planes y pagos', icon: '💳' },
   { to: '/admin/comisiones', label: 'Comisiones', icon: '📊' },
   { to: '/admin/logistica', label: 'Logística', icon: '🚚' },
   { to: '/admin/categorias', label: 'Categorías', icon: '🗂️' },
@@ -47,7 +45,6 @@ export default function AdminPanel() {
         <Route path="pedidos" element={<AdminOrders />} />
         <Route path="repartidores" element={<AdminRiders />} />
         <Route path="publicidad" element={<AdminAds />} />
-        <Route path="planes" element={<AdminPlans />} />
         <Route path="comisiones" element={<AdminCommissions />} />
         <Route path="logistica" element={<AdminLogistics />} />
         <Route path="categorias" element={<AdminCategories />} />
