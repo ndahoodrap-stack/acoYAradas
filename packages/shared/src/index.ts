@@ -35,7 +35,7 @@ export type DeliveryMode = (typeof DELIVERY_MODES)[number];
 export const FULFILLMENT_TYPES = ['delivery', 'pickup'] as const;
 export type FulfillmentType = (typeof FULFILLMENT_TYPES)[number];
 
-export const PAYMENT_METHODS = ['cash', 'transfer', 'cash_on_delivery'] as const;
+export const PAYMENT_METHODS = ['cash', 'transfer'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_STATUSES = ['pending', 'confirmed', 'failed', 'refunded'] as const;
@@ -82,9 +82,8 @@ export const DELIVERY_MODE_LABELS: Record<DeliveryMode, string> = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Efectivo en el local',
+  cash: 'Efectivo',
   transfer: 'Transferencia bancaria',
-  cash_on_delivery: 'Pago al recibir',
 };
 
 /* ------------------------------------------------------------------ */

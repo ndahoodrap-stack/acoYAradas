@@ -144,15 +144,21 @@ ordersRouter.post(
 
       const cartItems = await tx.query(
         `select ci.id, ci.quantity, ci.notes, ci.product_id,
-                p.name, p.price, p.stock, p.status as product_status, p.is_available, p.store_id,
+                coalesce(p.name, pp.name) as name,
+                coalesce(p.price, pp.price) as price,
+                coalesce(p.stock, pp.stock) as stock,
+                coalesce(p.status::text, pp.status::text) as product_status,
+                coalesce(p.is_available, pp.is_available) as is_available,
+                p.store_id,
                 s.name as store_name, s.status as store_status, s.deleted_at,
-                s.allows_platform_delivery, s.allows_merchant_delivery, s.allows_pickup,
-                s.accepts_cash, s.accepts_transfer, s.accepts_cash_on_delivery,
+                s.allows_platform_delivery, s.allows_pickup,
+                s.accepts_cash, s.accepts_transfer,
                 s.merchant_delivery_fee, s.merchant_delivery_notes, s.zone_id,
                 s.preparation_time_minutes
            from public.cart_items ci
-           join public.products p on p.id = ci.product_id
+           left join public.products p on p.id = ci.product_id
            left join public.stores s on s.id = p.store_id
+           left join public.platform_products pp on pp.id = ci.product_id
           where ci.cart_id = $1
           order by ci.created_at`,
         [cart.id],
@@ -162,22 +168,44 @@ ordersRouter.post(
       if (!cartItems.rows.length) throw badRequest('Tu carrito está vacío');
       const hasPlatformProduct = cartItems.rows.some((r: any) => !r.store_id);
       if (hasPlatformProduct) {
+        const storeIds = [...new Set(cartItems.rows.filter((r: any) => r.store_id).map((r: any) => r.store_id))];
+        if (storeIds.length > 0) {
+          throw conflict('No podés mezclar productos no afiliados con productos de comercios.', {
+            reason: 'mixed_stores',
+          });
+        }
         for (const item of cartItems.rows) {
-          if (!item.store_id) {
-            const pp = await tx.query(
-              `select id, name, price, stock, status, is_available from public.platform_products where id = $1 and deleted_at is null`,
-              [item.product_id],
-            );
-            if (!pp.rows[0] || pp.rows[0].status !== 'active' || !pp.rows[0].is_available) {
-              throw conflict('El producto no está disponible');
-            }
-          } else if (item.product_status !== 'active' || !item.is_available || item.store_status !== 'active' || item.deleted_at) {
+          const pp = await tx.query(
+            `select id, name, price, stock, status, is_available from public.platform_products where id = $1 and deleted_at is null`,
+            [item.product_id],
+          );
+          if (!pp.rows[0] || pp.rows[0].status !== 'active' || !pp.rows[0].is_available) {
             throw conflict('El producto no está disponible');
           }
         }
-        if (body.fulfillment_type === 'pickup') throw conflict('Este pedido no permite retiro en el local');
-        if (body.fulfillment_type === 'delivery' && body.delivery_mode === 'merchant') throw conflict('Entrega propia no disponible para este pedido');
-        // ... continue with platformStore
+        body.fulfillment_type = 'delivery';
+        body.delivery_mode = 'platform';
+        // Use a platform store context - get or create
+        const platformStore = await tx.query<{ id: string; name: string; zone_id: string | null; preparation_time_minutes: number | null }>(
+          `select id, name, zone_id, preparation_time_minutes from public.stores where status = 'active' and deleted_at is null order by created_at asc limit 1`,
+        );
+        if (!platformStore.rows.length) {
+          throw badRequest('No hay comercios disponibles para este pedido');
+        }
+        store = {
+          store_id: platformStore.rows[0].id,
+          store_name: platformStore.rows[0].name,
+          status: 'active',
+          deleted_at: null,
+          allows_platform_delivery: true,
+          allows_pickup: false,
+          accepts_cash: true,
+          accepts_transfer: true,
+          merchant_delivery_fee: 0,
+          merchant_delivery_notes: null,
+          zone_id: platformStore.rows[0].zone_id,
+          preparation_time_minutes: platformStore.rows[0].preparation_time_minutes,
+        };
       } else {
         const storeIds = [...new Set(cartItems.rows.map((r: any) => r.store_id))];
         if (storeIds.length > 1) {
@@ -185,25 +213,19 @@ ordersRouter.post(
             reason: 'mixed_stores',
           });
         }
-        const store = cartItems.rows[0];
+        store = cartItems.rows[0];
         if (store.store_status !== 'active' || store.deleted_at) {
-          throw conflict('El comercio no está accepting pedidos en este momento');
+          throw conflict('El comercio no está aceptando pedidos en este momento');
+        }
+        if (!store.allows_platform_delivery) {
+          store.allows_platform_delivery = true;
         }
         // ... rest same
       }
 
-      // Modalidad de entrega
-      if (body.fulfillment_type === 'pickup' && !store.allows_pickup) {
-        throw conflict('Este comercio no permite retirar el pedido en el local');
-      }
-      if (body.fulfillment_type === 'delivery') {
-        if (body.delivery_mode === 'platform' && !store.allows_platform_delivery) {
-          throw conflict('Este comercio no tiene entrega organizada por acoYAradas!');
-        }
-        if (body.delivery_mode === 'merchant' && !store.allows_merchant_delivery) {
-          throw conflict('Este comercio no tiene entrega propia habilitada');
-        }
-      }
+      // Modalidad de entrega - solo acoYAradas (platform)
+      body.fulfillment_type = 'delivery';
+      body.delivery_mode = 'platform';
 
       // Método de pago
       if (body.payment_method === 'cash' && !store.accepts_cash) {
@@ -212,26 +234,24 @@ ordersRouter.post(
       if (body.payment_method === 'transfer' && !store.accepts_transfer) {
         throw conflict('Este comercio no acepta transferencia bancaria');
       }
-      if (body.payment_method === 'cash_on_delivery') {
-        if (!store.accepts_cash_on_delivery) {
-          throw conflict('Este comercio no acepta pago al recibir');
-        }
-        if (body.fulfillment_type === 'pickup') {
-          throw badRequest('El pago al recibir sólo aplica a entregas a domicilio');
-        }
-      }
 
       // Totales calculados en el servidor
       let subtotal = 0;
       for (const item of cartItems.rows) {
-        if (item.product_status !== 'active' || !item.is_available) {
-          throw conflict(`El producto "${item.name}" ya no está disponible`);
+        if (hasPlatformProduct && !item.store_id) {
+          // validated
+        } else if (!hasPlatformProduct) {
+          if (item.product_status !== 'active' || !item.is_available) {
+            let itemName = item.name || 'Producto';
+            throw conflict(`El producto "${itemName}" ya no está disponible`);
+          }
         }
         subtotal += Number(item.price) * Number(item.quantity);
       }
       subtotal = money(subtotal);
 
       // Promociones aplicables (código explícito o la mejor vigente)
+      const promoStoreId = hasPlatformProduct ? store.store_id : store.store_id;
       const promoRows = await tx.query(
         `select id, title, discount_type, discount_value, min_subtotal, code, store_id
            from public.promotions
@@ -240,7 +260,7 @@ ordersRouter.post(
             and (starts_at is null or starts_at <= now())
             and (ends_at is null or ends_at >= now())
           order by (store_id is null) desc`,
-        [store.store_id],
+        [promoStoreId],
       );
       const promoCode = (req.body?.promo_code as string | undefined)?.trim().toUpperCase();
       const matching = promoCode
@@ -268,10 +288,22 @@ ordersRouter.post(
       // Descuento de stock (bloquea la fila para evitar oversell)
       for (const item of cartItems.rows) {
         try {
-          await tx.query('select public.decrement_stock($1, $2, null) as stock', [
-            item.product_id,
-            Number(item.quantity),
-          ]);
+          if (hasPlatformProduct && !item.store_id) {
+            await tx.query('update public.platform_products set stock = stock - $2, updated_at = now() where id = $1 and stock >= $2 returning stock', [
+              item.product_id,
+              Number(item.quantity),
+            ]);
+            await tx.query('insert into public.stock_movements (product_id, order_id, delta, reason) values ($1, null, $2, $3)', [
+              item.product_id,
+              -Number(item.quantity),
+              'pedido',
+            ]);
+          } else {
+            await tx.query('select public.decrement_stock($1, $2, null) as stock', [
+              item.product_id,
+              Number(item.quantity),
+            ]);
+          }
         } catch (err) {
           const message = (err as Error).message ?? '';
           if (message.includes('STOCK_INSUFICIENTE')) {
@@ -313,7 +345,7 @@ ordersRouter.post(
           body.references || null,
           body.notes || null,
           body.fulfillment_type,
-          body.fulfillment_type === 'pickup' ? 'merchant' : body.delivery_mode,
+          body.delivery_mode,
           subtotal,
           discount,
           shipping.cost,
@@ -328,6 +360,12 @@ ordersRouter.post(
       const orderId = inserted.rows[0].id;
 
       for (const item of cartItems.rows) {
+        let itemName = item.name;
+        if (!itemName && hasPlatformProduct && !item.store_id) {
+          const pp = await tx.query<{ name: string }>(`select name from public.platform_products where id = $1`, [item.product_id]);
+          itemName = pp.rows[0]?.name || 'Producto';
+        }
+        if (!itemName) itemName = 'Producto';
         await tx.query(
           `insert into public.order_items
              (order_id, product_id, store_id, name_snapshot, price_snapshot, quantity, notes, line_total)
@@ -335,8 +373,8 @@ ordersRouter.post(
           [
             orderId,
             item.product_id,
-            item.store_id,
-            item.name,
+            item.store_id || store.store_id,
+            itemName,
             Number(item.price),
             Number(item.quantity),
             item.notes,

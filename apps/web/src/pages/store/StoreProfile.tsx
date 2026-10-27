@@ -69,13 +69,11 @@ export default function StoreProfile() {
       is_open: s.is_open,
       preparation_time_minutes: s.preparation_time_minutes ?? '',
       allows_platform_delivery: s.allows_platform_delivery,
-      allows_merchant_delivery: s.allows_merchant_delivery,
-      allows_pickup: s.allows_pickup,
+      allows_pickup: false,
       merchant_delivery_fee: s.merchant_delivery_fee ?? 0,
       merchant_delivery_notes: s.merchant_delivery_notes ?? '',
       accepts_cash: s.accepts_cash,
       accepts_transfer: s.accepts_transfer,
-      accepts_cash_on_delivery: s.accepts_cash_on_delivery,
       accepts_terms: s.accepts_terms,
       open_hours: { ...(s.open_hours ?? {}) },
     });
@@ -232,11 +230,8 @@ export default function StoreProfile() {
         <div className="grid gap-2 sm:grid-cols-2">
           {[
             ['allows_platform_delivery', 'Entrega organizada por acoYAradas!'],
-            ['allows_merchant_delivery', 'Entrega propia del comercio'],
-            ['allows_pickup', 'Retiro en el local'],
             ['accepts_cash', 'Acepta efectivo'],
             ['accepts_transfer', 'Acepta transferencia'],
-            ['accepts_cash_on_delivery', 'Acepta pago al recibir'],
             ['is_open', 'Comercio abierto'],
             ['accepts_terms', 'Aceptó las condiciones comerciales'],
           ].map(([key, label]) => (
@@ -251,25 +246,9 @@ export default function StoreProfile() {
           ))}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Costo de entrega propia (ARS)">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={form.merchant_delivery_fee ?? 0}
-              onChange={(e) => set('merchant_delivery_fee', e.target.value)}
-            />
-          </Field>
-          <Field label="Condiciones de entrega propia">
-            <input
-              className="input"
-              value={form.merchant_delivery_notes ?? ''}
-              onChange={(e) => set('merchant_delivery_notes', e.target.value)}
-              placeholder="Entrega de 18 a 21 h"
-            />
-          </Field>
+        <div className="hidden">
+          <input type="hidden" value={form.merchant_delivery_fee ?? 0} />
+          <input type="hidden" value={form.merchant_delivery_notes ?? ''} />
         </div>
 
         <h2 className="pt-2 text-lg font-bold text-ink-900">Horarios</h2>

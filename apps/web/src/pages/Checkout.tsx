@@ -17,12 +17,32 @@ export default function Checkout() {
   const navigate = useNavigate();
 
   const storeSlug = cart.items[0]?.store_slug ?? '';
+  const isPlatform = cart.items.some((item: any) => !item.store_id || item.store_slug === null);
   const { data: storePage, isLoading: storeLoading } = useQuery({
     queryKey: ['store', storeSlug],
     queryFn: () => api.get<{ store: StoreDto }>(`/stores/${storeSlug}`),
-    enabled: Boolean(storeSlug),
+    enabled: Boolean(storeSlug && !isPlatform),
   });
-  const store = storePage?.store;
+  const store = isPlatform
+    ? ({
+        id: cart.items[0]?.store_id ?? '',
+        name: cart.store_name ?? 'acoYAradas!',
+        allows_platform_delivery: true,
+        allows_merchant_delivery: false,
+        allows_pickup: false,
+        accepts_cash: true,
+        accepts_transfer: true,
+        accepts_cash_on_delivery: false,
+        merchant_delivery_fee: 0,
+      } as any)
+    : storePage?.store;
+
+  const { data: publicSettings } = useQuery({
+    queryKey: ['platform-settings'],
+    queryFn: () => api.get<any>('/settings'),
+    staleTime: 5 * 60 * 1000,
+  });
+  const cvu = String(publicSettings?.settings?.transfer_cvu ?? '0000003100000758197056');
 
   const [form, setForm] = useState({
     customer_name: '',
@@ -33,32 +53,22 @@ export default function Checkout() {
     notes: '',
     fulfillment_type: 'delivery' as Fulfillment,
     delivery_mode: 'platform' as DeliveryMode,
-    payment_method: 'cash' as PaymentMethod,
+    payment_method: 'transfer' as PaymentMethod,
   });
   const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const paymentOptions = useMemo(() => {
-    if (!store) return [] as PaymentMethod[];
+    if (!store) return ['transfer'] as PaymentMethod[];
     const options: PaymentMethod[] = [];
     if (store.accepts_cash) options.push('cash');
     if (store.accepts_transfer) options.push('transfer');
-    if (store.accepts_cash_on_delivery && form.fulfillment_type === 'delivery') {
-      options.push('cash_on_delivery');
-    }
-    return options;
-  }, [store, form.fulfillment_type]);
-
-  const deliveryOptions = useMemo(() => {
-    if (!store) return [] as DeliveryMode[];
-    const options: DeliveryMode[] = [];
-    if (store.allows_platform_delivery) options.push('platform');
-    if (store.allows_merchant_delivery) options.push('merchant');
+    if (options.length === 0) options.push('transfer');
     return options;
   }, [store]);
 
-  if (loading || storeLoading) return <Spinner label="Preparando el checkout…" />;
+  if (loading || (storeSlug && storeLoading)) return <Spinner label="Preparando el checkout…" />;
 
   if (!cart.items.length) {
     return (
@@ -79,6 +89,8 @@ export default function Checkout() {
     try {
       const body = {
         ...form,
+        fulfillment_type: 'delivery',
+        delivery_mode: 'platform',
         promo_code: promoCode.trim() || undefined,
         guest_token: tokens.guest ?? undefined,
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -181,80 +193,15 @@ export default function Checkout() {
           <section className="card p-5">
             <h2 className="text-lg font-bold text-ink-900">Entrega</h2>
             <div className="mt-4 space-y-4">
-              <fieldset>
-                <legend className="label">Modalidad</legend>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {store?.allows_pickup ? (
-                    <label className="flex items-center gap-2 rounded-xl border border-ink-200 p-3 text-sm">
-                      <input
-                        type="radio"
-                        name="fulfillment"
-                        checked={form.fulfillment_type === 'pickup'}
-                        onChange={() =>
-                          setForm((f) => ({
-                            ...f,
-                            fulfillment_type: 'pickup',
-                            delivery_mode: 'merchant',
-                          }))
-                        }
-                      />
-                      Retiro en el local
-                    </label>
-                  ) : null}
-                  {store?.allows_platform_delivery || store?.allows_merchant_delivery ? (
-                    <label className="flex items-center gap-2 rounded-xl border border-ink-200 p-3 text-sm">
-                      <input
-                        type="radio"
-                        name="fulfillment"
-                        checked={form.fulfillment_type === 'delivery'}
-                        onChange={() =>
-                          setForm((f) => ({ ...f, fulfillment_type: 'delivery' }))
-                        }
-                      />
-                      Envío a domicilio
-                    </label>
-                  ) : null}
-                </div>
-              </fieldset>
-
-              {form.fulfillment_type === 'delivery' ? (
-                <fieldset>
-                  <legend className="label">¿Quién lleva el pedido?</legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {deliveryOptions.map((mode) => (
-                      <label key={mode} className="flex items-start gap-2 rounded-xl border border-ink-200 p-3 text-sm">
-                        <input
-                          type="radio"
-                          name="delivery_mode"
-                          checked={form.delivery_mode === mode}
-                          onChange={() => setForm((f) => ({ ...f, delivery_mode: mode }))}
-                        />
-                        <span>
-                          <span className="block font-medium">
-                            {mode === 'platform' ? 'acoYAradas!' : 'Entrega propia del comercio'}
-                          </span>
-                          <span className="block text-xs text-ink-500">
-                            {mode === 'platform'
-                              ? 'El costo se calcula por zona al confirmar.'
-                              : store?.merchant_delivery_fee
-                                ? `Costo informado: ${formatMoney(store.merchant_delivery_fee)}`
-                                : 'El costo lo coordina el comercio.'}
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              ) : null}
+              <div className="rounded-xl border border-ink-200 p-3 text-sm">
+                <p className="font-medium text-ink-900">Envío por acoYAradas!</p>
+                <p className="text-xs text-ink-500">El costo se calcula por zona al confirmar.</p>
+              </div>
             </div>
           </section>
 
           <section className="card p-5">
             <h2 className="text-lg font-bold text-ink-900">Método de pago</h2>
-            <p className="mt-1 text-xs text-ink-500">
-              Los pagos online todavía no están-integrados: los registros quedan pendientes hasta su
-              verificación por un administrador.
-            </p>
             <div className="mt-4 space-y-2">
               {paymentOptions.map((method) => (
                 <label key={method} className="flex items-center gap-2 rounded-xl border border-ink-200 p-3 text-sm">
@@ -271,6 +218,24 @@ export default function Checkout() {
                 <p className="text-sm text-red-600">
                   Este comercio no tiene métodos de pago habilitados. Contactalo directamente.
                 </p>
+              ) : null}
+
+              {form.payment_method === 'transfer' ? (
+                <div className="mt-3 animate-fade-up rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm">
+                  <p className="font-semibold text-brand-700">Transferí al siguiente CVU:</p>
+                  <a
+                    href={`https://link.mercadopago.com.ar/?cvu=${cvu}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 font-mono text-sm font-bold text-brand-600 shadow-sm transition hover:scale-[1.02]"
+                  >
+                    {cvu}
+                    <span aria-hidden>↗</span>
+                  </a>
+                  <p className="mt-2 text-xs text-ink-500">
+                    Usá este CVU para realizar la transferencia. El pedido queda pendiente hasta la verificación.
+                  </p>
+                </div>
               ) : null}
             </div>
 

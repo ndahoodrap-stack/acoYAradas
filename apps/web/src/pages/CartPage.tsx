@@ -37,7 +37,7 @@ export default function CartPage() {
                 <span className="text-ink-600">
                   Pedido para <strong className="text-ink-900">{cart.store_name}</strong>
                 </span>
-                <span className="text-xs text-ink-500">Un pedido = un comercio</span>
+                <span className="text-xs text-ink-500">Podés agregar varios productos</span>
               </div>
             ) : null}
 

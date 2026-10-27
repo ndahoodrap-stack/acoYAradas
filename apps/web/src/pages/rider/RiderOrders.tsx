@@ -216,7 +216,7 @@ export default function RiderOrders() {
             <option value="incident">Incidencia / no se pudo entregar</option>
           </select>
         </Field>
-        {nextStatus === 'delivered' && detail?.payment_method === 'cash_on_delivery' ? (
+        {false ? (
           <Field label="Importe cobrado (ARS)" hint="Dejalo vacío si no cobraste en el momento.">
             <input
               type="number"

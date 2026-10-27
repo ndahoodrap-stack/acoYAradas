@@ -92,8 +92,8 @@ async function readCart(tx: DbExecutor, cartId: string) {
             pp.name as product_name, pp.price, pp.image_url, pp.stock, pp.is_available, pp.status
        from public.cart_items ci
        join public.platform_products pp on pp.id = ci.product_id
-       left join public.products p on p.id = ci.product_id
-      where ci.cart_id = $1 and p.id is null
+      where ci.cart_id = $1
+        and not exists (select 1 from public.products p where p.id = ci.product_id)
       order by ci.created_at`,
     [cartId],
   );
@@ -214,24 +214,42 @@ cartRouter.post(
           throw notFound('El producto no existe');
         }
         const cart = await findOrCreateCart(tx, ctx.user?.id ?? null, guest);
-        const current = await tx.query<{ store_id: string; store_name: string; items: number }>(
-          `select 'platform' as store_id, 'Productos no afiliados' as store_name, count(*)::int as items
-             from public.cart_items
-            where cart_id = $1`,
+        const current = await tx.query<{ store_id: string | null; store_name: string; items: number }>(
+          `select distinct p.store_id, coalesce(s.name, 'Productos no afiliados') as store_name, count(*)::int as items
+             from public.cart_items ci
+             left join public.products p on p.id = ci.product_id
+             left join public.stores s on s.id = p.store_id
+            where ci.cart_id = $1
+            group by p.store_id, s.name`,
           [cart.id],
         );
-        if (current.rows[0]?.items && !body.replace) {
-          throw conflict('Tu carrito tiene productos. Un pedido corresponde a un solo comercio.');
+        const platformInCart = current.rows.some((c) => c.store_id === null);
+        if (current.rows.length && !platformInCart && !body.replace) {
+          throw conflict('Tu carrito tiene productos de otro comercio. Un pedido corresponde a un solo comercio.', {
+            reason: 'mixed_stores',
+          });
         }
-        if (current.rows[0]?.items && body.replace) {
+        if (current.rows.length && platformInCart && body.replace) {
+          await tx.query('delete from public.cart_items where cart_id = $1', [cart.id]);
+        } else if (current.rows.length && !platformInCart && body.replace) {
           await tx.query('delete from public.cart_items where cart_id = $1', [cart.id]);
         }
-        await tx.query(
-          `insert into public.cart_items (id, cart_id, product_id, quantity)
-           values (gen_random_uuid(), $1, $2, $3)
-           on conflict (cart_id, product_id) do update set quantity = public.cart_items.quantity + $3`,
-          [cart.id, prow.id, body.quantity],
+        const existing = await tx.query<{ id: string; quantity: number }>(
+          'select id, quantity from public.cart_items where cart_id = $1 and product_id = $2',
+          [cart.id, prow.id],
         );
+        if (existing.rows.length) {
+          await tx.query('update public.cart_items set quantity = public.cart_items.quantity + $2, updated_at = now() where id = $1', [
+            existing.rows[0].id,
+            body.quantity,
+          ]);
+        } else {
+          await tx.query(
+            `insert into public.cart_items (id, cart_id, product_id, quantity)
+             values (gen_random_uuid(), $1, $2, $3)`,
+            [cart.id, prow.id, body.quantity],
+          );
+        }
         return readCart(tx, cart.id);
       }
       if (row.status !== 'active' || row.store_status !== 'active') {
@@ -250,7 +268,13 @@ cartRouter.post(
         [cart.id],
       );
 
-      const other = current.rows.find((c) => c.store_id !== row.store_id);
+      const hasPlatform = current.rows.some((c) => !c.store_id);
+      const other = current.rows.find((c) => c.store_id && c.store_id !== row.store_id);
+      if (hasPlatform && !body.replace) {
+        throw conflict('Tu carrito tiene productos no afiliados. Un pedido corresponde a un solo comercio.', {
+          reason: 'mixed_stores',
+        });
+      }
       if (other && !body.replace) {
         throw conflict(
           `Tu carrito tiene productos de ${other.store_name}. Un pedido corresponde a un solo comercio.`,
@@ -261,7 +285,7 @@ cartRouter.post(
           },
         );
       }
-      if (other && body.replace) {
+      if ((hasPlatform || other) && body.replace) {
         await tx.query('delete from public.cart_items where cart_id = $1', [cart.id]);
       }
 

@@ -611,18 +611,18 @@ export async function seedDemoData(db: Database): Promise<void> {
       features: {
         guest_checkout: true,
         platform_delivery: true,
-        merchant_delivery: true,
-        subscriptions: true,
+        merchant_delivery: false,
+        subscriptions: false,
         advertising: true,
         commissions: true,
       },
       payment_methods: [
-        { key: 'cash', label: 'Efectivo en el local', enabled: true },
+        { key: 'cash', label: 'Efectivo', enabled: true },
         { key: 'transfer', label: 'Transferencia bancaria', enabled: true },
-        { key: 'cash_on_delivery', label: 'Pago al recibir', enabled: true },
       ],
       legal_note:
         'Los textos legales son de demostración y deben ser revisados por un profesional legal antes de operar comercialmente en Argentina.',
+      transfer_cvu: '0000003100000758197056',
     };
     for (const [key, value] of Object.entries(settings)) {
       await tx.query(

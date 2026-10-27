@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { formatDate, formatMoney } from '../../lib/format';
+import { formatDate } from '../../lib/format';
 import { DataTable } from '../../components/PanelShell';
 import { EmptyState, ErrorState, Field, Modal, SectionTitle, Spinner } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
@@ -27,12 +27,8 @@ interface AdminStore {
   owner_name: string | null;
   is_open: boolean;
   allows_platform_delivery: boolean;
-  allows_merchant_delivery: boolean;
-  allows_pickup: boolean;
-  merchant_delivery_fee: number;
   accepts_cash: boolean;
   accepts_transfer: boolean;
-  accepts_cash_on_delivery: boolean;
   accepts_terms: boolean;
   verified: boolean;
   created_at: string;
@@ -67,12 +63,8 @@ const EDITABLE_FIELDS = [
   'is_open',
   'preparation_time_minutes',
   'allows_platform_delivery',
-  'allows_merchant_delivery',
-  'allows_pickup',
-  'merchant_delivery_fee',
   'accepts_cash',
   'accepts_transfer',
-  'accepts_cash_on_delivery',
   'accepts_terms',
 ] as const;
 
@@ -310,6 +302,10 @@ export default function AdminStores() {
           Estado actual: <strong>{review ? STATUS_LABELS[review.status] : ''}</strong>. Al aprobar un
           comercio se le asigna el plan gratuito de bienvenida.
         </p>
+        <p className="mt-2 text-xs text-ink-500">
+          Cobro a este comercio: comision del 8% por pedido + espacios publicitarios opcionales (banner en
+          inicio, comercio destacado, producto patrocinado).
+        </p>
         <Field label="Nuevo estado">
           <select
             className="input"
@@ -338,16 +334,8 @@ export default function AdminStores() {
               <dd>{review.accepts_terms ? 'Sí' : 'No'}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink-800">Entrega propia</dt>
-              <dd>{review.allows_merchant_delivery ? 'Sí' : 'No'}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink-800">Retiro en local</dt>
-              <dd>{review.allows_pickup ? 'Sí' : 'No'}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink-800">Costo envío propio</dt>
-              <dd>{formatMoney(review.merchant_delivery_fee)}</dd>
+              <dt className="font-semibold text-ink-800">Entrega</dt>
+              <dd>acoYAradas!</dd>
             </div>
           </dl>
         ) : null}
@@ -380,13 +368,9 @@ export default function AdminStores() {
                 body.locality = form.locality;
                 body.is_open = Boolean(form.is_open);
                 body.preparation_time_minutes = Number(form.preparation_time_minutes || 0);
-                body.allows_platform_delivery = Boolean(form.allows_platform_delivery);
-                body.allows_merchant_delivery = Boolean(form.allows_merchant_delivery);
-                body.allows_pickup = Boolean(form.allows_pickup);
-                body.merchant_delivery_fee = Number(form.merchant_delivery_fee || 0);
+                body.allows_platform_delivery = true;
                 body.accepts_cash = Boolean(form.accepts_cash);
                 body.accepts_transfer = Boolean(form.accepts_transfer);
-                body.accepts_cash_on_delivery = Boolean(form.accepts_cash_on_delivery);
                 body.accepts_terms = Boolean(form.accepts_terms);
                 saveMutation.mutate({ id: editing.id, body });
               }}
@@ -470,27 +454,13 @@ export default function AdminStores() {
               }
             />
           </Field>
-          <Field label="Costo de envío propio (ARS)">
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              className="input"
-              value={String(form.merchant_delivery_fee ?? 0)}
-              onChange={(e) => setForm((f) => ({ ...f, merchant_delivery_fee: e.target.value }))}
-            />
-          </Field>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {(
             [
               ['is_open', 'Comercio abierto'],
-              ['allows_platform_delivery', 'Entrega por acoYAradas!'],
-              ['allows_merchant_delivery', 'Entrega propia del comercio'],
-              ['allows_pickup', 'Permite retiro en el local'],
               ['accepts_cash', 'Acepta efectivo'],
               ['accepts_transfer', 'Acepta transferencia'],
-              ['accepts_cash_on_delivery', 'Acepta pago al recibir'],
               ['accepts_terms', 'Aceptó condiciones comerciales'],
             ] as const
           ).map(([key, label]) => (

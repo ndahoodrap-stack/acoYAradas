@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -58,6 +58,20 @@ export default function Home() {
   const featured = data?.stores ?? [];
   const banners = data?.banners ?? [];
   const categories = data?.categories ?? [];
+  const paidBanner = banners.find((b: any) => b.is_sponsored) ?? banners[0] ?? null;
+  const [showAd, setShowAd] = useState(false);
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const cycle = () => {
+      setShowAd(false);
+      timeout = setTimeout(() => {
+        setShowAd(true);
+        timeout = setTimeout(cycle, 15000);
+      }, 5000);
+    };
+    cycle();
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div>
@@ -121,38 +135,47 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 transition-all duration-500">
-            {banners.slice(0, 4).map((banner) => (
-              <div
-                key={banner.id}
-                className="relative overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20"
-              >
-                {banner.image_url ? (
+          <div className="relative overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 transition-all duration-500">
+            {!showAd ? (
+              <Link to="/buscar" className="block">
+                <img
+                  src="/AcoyaradasCarrousel.jpg"
+                  alt="acoYAradas!"
+                  className="h-72 w-full object-cover animate-fade-up"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
+                  <p className="text-lg font-bold text-white">Productos no afiliados</p>
+                  <p className="text-xs text-white/80">Envío por acoYAradas!</p>
+                </div>
+              </Link>
+            ) : paidBanner ? (
+              <Link to={paidBanner.link_url || '/comercios'} className="block">
+                {paidBanner.image_url ? (
                   <img
-                    src={banner.image_url}
-                    alt={banner.title}
-                    loading="lazy"
-                    className="h-36 w-full object-cover"
+                    src={paidBanner.image_url}
+                    alt={paidBanner.title}
+                    className="h-72 w-full object-cover animate-fade-up"
                   />
                 ) : (
-                  <div className="flex h-36 items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
+                  <div className="flex h-72 items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
                     🎉
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-3">
-                  {banner.is_sponsored ? <SponsoredTag className="mb-1" /> : null}
-                  <p className="text-sm font-semibold">{banner.title}</p>
-                  {banner.subtitle ? (
-                    <p className="text-xs text-white/80">{banner.subtitle}</p>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
+                  {paidBanner.is_sponsored ? <SponsoredTag className="mb-1" /> : null}
+                  <p className="text-lg font-bold text-white">{paidBanner.title}</p>
+                  {paidBanner.subtitle ? (
+                    <p className="text-xs text-white/80">{paidBanner.subtitle}</p>
                   ) : null}
                 </div>
-              </div>
-            ))}
-            {banners.length === 0 ? (
-              <div className="col-span-2 rounded-2xl bg-ink-800/40 p-6 text-sm text-white/70">
-                Todavía no hay banners cargados. El administrador puede publicarlos desde el panel.
-              </div>
-            ) : null}
+              </Link>
+            ) : (
+              <img
+                src="/AcoyaradasCarrousel.jpg"
+                alt="acoYAradas!"
+                className="h-72 w-full object-cover"
+              />
+            )}
           </div>
         </div>
       </section>

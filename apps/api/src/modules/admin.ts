@@ -228,13 +228,11 @@ adminRouter.patch(
         'featured',
         'preparation_time_minutes',
         'allows_platform_delivery',
-        'allows_merchant_delivery',
         'allows_pickup',
         'merchant_delivery_fee',
         'merchant_delivery_notes',
         'accepts_cash',
         'accepts_transfer',
-        'accepts_cash_on_delivery',
         'accepts_terms',
         'verified',
       ];

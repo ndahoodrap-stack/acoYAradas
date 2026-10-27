@@ -1,7 +1,0 @@
-Analiza la aplicación completa, como funciona, para que sirve y las opciones que brinda luego >
-
-[Etapa 1]
-
-Actúa como un diseñador web UI/UX experto
-
-[ ] Mejora la visual en general de toda la pagina, sin cambiarla mucho actualmente, solo agregarle pequeños detalles que la mejorarían, animaciones etc.

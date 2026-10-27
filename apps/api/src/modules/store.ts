@@ -194,11 +194,9 @@ storeRouter.patch(
       const bools: Record<string, string> = {
         is_open: 'is_open',
         allows_platform_delivery: 'allows_platform_delivery',
-        allows_merchant_delivery: 'allows_merchant_delivery',
         allows_pickup: 'allows_pickup',
         accepts_cash: 'accepts_cash',
         accepts_transfer: 'accepts_transfer',
-        accepts_cash_on_delivery: 'accepts_cash_on_delivery',
         accepts_terms: 'accepts_terms',
       };
       for (const [key, column] of Object.entries(bools)) {
