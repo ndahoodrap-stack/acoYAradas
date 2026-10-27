@@ -289,7 +289,6 @@ ordersRouter.post(
         try {
           if (hasPlatformProduct && !item.store_id) {
             await ctx.db.system.query(`update public.platform_products set stock = stock - ${Number(item.quantity)}, updated_at = now() where id = '${item.product_id}' and stock >= ${Number(item.quantity)}`);
-            await ctx.db.system.query(`insert into public.stock_movements (product_id, order_id, delta, reason) values ('${item.product_id}', null, ${-Number(item.quantity)}, 'pedido')`);
           } else {
             await tx.query('select public.decrement_stock($1, $2, null) as stock', [
               item.product_id,
