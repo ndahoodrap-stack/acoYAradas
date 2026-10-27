@@ -17,7 +17,7 @@ export default function MyOrders() {
 
   const { data: me } = useQuery({
     queryKey: ['me'],
-    queryFn: () => api.get<{ profile: any }>('/me'),
+    queryFn: () => api.get<{ profile: any }>('/auth/me'),
     enabled: Boolean(user),
   });
 
@@ -41,7 +41,7 @@ export default function MyOrders() {
 
   const saveProfile = useMutation({
     mutationFn: () =>
-      api.patch('/me', {
+      api.patch('/auth/me', {
         full_name: profileForm.full_name,
         phone: profileForm.phone,
         address: profileForm.address,
@@ -56,7 +56,7 @@ export default function MyOrders() {
   });
 
   const deleteAccount = useMutation({
-    mutationFn: () => api.del('/me'),
+    mutationFn: () => api.del('/auth/me'),
     onSuccess: () => {
       window.location.href = '/';
     },

@@ -15,7 +15,7 @@ export default function MyProfile() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['me'],
-    queryFn: () => api.get<{ user: any; profile: any }>('/me'),
+    queryFn: () => api.get<{ user: any; profile: any }>('/auth/me'),
     enabled: Boolean(user),
   });
 
@@ -32,7 +32,7 @@ export default function MyProfile() {
 
   const save = useMutation({
     mutationFn: () =>
-      api.patch('/me', {
+      api.patch('/auth/me', {
         full_name: form.full_name,
         phone: form.phone,
         avatar_url: form.avatar_url || null,
@@ -45,7 +45,7 @@ export default function MyProfile() {
   });
 
   const remove = useMutation({
-    mutationFn: () => api.del('/me'),
+    mutationFn: () => api.del('/auth/me'),
     onSuccess: () => {
       logout();
       window.location.href = '/';

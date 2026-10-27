@@ -58,7 +58,7 @@ export default function Checkout() {
 
   const { data: me } = useQuery({
     queryKey: ['me'],
-    queryFn: () => api.get<{ profile: any }>('/me'),
+    queryFn: () => api.get<{ profile: any }>('/auth/me'),
     enabled: Boolean(user),
   });
   useEffect(() => {
