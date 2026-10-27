@@ -23,7 +23,7 @@ const NEXT_ACTIONS: Record<string, { status: string; label: string }[]> = {
   confirmed: [{ status: 'preparing', label: 'Marcar en preparación' }],
   preparing: [{ status: 'ready', label: 'Marcar listo' }],
   ready: [
-    { status: 'delivered', label: 'Entregado/retirado' },
+    { status: 'delivered', label: 'Entregado al delivery' },
     { status: 'incident', label: 'Reportar incidencia' },
   ],
 };

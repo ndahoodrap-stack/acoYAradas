@@ -68,10 +68,10 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending_confirmation: 'Pendiente de confirmación',
   confirmed: 'Confirmado',
   preparing: 'En preparación',
-  ready: 'Listo para retirar',
+  ready: 'Entregado al delivery',
   rider_assigned: 'Repartidor asignado',
   on_the_way: 'En camino',
-  delivered: 'Entregado',
+  delivered: 'Entregado al cliente',
   cancelled: 'Cancelado',
   incident: 'Con incidencia',
 };
