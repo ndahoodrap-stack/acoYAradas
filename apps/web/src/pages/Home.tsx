@@ -212,14 +212,27 @@ export default function Home() {
             }
           />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {categories.map((cat) => (
+            {categories.map((cat) => {
+              const ICONS: Record<string, string> = {
+                gastronomia: '🍽️',
+                rotiserias: '🍗',
+                kioscos: '🏪',
+                almacenes: '🛒',
+                bebidas: '🥤',
+                indumentaria: '👕',
+                ferreterias: '🔧',
+                tecnologia: '💻',
+                farmacias: '💊',
+              };
+              const icon = ICONS[cat.slug] ?? '🛍️';
+              return (
               <Link
                 key={cat.id}
                 to={`/comercios?categoria=${cat.id}`}
                 className="card flex items-center gap-3 px-4 py-3 transition hover:border-brand-300 hover:shadow-md"
               >
                 <span className="text-2xl" aria-hidden>
-                  🛍️
+                  {icon}
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-ink-900">{cat.name}</span>
@@ -228,7 +241,8 @@ export default function Home() {
                   </span>
                 </span>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </section>
 
