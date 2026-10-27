@@ -155,13 +155,17 @@ export default function StoreProfile() {
         <div className="grid gap-4 sm:grid-cols-2">
           <FileUpload
             label="Logo del comercio"
-            hint="Cuadrado, mínimo 256×256 px."
+            aspectRatioPreset="square"
+            recommendedWidth={256}
+            recommendedHeight={256}
             value={form.logo_url ?? ''}
             onChange={(url) => set('logo_url', url)}
           />
           <FileUpload
             label="Foto de portada"
-            hint="Horizontal, ideal 1200×400 px."
+            aspectRatioPreset="banner"
+            recommendedWidth={1200}
+            recommendedHeight={400}
             value={form.cover_url ?? ''}
             onChange={(url) => set('cover_url', url)}
           />

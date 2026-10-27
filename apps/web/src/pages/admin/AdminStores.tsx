@@ -398,11 +398,17 @@ export default function AdminStores() {
         <div className="grid gap-4 sm:grid-cols-2">
           <FileUpload
             label="Logo"
+            aspectRatioPreset="square"
+            recommendedWidth={256}
+            recommendedHeight={256}
             value={String(form.logo_url ?? '')}
             onChange={(url) => setForm((f) => ({ ...f, logo_url: url }))}
           />
           <FileUpload
             label="Portada"
+            aspectRatioPreset="banner"
+            recommendedWidth={1200}
+            recommendedHeight={400}
             value={String(form.cover_url ?? '')}
             onChange={(url) => setForm((f) => ({ ...f, cover_url: url }))}
           />

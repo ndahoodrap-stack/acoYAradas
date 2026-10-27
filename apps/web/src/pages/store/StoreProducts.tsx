@@ -295,7 +295,9 @@ export default function StoreProducts() {
             </div>
             <FileUpload
               label="Foto personalizada (opcional)"
-              hint="Si subís una foto, reemplaza al icono elegido. Se recomienda imagen cuadrada."
+              aspectRatioPreset="square"
+              recommendedWidth={512}
+              recommendedHeight={512}
               value={form.image_url}
               onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
             />

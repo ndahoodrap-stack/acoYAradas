@@ -196,6 +196,9 @@ export default function MyOrders() {
       >
         <FileUpload
           label="Foto de perfil"
+          aspectRatioPreset="square"
+          recommendedWidth={256}
+          recommendedHeight={256}
           value={profileForm.avatar_url}
           onChange={(url) => setProfileForm((f) => ({ ...f, avatar_url: url }))}
         />

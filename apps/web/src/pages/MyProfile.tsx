@@ -98,6 +98,9 @@ export default function MyProfile() {
 
         <FileUpload
           label="Foto de perfil"
+          aspectRatioPreset="square"
+          recommendedWidth={256}
+          recommendedHeight={256}
           value={form.avatar_url}
           onChange={(url) => setForm((f) => ({ ...f, avatar_url: url }))}
         />

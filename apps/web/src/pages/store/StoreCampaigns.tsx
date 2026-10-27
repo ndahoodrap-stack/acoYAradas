@@ -285,7 +285,9 @@ export default function StoreCampaigns() {
         </Field>
         <FileUpload
           label="Imagen de la campaña"
-          hint="Opcional. Se usa en el banner y en la home."
+          aspectRatioPreset="banner"
+          recommendedWidth={1200}
+          recommendedHeight={400}
           value={form.image_url}
           onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
         />

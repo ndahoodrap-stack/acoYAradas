@@ -537,7 +537,9 @@ export default function AdminAds() {
         </Field>
         <FileUpload
           label="Imagen del banner"
-          hint="Horizontal, ideal 1200×400 px."
+          aspectRatioPreset="banner"
+          recommendedWidth={1200}
+          recommendedHeight={400}
           value={bannerForm.image_url}
           onChange={(url) => setBannerForm((f) => ({ ...f, image_url: url }))}
         />
