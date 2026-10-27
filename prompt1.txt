@@ -2,7 +2,6 @@ Analiza toda la pagina, entiende como funciona, y que funciona en render atraves
 
 [Etapa 1]
 Actúa como un diseñador web y de UI experto luego >
-En todos los lugares donde el cliente/comercio/admin pueda subir fotos, mejora su previsualización ya que se ve muy fea, añade que se pueda recortar la imagen/alejar etc, y que el recorte de previsualizacion sea del tamaño que recomiende segun donde se quiera colocar la imagen.
 
 
 

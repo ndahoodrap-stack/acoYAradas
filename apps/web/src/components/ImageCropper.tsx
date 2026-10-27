@@ -47,6 +47,9 @@ export function ImageCropper({
   const [isCircular, setIsCircular] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('Iniciando...');
+  const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const readyCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   // Determine if circular mask should be used
   useEffect(() => {
@@ -56,28 +59,41 @@ export function ImageCropper({
 
   // Initialize cropper when image loads
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!imageRef.current || cropperRef.current) return;
     setImageError(false);
     setCropperReady(false);
     setDebugInfo('Esperando imagen...');
 
+    // Clear any existing timeouts
+    if (initializationTimeoutRef.current) {
+      clearTimeout(initializationTimeoutRef.current);
+      initializationTimeoutRef.current = null;
+    }
+    if (readyCheckTimeoutRef.current) {
+      clearTimeout(readyCheckTimeoutRef.current);
+      readyCheckTimeoutRef.current = null;
+    }
+
     const image = imageRef.current;
 
     const initCropper = () => {
-      if (!imageRef.current) return;
+      if (!mountedRef.current || !imageRef.current) return;
       setDebugInfo('Inicializando cropper...');
 
       try {
-        // Use type assertion to bypass TypeScript issues with cropperjs types
+        // Ensure image has dimensions
+        if (image.naturalWidth === 0 || image.naturalHeight === 0) {
+          throw new Error('Imagen sin dimensiones válidas');
+        }
+
+        // Use minimal options - no ready callback to avoid hanging
         const cropper = new Cropper(imageRef.current, {
           aspectRatio: aspectRatio,
-          viewMode: 1, // Changed from 2 to 1 - less restrictive
+          viewMode: 1,
           dragMode: 'move',
-          autoCropArea: 0.9,
-          restore: false,
-          guides: false,
-          center: false,
-          highlight: false,
+          autoCropArea: 1,
           background: false,
           modal: true,
           movable: true,
@@ -87,47 +103,46 @@ export function ImageCropper({
           zoomOnTouch: true,
           zoomOnWheel: true,
           wheelZoomRatio: 0.1,
-          minContainerWidth: 300,
-          minContainerHeight: 200,
-          ready() {
-            setDebugInfo('Cropper listo');
-            setCropperReady(true);
-            // Apply circular/rectangular class to cropper elements
-            applyCropperStyles();
-            // Set initial zoom to fit nicely
-            setTimeout(() => {
-              if (cropperRef.current) {
-                cropperRef.current.zoomTo(1);
-              }
-            }, 50);
-          },
-          cropmove() {
-            // Reapply styles on move in case elements are recreated
-            applyCropperStyles();
-          },
-          zoom() {
-            applyCropperStyles();
-          },
         } as any) as unknown as CropperInstance;
 
+        if (!mountedRef.current) {
+          cropper.destroy();
+          return;
+        }
+
         cropperRef.current = cropper;
-        setDebugInfo('Cropper creado exitosamente');
+        setDebugInfo('Cropper creado');
+
+        // Force ready state immediately since we're not using ready callback
+        readyCheckTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current && cropperRef.current && !cropperReady) {
+            setCropperReady(true);
+            setDebugInfo('Cropper listo');
+            applyCropperStyles();
+          }
+        }, 500);
+
       } catch (error) {
         console.error('Error creating cropper:', error);
-        setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
-        setImageError(true);
+        if (mountedRef.current) {
+          setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
+          setImageError(true);
+        }
       }
     };
 
     const handleLoad = () => {
+      if (!mountedRef.current) return;
       setDebugInfo('Imagen cargada, creando cropper...');
-      initCropper();
+      setTimeout(initCropper, 0);
     };
 
     const handleError = (e: Event) => {
       console.error('Failed to load image for cropper:', src, e);
-      setDebugInfo('Error cargando imagen');
-      setImageError(true);
+      if (mountedRef.current) {
+        setDebugInfo('Error cargando imagen');
+        setImageError(true);
+      }
     };
 
     // Add event listeners
@@ -142,9 +157,31 @@ export function ImageCropper({
       setDebugInfo('Cargando imagen...');
     }
 
+    // Fallback timeout - if cropper doesn't initialize in 8 seconds, show error
+    initializationTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && !cropperReady && !imageError) {
+        console.warn('Cropper initialization timeout');
+        if (image.complete && image.naturalWidth > 0) {
+          initCropper();
+        } else {
+          setImageError(true);
+          setDebugInfo('Error: La imagen no carga después de 8s');
+        }
+      }
+    }, 8000);
+
     return () => {
+      mountedRef.current = false;
       image.removeEventListener('load', handleLoad);
       image.removeEventListener('error', handleError);
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current);
+        initializationTimeoutRef.current = null;
+      }
+      if (readyCheckTimeoutRef.current) {
+        clearTimeout(readyCheckTimeoutRef.current);
+        readyCheckTimeoutRef.current = null;
+      }
       if (cropperRef.current) {
         cropperRef.current.destroy();
         cropperRef.current = null;
@@ -159,13 +196,10 @@ export function ImageCropper({
 
     const cropBox = document.querySelector('.cropper-crop-box');
     if (cropBox) {
-      // Remove existing classes
       cropBox.classList.remove('cropper-circular', 'cropper-rectangular');
-      // Add appropriate class
       cropBox.classList.add(isCircular ? 'cropper-circular' : 'cropper-rectangular');
     }
 
-    // Also style the view box
     const viewBox = document.querySelector('.cropper-view-box');
     if (viewBox) {
       viewBox.classList.toggle('cropper-circular-view', isCircular);
@@ -229,11 +263,7 @@ export function ImageCropper({
           <h3 className="text-lg font-semibold text-ink-900 mb-2">Error al cargar la imagen</h3>
           <p className="text-ink-600 mb-4">No se pudo cargar la imagen para recortar. Intenta con otra imagen.</p>
           <p className="text-xs text-ink-400 mb-4">{debugInfo}</p>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onCancel}
-          >
+          <button type="button" className="btn-secondary" onClick={onCancel}>
             Cerrar
           </button>
         </div>
@@ -269,7 +299,6 @@ export function ImageCropper({
             {isCircular ? 'Recortar foto de perfil' : 'Recortar imagen'}
           </h2>
           <div className="flex items-center gap-2">
-            {/* Zoom controls */}
             <div className="flex items-center gap-1 bg-ink-100 rounded-lg p-1">
               <button
                 type="button"
@@ -314,9 +343,8 @@ export function ImageCropper({
               ref={imageRef}
               src={src}
               alt="Imagen a recortar"
-              // Don't use crossOrigin for blob URLs - it causes CORS issues
+              style={{ maxWidth: '100%', maxHeight: '60vh', display: 'block' }}
             />
-            {/* Custom mask overlay */}
             {isCircular ? (
               <div className="cropper-custom-circular-mask" aria-hidden="true" />
             ) : (
@@ -324,7 +352,6 @@ export function ImageCropper({
             )}
           </div>
 
-          {/* Aspect ratio indicator */}
           <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {isCircular
               ? 'Círculo (1:1)'
@@ -340,11 +367,7 @@ export function ImageCropper({
 
         {/* Footer with actions */}
         <div className="flex items-center justify-end gap-3 p-4 border-t border-ink-200 bg-ink-50">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={onCancel}
-          >
+          <button type="button" className="btn-secondary" onClick={onCancel}>
             Cancelar
           </button>
           <button
