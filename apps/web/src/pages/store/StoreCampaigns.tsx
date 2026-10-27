@@ -98,7 +98,7 @@ export default function StoreCampaigns() {
       api.post<Campaign>('/store/campaigns', {
         store_id: user?.store_id,
         placement: form.placement,
-        title: form.title,
+        title: form.title || storeName || 'Campaña publicitaria',
         body: form.body,
         image_url: form.image_url,
         link_url: null,
