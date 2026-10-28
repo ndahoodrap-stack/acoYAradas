@@ -262,6 +262,7 @@ export default function Checkout() {
   const [detectedZone, setDetectedZone] = useState<ZoneGeometry | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
+  const [locationRequested, setLocationRequested] = useState(false);
 
   useEffect(() => {
     const p = me?.profile;
@@ -293,6 +294,35 @@ export default function Checkout() {
       }
     }
   }, []);
+
+  // Geolocalización automática del navegador al cargar (solo para productos de plataforma)
+  useEffect(() => {
+    if (!isPlatform || locationRequested || !navigator.geolocation) return;
+
+    setLocationRequested(true);
+    setIsGeocoding(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        console.log('Ubicación automática detectada:', lat, lng);
+
+        const pos: [number, number] = [lat, lng];
+        setMarkerPosition(pos);
+        setMapCenter(pos);
+        setMapZoom(16);
+        detectZoneFromCoords(lng, lat);
+        reverseGeocode(lat, lng);
+        setIsGeocoding(false);
+      },
+      (err) => {
+        console.warn('Geolocalización denegada o falló:', err.message);
+        setIsGeocoding(false);
+        // Fallback: seguir con entrada manual de dirección
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, [isPlatform, locationRequested]);
 
   // Geocodificar dirección cuando cambian address/locality
   useEffect(() => {
@@ -585,11 +615,14 @@ export default function Checkout() {
                   {zones.map((zone) => (
                     <span
                       key={zone.code}
-                      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full"
+                      className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+                        detectedZone?.code === zone.code ? 'ring-2' : ''
+                      }`}
                       style={{
                         backgroundColor: ZONE_COLORS[zone.code] + '20',
                         color: ZONE_COLORS[zone.code],
-                        border: `1px solid ${ZONE_COLORS[zone.code]}`
+                        border: `1px solid ${ZONE_COLORS[zone.code]}`,
+                        ringColor: ZONE_COLORS[zone.code],
                       }}
                     >
                       <span
@@ -607,26 +640,39 @@ export default function Checkout() {
                 </div>
               )}
 
-              {/* Selector manual de zona (respaldo) */}
-              <Field label="Zona de entrega (manual)" hint="Si el mapa no detecta tu zona, seleccionala aquí">
-                <select
-                  className="input"
-                  value={detectedZone?.code || ''}
-                  onChange={(e) => {
-                    const code = e.target.value;
-                    const zone = zones.find(z => z.code === code);
-                    if (zone) setDetectedZone(zone);
-                    else setDetectedZone(null);
-                  }}
-                >
-                  <option value="">-- Seleccionar zona --</option>
-                  {zones.map((zone) => (
-                    <option key={zone.code} value={zone.code}>
-                      {zone.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              {/* Estado de ubicación */}
+              <div className="mt-3 p-3 rounded-xl bg-ink-50/50 text-sm">
+                {isGeocoding && (
+                  <div className="flex items-center gap-2 text-brand-600">
+                    <span className="animate-spin">⟳</span>
+                    Detectando tu ubicación automáticamente…
+                  </div>
+                )}
+                {!isGeocoding && !locationRequested && !markerPosition && (
+                  <div className="text-amber-700 flex items-center gap-2">
+                    <span>⚠</span>
+                    No se pudo detectar tu ubicación automáticamente. Ingresá tu dirección manualmente abajo.
+                  </div>
+                )}
+                {!isGeocoding && locationRequested && !markerPosition && (
+                  <div className="text-amber-700 flex items-center gap-2">
+                    <span>⚠</span>
+                    Permiso de ubicación denegado. Ingresá tu dirección manualmente o permití el acceso en el navegador.
+                  </div>
+                )}
+                {!isGeocoding && markerPosition && detectedZone && (
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <span>✓</span>
+                    <strong>Ubicación detectada:</strong> {detectedZone.name} (click en mapa para ajustar)
+                  </div>
+                )}
+                {!isGeocoding && markerPosition && !detectedZone && (
+                  <div className="text-amber-700 flex items-center gap-2">
+                    <span>⚠</span>
+                    Ubicación fuera de zona de cobertura. Contactá al comercio.
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
