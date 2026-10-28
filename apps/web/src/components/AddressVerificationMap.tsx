@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
@@ -40,11 +40,42 @@ export function AddressVerificationMap({
     zoom: ZOOM.CITY,
   });
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
   const streetsDataRef = useRef<any>(null);
   const addressesDataRef = useRef<any>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
+
+  // Handle "My Location" button click
+  const handleLocateMe = useCallback(async () => {
+    if (!navigator.geolocation) {
+      console.warn('Geolocation not supported');
+      return;
+    }
+    setIsLocating(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+      const lngLat: [number, number] = [position.coords.longitude, position.coords.latitude];
+      // Update viewport to center on user location
+      setViewport(v => ({ ...v, longitude: lngLat[0], latitude: lngLat[1], zoom: ZOOM.NEIGHBORHOOD }));
+      // Move marker and trigger detection
+      if (markerRef.current) {
+        markerRef.current.setLngLat(lngLat);
+      }
+      detectZoneAtPosition(lngLat);
+    } catch (err) {
+      console.warn('Geolocation failed:', err);
+    } finally {
+      setIsLocating(false);
+    }
+  }, [detectZoneAtPosition]);
 
   // Initialize map viewport when position is available
   useEffect(() => {
@@ -607,10 +638,102 @@ export function AddressVerificationMap({
         )}
       </Map>
 
+      {/* Map controls - top right */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1.5">
+        {/* My Location button - Enhanced like Google Maps */}
+        <div className="relative group">
+          <button
+            type="button"
+            onClick={handleLocateMe}
+            disabled={isLocating || !mapLoaded}
+            className="w-11 h-11 rounded-xl bg-white shadow-lg border border-ink-200/50 flex items-center justify-center transition-all duration-200
+              hover:shadow-xl hover:border-brand-300 hover:-translate-y-0.5
+              active:scale-95 active:shadow-md
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none disabled:hover:shadow-lg
+              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+              relative overflow-hidden"
+            aria-label={isLocating ? 'Obteniendo ubicación...' : 'Mostrar mi ubicación'}
+            title={isLocating ? 'Obteniendo ubicación...' : 'Mostrar mi ubicación'}
+          >
+            {/* Active indicator ring when location is centered */}
+            {position && !isLocating && (
+              <span className="absolute inset-0 rounded-xl ring-2 ring-brand-500/30 animate-ping opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            )}
+
+            <svg
+              className={`w-5.5 h-5.5 transition-all duration-300 ${
+                isLocating
+                  ? 'animate-spin text-brand-500'
+                  : position
+                    ? 'text-brand-500'
+                    : 'text-ink-700 hover:text-brand-500'
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+              <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeWidth={1.5} />
+            </svg>
+
+            {/* Loading indicator */}
+            {isLocating && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="sr-only">Obteniendo ubicación...</span>
+              </span>
+            )}
+          </button>
+
+          {/* Tooltip on hover */}
+          <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2
+            opacity-0 invisible group-hover:opacity-100 group-hover:visible
+            transition-all duration-200 whitespace-nowrap pointer-events-none">
+            <span className="px-2.5 py-1.5 text-xs font-medium text-white bg-ink-900/95 rounded-lg shadow-lg backdrop-blur-sm">
+              {isLocating ? 'Obteniendo ubicación…' : 'Centrar en mi ubicación'}
+            </span>
+            <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 border-4 border-transparent border-l-ink-900/95" />
+          </div>
+        </div>
+
+        {/* Zoom controls - Enhanced */}
+        <div className="flex flex-col gap-1 bg-white/5 backdrop-blur-sm rounded-xl border border-ink-200/50 p-1 shadow-lg">
+          <button
+            type="button"
+            onClick={() => setViewport(v => ({ ...v, zoom: Math.min(v.zoom + 1, ZOOM.BUILDING) }))}
+            className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150
+              hover:bg-ink-100 hover:text-brand-500
+              active:scale-95 active:bg-ink-200
+              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+            aria-label="Acercar"
+            title="Acercar (+)"
+          >
+            <svg className="w-5 h-5 text-ink-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <div className="h-px bg-ink-200/50 mx-2 my-0.5" />
+          <button
+            type="button"
+            onClick={() => setViewport(v => ({ ...v, zoom: Math.max(v.zoom - 1, ZOOM.CITY - 2) }))}
+            className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150
+              hover:bg-ink-100 hover:text-brand-500
+              active:scale-95 active:bg-ink-200
+              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+            aria-label="Alejar"
+            title="Alejar (-)"
+          >
+            <svg className="w-5 h-5 text-ink-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round"><path d="M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+
       {/* Zone legend */}
       <div className="absolute bottom-2 right-2 z-10 flex flex-col gap-1">
         {DELIVERY_ZONES.map((zone) => (
-          <div key={zone.code} className="flex items-center gap-2 px-2 py-1 rounded bg-white/90 backdrop-blur-sm shadow-sm border border-ink-200 text-xs">
+          <div key={zone.code} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-ink-200 text-xs">
             <div
               className="w-3 h-3 rounded"
               style={{
@@ -627,8 +750,8 @@ export function AddressVerificationMap({
         ))}
       </div>
 
-      {/* Zoom controls hint */}
-      <div className="absolute bottom-2 left-2 z-10 px-2 py-1 rounded bg-white/90 backdrop-blur-sm shadow-sm border border-ink-200 text-xs text-ink-500">
+      {/* Hint */}
+      <div className="absolute bottom-2 left-2 z-10 px-3 py-1.5 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-ink-200 text-xs text-ink-500">
         Click para mover · Arrastrá el pin
       </div>
     </div>

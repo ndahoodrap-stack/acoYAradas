@@ -240,66 +240,253 @@ export default function Checkout() {
         </div>
 
         <aside>
-          <div className="card sticky top-24 p-5">
-            <h2 className="text-lg font-bold text-ink-900">Tu pedido</h2>
-            <ul className="mt-4 space-y-2 text-sm">
-              {cart.items.map((item: any) => (
-                <li key={item.id} className="flex justify-between gap-3">
-                  <span className="text-ink-600">
-                    {item.quantity} × {item.product_name}
+          <div className="sticky top-24 space-y-4 animate-fade-up">
+            {/* Order Summary Card */}
+            <div className="card p-5 bg-gradient-to-br from-white via-brand-50/30 to-white border-brand-200/50">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="grid h-8 w-8 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-bold text-ink-900">Tu pedido</h2>
+              </div>
+
+              <ul className="space-y-2.5 text-sm" role="list">
+                {cart.items.map((item: any) => (
+                  <li key={item.id} className="flex items-center justify-between gap-3 py-2 rounded-xl bg-ink-50/50 transition-colors hover:bg-brand-50/30">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg bg-brand-100 text-brand-600 text-xs font-bold tabular-nums">
+                        {item.quantity}
+                      </span>
+                      <span className="text-ink-700 truncate font-medium">{item.product_name}</span>
+                    </div>
+                    <span className="font-semibold text-ink-900 shrink-0 tabular-nums">{formatMoney(item.line_total)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-4 space-y-3 border-t border-ink-200 pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-600">Subtotal</span>
+                  <span className="font-semibold text-ink-900 tabular-nums">{formatMoney(cart.subtotal)}</span>
+                </div>
+
+                {/* Delivery Zone Card */}
+                <div className="relative rounded-xl p-3 transition-all duration-300"
+                  style={{
+                    backgroundColor: zoneLoading ? '#fef3c7' : detectedZone ? '#ecfdf5' : zoneError ? '#fef2f2' : '#f8fafc',
+                    borderColor: zoneLoading ? '#fcd34d' : detectedZone ? '#6ee7b7' : zoneError ? '#fecaca' : '#e2e8f0',
+                    borderWidth: zoneLoading || detectedZone || zoneError ? '2px' : '1px',
+                  }}>
+                  {zoneLoading && (
+                    <div className="absolute -top-2 left-4 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-medium">
+                      Detectando zona…
+                    </div>
+                  )}
+                  {detectedZone && !zoneLoading && (
+                    <div className="absolute -top-2 left-4 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
+                      ✓ Zona detectada
+                    </div>
+                  )}
+                  {zoneError && !detectedZone && (
+                    <div className="absolute -top-2 left-4 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-medium">
+                      Fuera de cobertura
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className="shrink-0 h-10 w-10 rounded-xl flex items-center justify-center"
+                        style={{
+                          backgroundColor: zoneLoading ? '#fef3c7' : detectedZone ? '#d1fae5' : zoneError ? '#fee2e2' : '#f1f5f9',
+                        }}
+                      >
+                        {zoneLoading ? (
+                          <Spinner size="sm" />
+                        ) : detectedZone ? (
+                          <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : zoneError ? (
+                          <svg className="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 2 16.09 5.77 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink-900 truncate">
+                          {zoneLoading ? 'Calculando envío…' : detectedZone ? `Envío (${detectedZone.name})` : zoneError ? 'Fuera de cobertura' : 'Envío por calcular'}
+                        </p>
+                        {detectedZone && (
+                          <p className="text-xs text-brand-600 font-medium">
+                            Entrega estimada: 30-45 min
+                          </p>
+                        )}
+                        {zoneError && (
+                          <p className="text-xs text-red-600">
+                            Mové el pin en el mapa a una zona cubierta
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {zoneLoading ? (
+                        <div className="h-6 w-16 animate-pulse rounded bg-brand-200" />
+                      ) : detectedZone ? (
+                        <span className="font-bold text-lg text-brand-600 tabular-nums">
+                          {formatMoney(detectedZone.price)}
+                        </span>
+                      ) : zoneError ? (
+                        <span className="text-red-600 font-medium">No disponible</span>
+                      ) : (
+                        <span className="text-ink-500 text-sm">—</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between border-t border-ink-200 pt-3">
+                  <span className="font-bold text-ink-900">Total</span>
+                  <span className="font-bold text-brand-600 text-xl tabular-nums">
+                    {formatMoney(cart.subtotal + (detectedZone?.price ?? 0))}
                   </span>
-                  <span className="font-medium text-ink-900">{formatMoney(item.line_total)}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex justify-between border-t border-ink-100 pt-4">
-              <span className="font-semibold text-ink-900">Subtotal</span>
-              <span className="font-bold text-ink-900">{formatMoney(cart.subtotal)}</span>
+                </div>
+              </div>
             </div>
-            <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
-              <span className="font-semibold text-ink-900">Envío</span>
-              {zoneLoading ? (
-                <Spinner size="sm" />
-              ) : detectedZone ? (
-                <span className="font-bold text-brand-600">
-                  {formatMoney(detectedZone.price)} <span className="font-normal text-sm text-ink-500">({detectedZone.name})</span>
+
+            {/* Map Verification Section */}
+            <div className="card overflow-hidden border-brand-200/50 bg-gradient-to-br from-white via-brand-50/20 to-white">
+              <div className="px-5 py-4 border-b border-ink-200/50 bg-ink-50/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-brand-100 text-brand-600">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 2 16.09 5.77 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-sm font-semibold text-ink-900">Verificá tu ubicación</h3>
+                  </div>
+                  {detectedZone && (
+                    <span className="badge bg-brand-100 text-brand-700 font-semibold px-2.5 py-1">
+                      {detectedZone.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="p-0">
+                <AddressVerificationMap
+                  detectedZone={detectedZone}
+                  position={mapPosition}
+                  onPositionChange={handleMapPositionChange}
+                  loading={zoneLoading}
+                  zoneError={zoneError}
+                  zoneLoading={zoneLoading}
+                  height={280}
+                />
+              </div>
+              <div className="px-5 py-3 border-t border-ink-200/50 bg-ink-50/30">
+                <p className="text-xs text-ink-500 text-center flex items-center justify-center gap-1.5">
+                  <svg className="h-3.5 w-3.5 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                  </svg>
+                  Arrastrá el pin para ajustar · La zona y precio se actualizan automáticamente
+                </p>
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="card border-red-200 bg-red-50 p-4 animate-shake" role="alert">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 mt-0.5 grid h-5 w-5 place-items-center rounded-full bg-red-100">
+                    <svg className="h-3.5 w-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-red-700 flex-1">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="btn-primary w-full py-4 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98] relative overflow-hidden"
+              disabled={submitting || !detectedZone || !form.address.trim()}
+            >
+              <span className="relative flex items-center justify-center gap-2">
+                {submitting ? (
+                  <>
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Procesando tu pedido…
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Confirmar y pagar
+                  </>
+                )}
+              </span>
+              {!submitting && detectedZone && (
+                <span className="absolute right-4 text-sm font-medium tabular-nums opacity-90">
+                  {formatMoney(cart.subtotal + (detectedZone?.price ?? 0))}
                 </span>
-              ) : zoneError ? (
-                <span className="text-red-600 text-sm">{zoneError}</span>
-              ) : (
-                <span className="text-ink-500">Por calcular</span>
               )}
-            </div>
-            <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
-              <span className="font-bold text-ink-900">Total</span>
-              <span className="font-bold text-brand-600 text-lg">{formatMoney(cart.subtotal + (detectedZone?.price ?? 0))}</span>
-            </div>
-
-            {/* Mapa de verificación de dirección */}
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-ink-900 mb-2">Verificá tu ubicación en el mapa</h3>
-              <AddressVerificationMap
-                detectedZone={detectedZone}
-                position={mapPosition}
-                onPositionChange={handleMapPositionChange}
-                loading={zoneLoading}
-                zoneError={zoneError}
-                zoneLoading={zoneLoading}
-                height={280}
-              />
-              <p className="mt-2 text-xs text-ink-500 text-center">
-                Arrastrá el pin para ajustar tu ubicación exacta. La zona y el precio se actualizan automáticamente.
-              </p>
-            </div>
-
-            {error ? <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-
-            <button type="submit" className="btn-primary mt-5 w-full" disabled={submitting}>
-              {submitting ? 'Enviando pedido…' : 'Confirmar pedido'}
             </button>
-            <p className="mt-3 text-xs text-ink-500">
-              {user ? 'El pedido quedará asociado a tu cuenta.' : 'Comprás como invitado.'}
+
+            {!detectedZone && !zoneLoading && (
+              <p className="text-center text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 border border-amber-200">
+                ⚠ Ajustá tu ubicación en el mapa para habilitar el pedido
+              </p>
+            )}
+
+            <p className="mt-3 text-center text-xs text-ink-500">
+              {user ? (
+                <>
+                  <svg className="inline h-3.5 w-3.5 text-brand-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Pedido asociado a tu cuenta
+                </>
+              ) : (
+                <>
+                  <svg className="inline h-3.5 w-3.5 text-ink-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                  Comprás como invitado
+                </>
+              )}
             </p>
+
+            {/* Trust indicators */}
+            <div className="flex items-center justify-center gap-6 text-xs text-ink-400 border-t border-ink-200 pt-4">
+              <div className="flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Pago seguro</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>Datos protegidos</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Soporte 24/7</span>
+              </div>
+            </div>
           </div>
         </aside>
       </form>
