@@ -262,7 +262,7 @@ export default function Checkout() {
                 height={280}
               />
               <p className="mt-2 text-xs text-ink-500 text-center">
-                Arrastrá el pin azul para ajustar tu ubicación exacta. La zona y el precio se actualizan automáticamente.
+                Arrastrá el pin para ajustar tu ubicación exacta. La zona y el precio se actualizan automáticamente.
               </p>
             </div>
 
