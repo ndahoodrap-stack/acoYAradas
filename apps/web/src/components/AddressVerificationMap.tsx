@@ -464,8 +464,15 @@ export function AddressVerificationMap({
         style={{ width: '100%', height: `${height}px` }}
         mapStyle={customStyle as any}
         attributionControl={false}
-        onLoad={(map) => {
+        onLoad={() => {
           setMapLoaded(true);
+          // Obtener instancia MapLibre real via ref (react-map-gl wrapper)
+          const map = mapRef.current?.getMap?.();
+          if (!map) {
+            console.error('[Map] No se pudo obtener instancia MapLibre via ref');
+            return;
+          }
+
           // Expose globally for debugging: window.__MAP__
           (window as any).__MAP__ = map;
 

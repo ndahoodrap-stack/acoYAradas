@@ -30,12 +30,23 @@ export default defineConfig({
       },
     },
   },
+  // Fix: maplibre-gl worker MIME type issue on Render
+  worker: {
+    format: 'es',
+  },
   optimizeDeps: {
     // El paquete compartido se entrega como código TypeScript.
-    exclude: ['@acoyaradas/shared'],
+    // Excluir maplibre-gl para evitar problemas con el worker
+    exclude: ['@acoyaradas/shared', 'maplibre-gl'],
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // Asegurar que los workers se emitan correctamente
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
 });
