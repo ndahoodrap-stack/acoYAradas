@@ -514,6 +514,7 @@ export function AddressVerificationMap({
 
       <Map
         ref={mapRef}
+        maplibregl={window.maplibregl}
         initialViewState={{
           longitude: BOLIVAR_CENTER[0],
           latitude: BOLIVAR_CENTER[1],
