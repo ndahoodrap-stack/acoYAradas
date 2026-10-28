@@ -230,10 +230,11 @@ export default function StoreProfile() {
                 checked={Boolean(form[key])}
                 onChange={isFixed ? undefined : (e) => set(key, e.target.checked)}
                 disabled={isFixed}
-                className={isFixed ? 'h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500 opacity-50 cursor-not-allowed' : 'h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500'}
+                className={isFixed
+                  ? 'h-4 w-4 rounded border-emerald-500 bg-emerald-500 text-white focus:ring-emerald-500 cursor-not-allowed'
+                  : 'h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500'}
               />
               {label}
-              {isFixed && <span className="text-xs text-ink-400 ml-1">(requerido)</span>}
             </label>
           ))}
         </div>

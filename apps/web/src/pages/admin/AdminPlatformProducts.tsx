@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { formatMoney } from '../../lib/format';
@@ -65,12 +65,41 @@ const EMPTY_FORM = {
 
 const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+function createEmptyStoreForm(): Partial<PlatformStore> {
+  return {
+    name: '',
+    description: '',
+    phone: '',
+    email: '',
+    address: '',
+    locality: '',
+    whatsapp: '',
+    category_id: '',
+    preparation_time_minutes: 0,
+    allows_platform_delivery: true,
+    allows_merchant_delivery: false,
+    allows_pickup: false,
+    merchant_delivery_fee: 0,
+    merchant_delivery_notes: '',
+    accepts_cash: true,
+    accepts_transfer: true,
+    accepts_cash_on_delivery: false,
+    zone_id: '',
+    open_hours: {},
+  };
+}
+
 export default function AdminPlatformProducts() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<PlatformProduct | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [message, setMessage] = useState<string | null>(null);
+
+  // Local state for store configuration (to avoid focus loss on mutate)
+  const [storeForm, setStoreForm] = useState<Partial<PlatformStore>>(createEmptyStoreForm());
+  const [storeFormDirty, setStoreFormDirty] = useState(false);
+  const saveStoreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-platform-products'],
@@ -91,6 +120,34 @@ export default function AdminPlatformProducts() {
     queryKey: ['admin-zones'],
     queryFn: () => api.get<{ items: { id: string; name: string; code: string }[] }>('/admin/zones'),
   });
+
+  // Initialize storeForm from platformStore data
+  useEffect(() => {
+    if (platformStore) {
+      setStoreForm({
+        name: platformStore.name ?? '',
+        description: platformStore.description ?? '',
+        phone: platformStore.phone ?? '',
+        email: platformStore.email ?? '',
+        address: platformStore.address ?? '',
+        locality: platformStore.locality ?? '',
+        whatsapp: platformStore.whatsapp ?? '',
+        category_id: platformStore.category_id ?? '',
+        preparation_time_minutes: platformStore.preparation_time_minutes ?? 0,
+        allows_platform_delivery: platformStore.allows_platform_delivery,
+        allows_merchant_delivery: platformStore.allows_merchant_delivery,
+        allows_pickup: platformStore.allows_pickup,
+        merchant_delivery_fee: platformStore.merchant_delivery_fee ?? 0,
+        merchant_delivery_notes: platformStore.merchant_delivery_notes ?? '',
+        accepts_cash: platformStore.accepts_cash,
+        accepts_transfer: platformStore.accepts_transfer,
+        accepts_cash_on_delivery: platformStore.accepts_cash_on_delivery,
+        zone_id: platformStore.zone_id ?? '',
+        open_hours: platformStore.open_hours ?? {},
+      });
+      setStoreFormDirty(false);
+    }
+  }, [platformStore]);
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-platform-products'] });
@@ -140,6 +197,37 @@ export default function AdminPlatformProducts() {
     onError: (err) => setMessage((err as Error).message),
   });
 
+  // Debounced auto-save for store form
+  const saveStoreForm = () => {
+    if (!storeFormDirty) return;
+    if (saveStoreTimeoutRef.current) clearTimeout(saveStoreTimeoutRef.current);
+    saveStoreTimeoutRef.current = setTimeout(() => {
+      updateStore.mutate(storeForm);
+      setStoreFormDirty(false);
+    }, 500);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveStoreTimeoutRef.current) clearTimeout(saveStoreTimeoutRef.current);
+    };
+  }, []);
+
+  const handleStoreChange = (key: keyof PlatformStore, value: any) => {
+    setStoreForm(prev => ({ ...prev, [key]: value }));
+    setStoreFormDirty(true);
+    saveStoreForm();
+  };
+
+  const handleStoreBlur = () => {
+    if (saveStoreTimeoutRef.current) clearTimeout(saveStoreTimeoutRef.current);
+    if (storeFormDirty) {
+      updateStore.mutate(storeForm);
+      setStoreFormDirty(false);
+    }
+  };
+
   if (isLoading) return <Spinner />;
   if (error) {
     return <ErrorState message={(error as Error).message} onRetry={() => void refetch()} />;
@@ -178,6 +266,7 @@ export default function AdminPlatformProducts() {
         onSubmit={(e) => {
           e.preventDefault();
           setMessage(null);
+          handleStoreBlur();
         }}
       >
         {platformStore ? (
@@ -187,16 +276,18 @@ export default function AdminPlatformProducts() {
               <Field label="Nombre">
                 <input
                   className="input"
-                  value={platformStore.name}
-                  onChange={(e) => updateStore.mutate({ name: e.target.value })}
+                  value={storeForm.name ?? ''}
+                  onChange={(e) => handleStoreChange('name', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="Categoría">
                 <select
                   className="input"
-                  value={platformStore.category_id ?? ''}
-                  onChange={(e) => updateStore.mutate({ category_id: e.target.value || null })}
+                  value={storeForm.category_id ?? ''}
+                  onChange={(e) => handleStoreChange('category_id', e.target.value || null)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 >
                   <option value="">Sin categoría</option>
@@ -212,8 +303,9 @@ export default function AdminPlatformProducts() {
               <textarea
                 rows={3}
                 className="input"
-                value={platformStore.description ?? ''}
-                onChange={(e) => updateStore.mutate({ description: e.target.value })}
+                value={storeForm.description ?? ''}
+                onChange={(e) => handleStoreChange('description', e.target.value)}
+                onBlur={handleStoreBlur}
                 disabled={updateStore.isPending}
               />
             </Field>
@@ -223,30 +315,32 @@ export default function AdminPlatformProducts() {
                 aspectRatioPreset="square"
                 recommendedWidth={256}
                 recommendedHeight={256}
-                value={''}
-                onChange={(url) => updateStore.mutate({ logo_url: url })}
+                value={storeForm.logo_url ?? ''}
+                onChange={(url) => handleStoreChange('logo_url', url)}
               />
               <FileUpload
                 label="Foto de portada"
                 aspectRatioPreset="banner"
                 recommendedWidth={1200}
                 recommendedHeight={400}
-                value={''}
-                onChange={(url) => updateStore.mutate({ cover_url: url })}
+                value={storeForm.cover_url ?? ''}
+                onChange={(url) => handleStoreChange('cover_url', url)}
               />
               <Field label="Teléfono">
                 <input
                   className="input"
-                  value={platformStore.phone ?? ''}
-                  onChange={(e) => updateStore.mutate({ phone: e.target.value })}
+                  value={storeForm.phone ?? ''}
+                  onChange={(e) => handleStoreChange('phone', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="WhatsApp">
                 <input
                   className="input"
-                  value={platformStore.whatsapp ?? ''}
-                  onChange={(e) => updateStore.mutate({ whatsapp: e.target.value })}
+                  value={storeForm.whatsapp ?? ''}
+                  onChange={(e) => handleStoreChange('whatsapp', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
@@ -254,24 +348,27 @@ export default function AdminPlatformProducts() {
                 <input
                   type="email"
                   className="input"
-                  value={platformStore.email ?? ''}
-                  onChange={(e) => updateStore.mutate({ email: e.target.value })}
+                  value={storeForm.email ?? ''}
+                  onChange={(e) => handleStoreChange('email', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="Dirección">
                 <input
                   className="input"
-                  value={platformStore.address ?? ''}
-                  onChange={(e) => updateStore.mutate({ address: e.target.value })}
+                  value={storeForm.address ?? ''}
+                  onChange={(e) => handleStoreChange('address', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="Localidad">
                 <input
                   className="input"
-                  value={platformStore.locality ?? ''}
-                  onChange={(e) => updateStore.mutate({ locality: e.target.value })}
+                  value={storeForm.locality ?? ''}
+                  onChange={(e) => handleStoreChange('locality', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
@@ -280,8 +377,9 @@ export default function AdminPlatformProducts() {
                   type="number"
                   min={0}
                   className="input"
-                  value={platformStore.preparation_time_minutes ?? ''}
-                  onChange={(e) => updateStore.mutate({ preparation_time_minutes: Number(e.target.value) || null })}
+                  value={storeForm.preparation_time_minutes ?? ''}
+                  onChange={(e) => handleStoreChange('preparation_time_minutes', Number(e.target.value) || 0)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
@@ -290,20 +388,23 @@ export default function AdminPlatformProducts() {
             <h2 className="pt-2 text-lg font-bold text-ink-900">Entrega y pagos</h2>
             <div className="grid gap-2 sm:grid-cols-2">
               {[
-                ['allows_platform_delivery', 'Entrega organizada por acoYAradas!'],
-                ['allows_merchant_delivery', 'Entrega propia del comercio'],
-                ['allows_pickup', 'Retiro en local'],
-                ['accepts_cash', 'Acepta efectivo'],
-                ['accepts_transfer', 'Acepta transferencia'],
-                ['accepts_cash_on_delivery', 'Acepta contraentrega'],
-              ].map(([key, label]) => (
+                ['allows_platform_delivery', 'Entrega organizada por acoYAradas!', true] as const,
+                ['allows_merchant_delivery', 'Entrega propia del comercio', false] as const,
+                ['allows_pickup', 'Retiro en local', false] as const,
+                ['accepts_cash', 'Acepta efectivo', false] as const,
+                ['accepts_transfer', 'Acepta transferencia', false] as const,
+                ['accepts_cash_on_delivery', 'Acepta contraentrega', false] as const,
+              ].map(([key, label, isFixed]) => (
                 <label key={key} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                    checked={Boolean(platformStore[key as keyof PlatformStore])}
-                    onChange={(e) => updateStore.mutate({ [key]: e.target.checked })}
-                    disabled={updateStore.isPending}
+                    className={isFixed
+                      ? 'h-4 w-4 rounded border-emerald-500 bg-emerald-500 text-white focus:ring-emerald-500 cursor-not-allowed'
+                      : 'h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500'}
+                    checked={Boolean(storeForm[key])}
+                    onChange={isFixed ? undefined : (e) => handleStoreChange(key, e.target.checked)}
+                    onBlur={handleStoreBlur}
+                    disabled={isFixed || updateStore.isPending}
                   />
                   {label}
                 </label>
@@ -321,24 +422,27 @@ export default function AdminPlatformProducts() {
                   min={0}
                   step="0.01"
                   className="input"
-                  value={platformStore.merchant_delivery_fee ?? ''}
-                  onChange={(e) => updateStore.mutate({ merchant_delivery_fee: Number(e.target.value) || 0 })}
+                  value={storeForm.merchant_delivery_fee ?? ''}
+                  onChange={(e) => handleStoreChange('merchant_delivery_fee', Number(e.target.value) || 0)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="Notas de envío">
                 <input
                   className="input"
-                  value={platformStore.merchant_delivery_notes ?? ''}
-                  onChange={(e) => updateStore.mutate({ merchant_delivery_notes: e.target.value })}
+                  value={storeForm.merchant_delivery_notes ?? ''}
+                  onChange={(e) => handleStoreChange('merchant_delivery_notes', e.target.value)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 />
               </Field>
               <Field label="Zona de cobertura">
                 <select
                   className="input"
-                  value={platformStore.zone_id ?? ''}
-                  onChange={(e) => updateStore.mutate({ zone_id: e.target.value || null })}
+                  value={storeForm.zone_id ?? ''}
+                  onChange={(e) => handleStoreChange('zone_id', e.target.value || null)}
+                  onBlur={handleStoreBlur}
                   disabled={updateStore.isPending}
                 >
                   <option value="">Sin zona asignada</option>
@@ -357,8 +461,8 @@ export default function AdminPlatformProducts() {
                 <TimeRangeSelect
                   key={day}
                   dayLabel={day}
-                  value={platformStore.open_hours?.[day] ?? ''}
-                  onChange={(v) => updateStore.mutate({ open_hours: { ...(platformStore.open_hours ?? {}), [day]: v } })}
+                  value={storeForm.open_hours?.[day] ?? ''}
+                  onChange={(v) => handleStoreChange('open_hours', { ...(storeForm.open_hours ?? {}), [day]: v })}
                 />
               ))}
             </div>
