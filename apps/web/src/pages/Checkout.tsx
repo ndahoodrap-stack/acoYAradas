@@ -7,11 +7,6 @@ import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod, type StoreDto } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import '../leafletSetup';
-// Use global Leaflet to avoid TDZ in bundled modules
-const L: any = (typeof window !== 'undefined' && (window as any).L) ? (window as any).L : require('leaflet');
 
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
@@ -66,7 +61,40 @@ function DeliveryMap({
 }) {
   const mapRef = useRef<any>(null);
   const clickHandlerRef = useRef(onClick);
-  const L = (typeof window !== 'undefined' && (window as any).L) ? (window as any).L : null;
+  const [leaflet, setLeaflet] = useState<any>(null);
+  const [rl, setRl] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ((window as any).L) {
+      setLeaflet((window as any).L);
+    } else {
+      import('leaflet').then((mod: any) => {
+        const Lmod = mod.default || mod;
+        setLeaflet(Lmod);
+        if (Lmod?.Icon?.Default) {
+          try {
+            delete Lmod.Icon.Default.prototype._getIconUrl;
+            Lmod.Icon.Default.mergeOptions({
+              iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+              iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+              shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            });
+          } catch {}
+        }
+      });
+    }
+    import('react-leaflet').then((mod) => {
+      setRl({
+        MapContainer: mod.MapContainer,
+        TileLayer: mod.TileLayer,
+        Marker: mod.Marker,
+        Popup: mod.Popup,
+      });
+    });
+  }, []);
+
+  const L = leaflet;
 
   const userLocationIcon = useMemo(() => {
     if (!L || !L.Icon) return undefined as any;
@@ -82,19 +110,17 @@ function DeliveryMap({
     } catch {
       return undefined as any;
     }
-  }, []);
+  }, [L]);
 
-  // Mantener referencia actualizada al handler
   useEffect(() => {
     clickHandlerRef.current = onClick;
   }, [onClick]);
 
-  // Configurar event listener de click cuando el mapa está listo
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !L) return;
     const map = mapRef.current;
 
-    const handleClick = (e: L.LeafletMouseEvent) => {
+    const handleClick = (e: any) => {
       clickHandlerRef.current?.(e);
     };
 
@@ -102,24 +128,21 @@ function DeliveryMap({
     return () => {
       map.off('click', handleClick);
     };
-  }, []);
+  }, [L]);
 
-  // Añadir polígonos de zonas al mapa
   useEffect(() => {
-    if (!mapRef.current || !zones?.length) return;
+    if (!mapRef.current || !zones?.length || !L) return;
     const map = mapRef.current;
 
-    // Limpiar capas anteriores de zonas
-    map.eachLayer((layer) => {
-      if ((layer as any)._isZonePolygon) {
+    map.eachLayer((layer: any) => {
+      if (layer._isZonePolygon) {
         map.removeLayer(layer);
       }
     });
 
-    // Añadir polígonos de cada zona
     zones.forEach((zone) => {
       if (!zone.geometry?.coordinates?.[0]?.length) return;
-      const coords = zone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
+      const coords = zone.geometry.coordinates[0].map(([lng, lat]: any) => [lat, lng] as [number, number]);
       const polygon = L.polygon(coords, {
         color: ZONE_COLORS[zone.code] || '#3b82f6',
         weight: 2,
@@ -129,28 +152,26 @@ function DeliveryMap({
       }).addTo(map);
       (polygon as any)._isZonePolygon = true;
 
-      // Tooltip con nombre de zona
       polygon.bindTooltip(zone.name, {
         permanent: false,
         direction: 'center',
         className: 'zone-tooltip',
       });
     });
-  }, [mapRef.current, zones]);
+  }, [mapRef.current, zones, L]);
 
-  // Resaltar zona detectada
   useEffect(() => {
-    if (!mapRef.current || !detectedZone) return;
+    if (!mapRef.current || !detectedZone || !L) return;
     if (!detectedZone.geometry?.coordinates?.[0]?.length) return;
     const map = mapRef.current;
 
-    map.eachLayer((layer) => {
-      if ((layer as any)._isDetectedZone) {
+    map.eachLayer((layer: any) => {
+      if (layer._isDetectedZone) {
         map.removeLayer(layer);
       }
     });
 
-    const coords = detectedZone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
+    const coords = detectedZone.geometry.coordinates[0].map(([lng, lat]: any) => [lat, lng] as [number, number]);
     const polygon = L.polygon(coords, {
       color: ZONE_COLORS[detectedZone.code] || '#3b82f6',
       weight: 3,
@@ -159,7 +180,13 @@ function DeliveryMap({
       className: 'detected-zone-polygon',
     }).addTo(map);
     (polygon as any)._isDetectedZone = true;
-  }, [mapRef.current, detectedZone]);
+  }, [mapRef.current, detectedZone, L]);
+
+  if (!rl || !leaflet) {
+    return <div style={{ height: '350px', width: '100%', borderRadius: '12px', background: '#f5f5f5' }} />;
+  }
+
+  const { MapContainer, TileLayer, Marker, Popup } = rl;
 
   return (
     <MapContainer
@@ -170,14 +197,12 @@ function DeliveryMap({
       style={{ height: '350px', width: '100%', borderRadius: '12px' }}
       maxBounds={BOLIVAR_BOUNDS}
       maxBoundsViscosity={0.8}
-      whenReady={(map) => { /* map is available via mapRef.current or parameter */ }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
         url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=b430d31a-db82-47b8-b86d-5338128e66e2"
       />
-      {/* Polígonos de zonas se añaden vía useEffect */}
-      {markerPosition && (
+      {markerPosition && userLocationIcon && (
         <Marker position={markerPosition} icon={userLocationIcon}>
           <Popup>
             <strong>Tu ubicación</strong><br />
