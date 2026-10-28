@@ -5,9 +5,9 @@ import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } fr
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
-// Cargar maplibre-gl ESM dinámicamente para poder mutar workerCount y registrar protocolo
-// (top-level await requiere "type": "module" en package.json, ya configurado)
-const maplibregl = await import('maplibre-gl');
+// Cargar maplibre-gl ESM y crear wrapper mutable (namespace ESM es inmutable)
+const maplibreglModule = await import('maplibre-gl');
+const maplibregl = { ...maplibreglModule } as typeof maplibreglModule & { workerCount: number; addProtocol: (name: string, protocol: any) => void };
 maplibregl.workerCount = 0;
 maplibregl.addProtocol('pmtiles', new Protocol());
 console.log('[maplibre-gl] ESM configured: workerCount=0, pmtiles protocol registered');
