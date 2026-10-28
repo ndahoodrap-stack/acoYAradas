@@ -245,7 +245,7 @@ export function AddressVerificationMap({
 
   // Update marker position when position prop changes
   useEffect(() => {
-    if (markerRef.current && position) {
+    if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
       markerRef.current.setLngLat(position);
       // Re-detect zone at new position
       if (mapRef.current?.getMap()) {
@@ -286,14 +286,19 @@ export function AddressVerificationMap({
   // Handle marker drag end
   const handleDragEnd = useCallback(() => {
     if (markerRef.current && mapRef.current?.getMap()) {
-      const lngLat = markerRef.current.getLngLat() as [number, number];
-      detectZoneAtPosition(mapRef.current.getMap(), lngLat);
+      const ll = markerRef.current.getLngLat();
+      const lngLat = ll?.toArray?.() ?? [ll?.lng, ll?.lat];
+      if (lngLat && !Number.isNaN(lngLat[0]) && !Number.isNaN(lngLat[1])) {
+        detectZoneAtPosition(mapRef.current.getMap(), lngLat);
+      }
     }
   }, [detectZoneAtPosition]);
 
   // Handle map click to move marker
   const handleMapClick = useCallback((e: any) => {
-    const lngLat = e.lngLat as [number, number];
+    // In MapLibre, e.lngLat is an LngLat object, convert to array
+    const lngLat = e.lngLat?.toArray?.() ?? [e.lngLat?.lng, e.lngLat?.lat];
+    if (!lngLat || Number.isNaN(lngLat[0]) || Number.isNaN(lngLat[1])) return;
     // Move marker immediately, zone detection will happen async via detectZoneAtPosition
     if (markerRef.current && mapRef.current?.getMap()) {
       markerRef.current.setLngLat(lngLat);
