@@ -10,6 +10,8 @@ import { detectZoneFromGeolocation, type ZoneMatch } from '../lib/zoneDetection'
 import { AddressVerificationMap } from '../components/AddressVerificationMap';
 import { BOLIVAR_CENTER } from '../lib/zoneStyles';
 
+const LOCALIDAD = 'San Carlos de Bolívar';
+
 export default function Checkout() {
   const { cart, loading, refresh } = useCart();
   const { user } = useSession();
@@ -19,7 +21,7 @@ export default function Checkout() {
     customer_name: user?.full_name ?? '',
     phone: user?.phone ?? '',
     address: '',
-    locality: '',
+    locality: LOCALIDAD,
     references: '',
     notes: '',
     fulfillment_type: 'delivery',
@@ -30,6 +32,8 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [confirmAddress, setConfirmAddress] = useState('');
 
   // Zona detectada automáticamente
   const [detectedZone, setDetectedZone] = useState<ZoneMatch | null>(null);
@@ -119,21 +123,36 @@ export default function Checkout() {
     );
   }
 
-  const submit = async (event: React.FormEvent) => {
+  // Abrir popup de confirmación de dirección
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (!form.address.trim()) {
+      setError('Por favor ajustá tu ubicación en el mapa para capturar la dirección.');
+      return;
+    }
+    if (!detectedZone) {
+      setError('Tu ubicación está fuera de nuestra zona de cobertura.');
+      return;
+    }
+    setConfirmAddress(form.address);
+    setShowConfirmPopup(true);
     setError(null);
+  };
+
+  // Confirmar pedido desde el popup
+  const confirmOrder = async () => {
     setSubmitting(true);
+    setShowConfirmPopup(false);
     try {
       const body = {
         ...form,
+        address: confirmAddress, // Usar la dirección confirmada/editada
         fulfillment_type: 'delivery',
         delivery_mode: 'platform',
         promo_code: promoCode.trim() || undefined,
         guest_token: tokens.guest ?? undefined,
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        // Zona detectada para validación server-side
         detected_zone_code: detectedZone?.code,
-        // Coordenadas del mapa (si el usuario ajustó la posición)
         delivery_lng: mapPosition?.[0],
         delivery_lat: mapPosition?.[1],
       };
@@ -166,7 +185,7 @@ export default function Checkout() {
         Comercio: <strong className="text-ink-900">{cart.store_name}</strong>
       </p>
 
-      <form onSubmit={submit} className="mt-6 grid gap-6 lg:grid-cols-3">
+      <form onSubmit={handleSubmit} className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section className="card p-5">
             <h2 className="text-lg font-bold text-ink-900">Datos de contacto y entrega</h2>
@@ -180,11 +199,8 @@ export default function Checkout() {
                   setForm((f) => ({ ...f, phone: value }));
                 }} />
               </Field>
-              <Field label="Dirección">
-                <input className="input" placeholder="Av. Corrientes 1234" value={form.address} onChange={field('address').onChange} />
-              </Field>
               <Field label="Localidad">
-                <input className="input" placeholder="San Carlos de Bolívar" value={form.locality} onChange={field('locality').onChange} />
+                <input className="input bg-ink-50 cursor-not-allowed" value={LOCALIDAD} readOnly />
               </Field>
               <Field label="Referencias" hint="Timbre, piso, puerta, punto de referencia…">
                 <input className="input" value={form.references} onChange={field('references').onChange} />
@@ -287,6 +303,55 @@ export default function Checkout() {
           </div>
         </aside>
       </form>
+
+      {/* Popup de confirmación de dirección */}
+      {showConfirmPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirmPopup(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-ink-900">¿Tu dirección es correcta?</h3>
+            </div>
+
+            <p className="text-sm text-ink-500 mb-4">
+              Verificá la dirección capturada desde el mapa. Podés editarla si es necesario.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-ink-600 mb-1">Dirección de entrega</label>
+              <textarea
+                className="input w-full min-h-[80px] resize-none"
+                value={confirmAddress}
+                onChange={(e) => setConfirmAddress(e.target.value)}
+                placeholder="La dirección aparecerá aquí automáticamente"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmPopup(false)}
+                className="flex-1 btn-secondary"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmOrder}
+                className="flex-1 btn-primary"
+                disabled={submitting || !confirmAddress.trim()}
+              >
+                {submitting ? 'Enviando…' : 'Confirmar y enviar pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
