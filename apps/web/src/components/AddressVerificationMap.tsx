@@ -290,7 +290,7 @@ export function AddressVerificationMap({
           ],
           'line-opacity': 0.7,
         },
-        filter: ['in', ['get', 'highway'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']],
+        filter: ['in', ['get', 'highway'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']]],
       },
       // 2. Labels de calles
       {
