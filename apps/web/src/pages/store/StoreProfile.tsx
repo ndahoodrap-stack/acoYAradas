@@ -66,7 +66,6 @@ export default function StoreProfile() {
       address: s.address ?? '',
       locality: s.locality ?? '',
       category_id: s.category_id ?? '',
-      is_open: s.is_open,
       preparation_time_minutes: s.preparation_time_minutes ?? '',
       allows_platform_delivery: s.allows_platform_delivery,
       allows_pickup: false,
@@ -82,6 +81,7 @@ export default function StoreProfile() {
   const save = useMutation({
     mutationFn: () => {
       const body: Record<string, any> = { ...form };
+      delete body.is_open; // Auto-calculated on server from open_hours
       body.preparation_time_minutes =
         form.preparation_time_minutes === '' ? null : Number(form.preparation_time_minutes);
       body.merchant_delivery_fee = Number(form.merchant_delivery_fee ?? 0);
@@ -222,7 +222,6 @@ export default function StoreProfile() {
             ['allows_platform_delivery', 'Entrega organizada por acoYAradas!'],
             ['accepts_cash', 'Acepta efectivo'],
             ['accepts_transfer', 'Acepta transferencia'],
-            ['is_open', 'Comercio abierto'],
             ['accepts_terms', 'Aceptó las condiciones comerciales'],
           ].map(([key, label]) => (
             <label key={key} className="flex items-center gap-2 text-sm">
@@ -235,6 +234,10 @@ export default function StoreProfile() {
             </label>
           ))}
         </div>
+
+        <p className="text-xs text-ink-500">
+          <span className="font-medium">Estado abierto/cerrado:</span> Se calcula automáticamente según los horarios configurados abajo.
+        </p>
 
         <div className="hidden">
           <input type="hidden" value={form.merchant_delivery_fee ?? 0} />

@@ -19,6 +19,7 @@ import { insertNotificationsAs } from '../lib/notify.js';
 import { notifyOrderStatusWhatsApp } from '../lib/whatsapp.js';
 import { applyOrderStatus } from './orderStatus.js';
 import { mapOrder, ORDER_SELECT } from './orders.js';
+import { isStoreOpenNow } from '../lib/storeHours.js';
 
 /** Panel del comercio (Etapa 2). */
 export const storeRouter = Router();
@@ -152,8 +153,11 @@ storeRouter.get(
           where s.store_id = $1 order by s.created_at desc limit 1`,
         [storeId],
       );
+      const storeData = store.rows[0];
+      // Calculate is_open from open_hours for consistency with public catalog
+      const calculatedIsOpen = storeData.status === 'active' ? isStoreOpenNow(storeData.open_hours ?? {}) : Boolean(storeData.is_open);
       return {
-        store: store.rows[0],
+        store: { ...storeData, is_open: calculatedIsOpen },
         limits,
         subscription: subscription.rows[0] ?? null,
       };
@@ -209,6 +213,10 @@ storeRouter.patch(
       if (input.open_hours !== undefined) {
         params.push(JSON.stringify(input.open_hours));
         fields.push(`open_hours = $${params.length}::jsonb`);
+        // Auto-calculate is_open from open_hours for consistency
+        const calculatedIsOpen = isStoreOpenNow(input.open_hours);
+        params.push(calculatedIsOpen);
+        fields.push(`is_open = $${params.length}`);
       }
       if (!fields.length) throw badRequest('No hay cambios para guardar');
       params.push(new Date().toISOString());
