@@ -466,35 +466,42 @@ export function AddressVerificationMap({
         attributionControl={false}
         onLoad={(map) => {
           setMapLoaded(true);
+          // Expose globally for debugging: window.__MAP__
+          (window as any).__MAP__ = map;
+
           // DEBUG: Log source info when map loads
           console.log('[Map] MapLibre loaded, checking source...');
           try {
             const source = map.getSource('bolivar');
             console.log('[Map] Source "bolivar":', source);
             if (source) {
-              // Check if tiles are loading
               console.log('[Map] Source type:', source.type);
             }
           } catch (e) {
             console.error('[Map] Error getting source:', e);
           }
 
-          // Check style layers after a short delay
+          // Log source-layers immediately
+          try {
+            const style = map.getStyle();
+            const bolivarLayers = style?.layers?.filter(l => l.source === 'bolivar') || [];
+            console.log('[Map] Source-layers (bolivar):', bolivarLayers.map(l => l['source-layer']));
+            console.log('[Map] All bolivar layers:', bolivarLayers.map(l => ({ id: l.id, type: l.type, 'source-layer': l['source-layer'] })));
+          } catch (e) {
+            console.error('[Map] Error getting layers:', e);
+          }
+
+          // Check source caches after a short delay
           setTimeout(() => {
             try {
-              const layers = map.getStyle()?.layers;
-              console.log('[Map] All layers:', layers?.map(l => ({ id: l.id, type: l.type, source: l.source, 'source-layer': (l as any)['source-layer'] })));
-
-              // Check source caches
               const style = map.getStyle();
               if (style && (style as any).sourceCaches) {
                 console.log('[Map] Source caches:', Object.keys((style as any).sourceCaches));
                 const bolivarCache = (style as any).sourceCaches.bolivar;
                 if (bolivarCache) {
                   console.log('[Map] Bolivar source cache:', bolivarCache);
-                  // Check tiles
                   if (bolivarCache._tiles) {
-                    console.log('[Map] Tiles:', Object.keys(bolivarCache._tiles).length);
+                    console.log('[Map] Tiles loaded:', Object.keys(bolivarCache._tiles).length);
                   }
                 }
               }
