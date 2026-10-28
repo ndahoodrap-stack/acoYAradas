@@ -10,15 +10,15 @@
     />
     <link rel="icon" type="image/svg+xml" href="/placeholders/logo-aco.svg" />
     <title>acoYAradas! - Comercios de tu zona</title>
-    <!-- maplibre-gl via CDN + importmap para resolver 'maplibre-gl' specifier -->
+    <!-- maplibre-gl via esm.sh (ES modules + CORS headers correctos) -->
     <script type="importmap">
     {
       "imports": {
-        "maplibre-gl": "https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.js"
+        "maplibre-gl": "https://esm.sh/maplibre-gl@6.16.0"
       }
     }
     </script>
-    <link href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <link href="https://esm.sh/maplibre-gl@6.16.0/dist/maplibre-gl.css" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
