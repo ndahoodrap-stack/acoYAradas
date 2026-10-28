@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -17,6 +17,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log a consola donde los sourcemaps SÍ funcionan
+    console.error('[ErrorBoundary] Error capturado:', error);
+    console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
@@ -29,6 +35,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <pre className="bg-red-50 p-4 rounded text-sm text-red-800 overflow-auto max-h-96">
               {this.state.error?.message}\n\n{this.state.error?.stack}
             </pre>
+            <details className="mt-4">
+              <summary className="text-sm text-ink-500 cursor-pointer">Ver component stack</summary>
+              <pre className="mt-2 bg-ink-50 p-3 rounded text-xs text-ink-700 overflow-auto max-h-64">
+                {this.state.error?.stack}
+              </pre>
+            </details>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}
               className="btn-primary mt-4"
