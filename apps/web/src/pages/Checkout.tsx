@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, Component, type ReactNode } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, tokens } from '../lib/api';
@@ -10,6 +10,35 @@ import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+
+// Error Boundary para ver errores en lugar de pantalla blanca
+class CheckoutErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="container-app py-8">
+          <div className="card p-6 max-w-2xl mx-auto">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Error en Checkout</h2>
+            <pre className="bg-red-50 p-4 rounded text-sm text-red-800 overflow-auto max-h-96">
+              {this.state.error?.message}\n\n{this.state.error?.stack}
+            </pre>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="btn-primary mt-4"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Fix Leaflet default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -94,7 +123,7 @@ function DeliveryMap({
 
   // Añadir polígonos de zonas al mapa
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !zones?.length) return;
     const map = mapRef.current;
 
     // Limpiar capas anteriores de zonas
@@ -106,6 +135,7 @@ function DeliveryMap({
 
     // Añadir polígonos de cada zona
     zones.forEach((zone) => {
+      if (!zone.geometry?.coordinates?.[0]?.length) return;
       const coords = zone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
       const polygon = L.polygon(coords, {
         color: ZONE_COLORS[zone.code] || '#3b82f6',
@@ -128,6 +158,7 @@ function DeliveryMap({
   // Resaltar zona detectada
   useEffect(() => {
     if (!mapRef.current || !detectedZone) return;
+    if (!detectedZone.geometry?.coordinates?.[0]?.length) return;
     const map = mapRef.current;
 
     map.eachLayer((layer) => {
@@ -551,13 +582,14 @@ export default function Checkout() {
   });
 
   return (
-    <div className="container-app py-8">
-      <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">Finalizar compra</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Comercio: <strong className="text-ink-900">{cart.store_name}</strong>
-      </p>
+    <CheckoutErrorBoundary>
+      <div className="container-app py-8">
+        <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">Finalizar compra</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          Comercio: <strong className="text-ink-900">{cart.store_name}</strong>
+        </p>
 
-      <form onSubmit={submit} className="mt-6 grid gap-6 lg:grid-cols-3">
+        <form onSubmit={submit} className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section className="card p-5">
             <h2 className="text-lg font-bold text-ink-900">Datos de contacto y entrega</h2>
@@ -840,6 +872,7 @@ export default function Checkout() {
         </aside>
       </form>
     </div>
+    </CheckoutErrorBoundary>
   );
 }
 
