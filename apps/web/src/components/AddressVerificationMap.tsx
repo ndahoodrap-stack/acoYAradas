@@ -40,8 +40,8 @@ export function AddressVerificationMap({
     zoom: ZOOM.CITY,
   });
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [zoneFeatures, setZoneFeatures] = useState<any[]>([]);
-  const [streetsData, setStreetsData] = useState<any>(null);
+  const zoneFeaturesRef = useRef<any[]>([]);
+  const streetsDataRef = useRef<any>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
@@ -72,7 +72,7 @@ export function AddressVerificationMap({
         const streetsData = await res.json();
 
         // Store for client-side street detection
-        setStreetsData(streetsData);
+        streetsDataRef.current = streetsData;
 
         // Add streets source
         if (!map.getSource('bolivar-streets')) {
@@ -164,7 +164,7 @@ export function AddressVerificationMap({
         });
 
         // Store for client-side zone detection
-        setZoneFeatures(processedFeatures);
+        zoneFeaturesRef.current = processedFeatures;
 
         const processedData = {
           ...zonesData,
@@ -259,7 +259,7 @@ export function AddressVerificationMap({
       // Re-detect zone at new position
       detectZoneAtPosition(position);
     }
-  }, [position, detectZoneAtPosition]);
+  }, [position]);
 
   // Detect zone at a given position using client-side point-in-polygon
   const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
@@ -271,7 +271,7 @@ export function AddressVerificationMap({
       let detectedZoneCode: string | null = null;
 
       for (const code of zoneOrder) {
-        const feature = zoneFeatures.find(f => f.properties?.zone_code === code);
+        const feature = zoneFeaturesRef.current.find(f => f.properties?.zone_code === code);
         if (feature && pointInPolygon(lngLat, feature.geometry)) {
           detectedZoneCode = code;
           break;
@@ -280,9 +280,9 @@ export function AddressVerificationMap({
 
       // Detect nearest street for autocomplete
       let detectedStreet: string | null = null;
-      if (streetsData?.features) {
+      if (streetsDataRef.current?.features) {
         let minDistance = Infinity;
-        for (const feature of streetsData.features) {
+        for (const feature of streetsDataRef.current.features) {
           if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
 
           const coords = feature.geometry.coordinates;
@@ -326,7 +326,7 @@ export function AddressVerificationMap({
       console.warn('Zone detection error:', err);
       onPositionChange(lngLat, null, null);
     }
-  }, [onPositionChange, zoneFeatures, streetsData]);
+  }, [onPositionChange]);
 
   // Handle marker drag end
   const handleDragEnd = useCallback(() => {
