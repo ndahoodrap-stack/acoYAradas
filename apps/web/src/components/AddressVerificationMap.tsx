@@ -278,7 +278,7 @@ export function AddressVerificationMap({
             },
             calles: {
               type: 'geojson',
-              data: '/bolivar-calles-simplificado.geojson',
+              data: '/bolivar-calles-simplified.geojson',
             },
           },
           layers: [
