@@ -506,29 +506,27 @@ export function AddressVerificationMap({
     );
   }
 
-  // Simple OSM raster tile style for MapLibre
+  // Simple raster tile style for MapLibre - using Stadia Maps (free, no API key, generous limits)
   const osmStyle = {
     version: 8,
     sources: {
-      osm: {
+      stadia: {
         type: 'raster',
         tiles: [
-          'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
         ],
         tileSize: 256,
-        attribution: '© OpenStreetMap contributors',
-        maxzoom: 19,
+        attribution: '© Stadia Maps, © OpenStreetMap contributors',
+        maxzoom: 20,
       },
     },
     layers: [
       {
-        id: 'osm-layer',
+        id: 'stadia-layer',
         type: 'raster',
-        source: 'osm',
+        source: 'stadia',
         minzoom: 0,
-        maxzoom: 19,
+        maxzoom: 20,
       },
     ],
   };
