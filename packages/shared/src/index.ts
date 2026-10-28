@@ -193,6 +193,8 @@ export const checkoutSchema = z.object({
   guest_token: z.string().max(120).optional().or(z.literal('')),
   idempotency_key: z.string().max(120).optional().or(z.literal('')),
   detected_zone_code: z.string().max(120).optional().or(z.literal('')),
+  delivery_lng: z.number().optional(),
+  delivery_lat: z.number().optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

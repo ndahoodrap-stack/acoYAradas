@@ -363,7 +363,10 @@ ordersRouter.post(
       const isPlatformDelivery = body.delivery_mode === 'platform';
 
       // Detectar zona automáticamente para entregas de plataforma basándose en la dirección del cliente
-      // Prioridad: 1) detected_zone_code del cliente, 2) geocoding de la dirección
+      // Prioridad:
+      // 1) detected_zone_code del cliente
+      // 2) delivery_lng/delivery_lat del mapa del cliente
+      // 3) geocoding de la dirección
       let detectedZoneId: string | null = null;
       if (isPlatformDelivery) {
         // 1. Si el cliente envió un código de zona detectada, usarlo
@@ -378,7 +381,17 @@ ordersRouter.post(
           }
         }
 
-        // 2. Fallback: geocoding de la dirección si no hay zona del cliente
+        // 2. Si el cliente envió coordenadas del mapa, usarlas directamente
+        if (!detectedZoneId && body.delivery_lng != null && body.delivery_lat != null) {
+          try {
+            detectedZoneId = await detectZoneIdFromCoordinates(tx, body.delivery_lng, body.delivery_lat);
+            console.log(`Zona detectada por coordenadas del mapa (${body.delivery_lng}, ${body.delivery_lat}): ${detectedZoneId ?? 'ninguna'}`);
+          } catch (error) {
+            console.warn('Error detectando zona por coordenadas del mapa:', error);
+          }
+        }
+
+        // 3. Fallback: geocoding de la dirección si no hay zona del cliente
         if (!detectedZoneId && body.address && body.locality) {
           try {
             const fullAddress = buildFullAddress(body.address, body.locality, body.references);
@@ -452,9 +465,9 @@ ordersRouter.post(
            (code, public_token, store_id, customer_id, customer_name, phone, address, locality,
             reference_notes, notes, fulfillment_type, delivery_mode, status, subtotal, discount,
             shipping_cost, total, payment_method, payment_status, estimated_preparation_minutes,
-            shipping_notes, promotion_id, idempotency_key, zone_id)
+            shipping_notes, promotion_id, idempotency_key, zone_id, delivery_lng, delivery_lat)
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending_confirmation',$13,$14,$15,$16,$17,
-                 'pending',$18,$19,$20,$21,$22)
+                 'pending',$18,$19,$20,$21,$22,$23,$24)
          returning id`,
         [
           code,
@@ -479,6 +492,8 @@ ordersRouter.post(
           promotion?.id ?? null,
           body.idempotency_key || null,
           detectedZoneId,
+          body.delivery_lng ?? null,
+          body.delivery_lat ?? null,
         ],
       );
       const orderId = inserted.rows[0].id;

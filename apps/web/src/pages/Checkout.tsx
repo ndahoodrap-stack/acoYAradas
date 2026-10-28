@@ -7,6 +7,8 @@ import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
 import { detectZoneFromGeolocation, type ZoneMatch } from '../lib/zoneDetection';
+import { AddressVerificationMap } from '../components/AddressVerificationMap';
+import { BOLIVAR_CENTER } from '../lib/zoneStyles';
 
 export default function Checkout() {
   const { cart, loading, refresh } = useCart();
@@ -34,6 +36,9 @@ export default function Checkout() {
   const [zoneLoading, setZoneLoading] = useState(true);
   const [zoneError, setZoneError] = useState<string | null>(null);
 
+  // Posición en el mapa (para verificación visual)
+  const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
+
   // Detectar zona al cargar la página
   useEffect(() => {
     let cancelled = false;
@@ -44,12 +49,15 @@ export default function Checkout() {
         const zone = await detectZoneFromGeolocation();
         if (!cancelled) {
           setDetectedZone(zone);
+          // Usar el centro de Bolívar como fallback, la geolocalización real se maneja en el mapa
+          setMapPosition(BOLIVAR_CENTER);
           if (!zone) setZoneError('Tu ubicación está fuera de nuestra zona de cobertura');
         }
       } catch (err) {
         if (!cancelled) {
           setZoneError('No pudimos detectar tu ubicación automáticamente');
           console.warn('Geolocation failed:', err);
+          setMapPosition(BOLIVAR_CENTER);
         }
       } finally {
         if (!cancelled) setZoneLoading(false);
@@ -59,6 +67,26 @@ export default function Checkout() {
     detect();
     return () => { cancelled = true; };
   }, []);
+
+  // Manejar cambio de posición desde el mapa
+  const handleMapPositionChange = (position: [number, number], zoneCode: string | null) => {
+    setMapPosition(position);
+    if (zoneCode) {
+      // Buscar la zona completa para actualizar el precio
+      const zoneInfo = { code: zoneCode, name: '', price: 0 } as ZoneMatch;
+      // El mapa detecta la zona y llama a este callback con el código
+      // Actualizamos detectedZone basado en el código
+      if (zoneCode === 'planta_urbana') zoneInfo.name = 'Planta Urbana', zoneInfo.price = 3500;
+      else if (zoneCode === 'zona_barrial') zoneInfo.name = 'Zona Barrial', zoneInfo.price = 4300;
+      else if (zoneCode === 'zona_rural') zoneInfo.name = 'Zona Rural', zoneInfo.price = 6000;
+      setDetectedZone(zoneInfo);
+      setZoneError(null);
+    } else if (zoneCode === null && position) {
+      // Fuera de cobertura
+      setZoneError('Esta ubicación está fuera de nuestra zona de cobertura');
+      setDetectedZone(null);
+    }
+  };
 
   const paymentOptions: PaymentMethod[] = ['transfer', 'cash'];
   const cvu = '0000003100000758197056';
@@ -91,6 +119,9 @@ export default function Checkout() {
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         // Zona detectada para validación server-side
         detected_zone_code: detectedZone?.code,
+        // Coordenadas del mapa (si el usuario ajustó la posición)
+        delivery_lng: mapPosition?.[0],
+        delivery_lat: mapPosition?.[1],
       };
       const order = await api.post<{ id: string; code: string; public_token?: string }>('/orders', body);
       await refresh();
@@ -212,6 +243,22 @@ export default function Checkout() {
             <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
               <span className="font-bold text-ink-900">Total</span>
               <span className="font-bold text-brand-600 text-lg">{formatMoney(cart.subtotal + (detectedZone?.price ?? 0))}</span>
+            </div>
+
+            {/* Mapa de verificación de dirección */}
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-ink-900 mb-2">Verificá tu ubicación en el mapa</h3>
+              <AddressVerificationMap
+                detectedZone={detectedZone}
+                position={mapPosition}
+                onPositionChange={handleMapPositionChange}
+                loading={zoneLoading}
+                error={zoneError}
+                height={280}
+              />
+              <p className="mt-2 text-xs text-ink-500 text-center">
+                Arrastrá el pin azul para ajustar tu ubicación exacta. La zona y el precio se actualizan automáticamente.
+              </p>
             </div>
 
             {error ? <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
