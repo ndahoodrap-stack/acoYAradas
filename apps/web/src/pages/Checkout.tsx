@@ -253,7 +253,8 @@ export default function Checkout() {
                 position={mapPosition}
                 onPositionChange={handleMapPositionChange}
                 loading={zoneLoading}
-                error={zoneError}
+                zoneError={zoneError}
+                zoneLoading={zoneLoading}
                 height={280}
               />
               <p className="mt-2 text-xs text-ink-500 text-center">

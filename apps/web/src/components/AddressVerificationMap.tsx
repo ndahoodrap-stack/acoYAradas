@@ -13,8 +13,12 @@ interface AddressVerificationMapProps {
   onPositionChange: (position: [number, number], zoneCode: string | null) => void;
   /** Whether the map is loading */
   loading?: boolean;
-  /** Error message if any */
-  error?: string | null;
+  /** Map loading error (network, tiles, etc.) - shows full error screen */
+  mapError?: string | null;
+  /** Zone detection error (outside coverage) - shows warning on map but keeps map visible */
+  zoneError?: string | null;
+  /** Whether zone detection is in progress */
+  zoneLoading?: boolean;
   /** Height of the map container */
   height?: number;
 }
@@ -24,7 +28,9 @@ export function AddressVerificationMap({
   position,
   onPositionChange,
   loading = false,
-  error = null,
+  mapError = null,
+  zoneError = null,
+  zoneLoading = false,
   height = 300,
 }: AddressVerificationMapProps) {
   const [viewport, setViewport] = useState({
@@ -307,13 +313,13 @@ export function AddressVerificationMap({
     );
   }
 
-  // Show error state
-  if (error) {
+  // Show map loading error state (only for actual map loading failures)
+  if (mapError) {
     return (
       <div className="rounded-xl bg-red-50 border border-red-200 h-[300px] flex items-center justify-center p-4">
         <div className="text-center text-red-700">
           <p className="font-medium">No se pudo cargar el mapa</p>
-          <p className="text-sm mt-1">{error}</p>
+          <p className="text-sm mt-1">{mapError}</p>
         </div>
       </div>
     );
@@ -348,6 +354,20 @@ export function AddressVerificationMap({
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-ink-200">
+      {/* Zone error warning banner */}
+      {zoneError && (
+        <div className="absolute top-2 left-2 right-2 z-20 mx-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium text-center shadow-lg animate-slide-down">
+          ⚠️ {zoneError}
+        </div>
+      )}
+
+      {/* Zone loading indicator */}
+      {zoneLoading && !zoneError && !detectedZone && (
+        <div className="absolute top-2 left-2 right-2 z-20 mx-2 px-3 py-2 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-sm font-medium text-center shadow-lg animate-slide-down">
+          Detectando zona...
+        </div>
+      )}
+
       <Map
         ref={mapRef}
         initialViewState={{
@@ -365,7 +385,7 @@ export function AddressVerificationMap({
         onClick={handleMapClick}
         maxBounds={BOLIVAR_BOUNDS}
       >
-        {/* Current location marker */}
+        {/* Current location marker - color changes based on zone status */}
         {position && (
           <Marker
             ref={markerRef}
@@ -375,8 +395,12 @@ export function AddressVerificationMap({
             onDragEnd={handleDragEnd}
           >
             <div className="relative">
-              <div className="w-6 h-6 rounded-full bg-brand-500 border-3 border-white shadow-lg" />
-              <div className="absolute -top-1 -left-1 w-8 h-8 rounded-full bg-brand-500/30 animate-ping" />
+              <div className={`w-6 h-6 rounded-full border-3 border-white shadow-lg ${
+                zoneError ? 'bg-red-500' : detectedZone ? 'bg-brand-500' : 'bg-gray-400'
+              }`} />
+              <div className={`absolute -top-1 -left-1 w-8 h-8 rounded-full animate-ping ${
+                zoneError ? 'bg-red-500/30' : detectedZone ? 'bg-brand-500/30' : 'bg-gray-400/30'
+              }`} />
             </div>
           </Marker>
         )}
@@ -396,6 +420,23 @@ export function AddressVerificationMap({
                 style: 'currency', currency: 'ARS', minimumFractionDigits: 0
               }).format(detectedZone.price)}</p>
               <p className="text-xs text-ink-500 mt-1">Arrastrá el pin para corregir</p>
+            </div>
+          </Popup>
+        )}
+
+        {/* Outside coverage popup */}
+        {zoneError && position && !detectedZone && (
+          <Popup
+            longitude={position[0]}
+            latitude={position[1]}
+            closeButton={false}
+            anchor="top"
+            offset={20}
+          >
+            <div className="px-3 py-2 rounded-lg bg-red-50 shadow-lg border border-red-200">
+              <p className="font-bold text-red-700">Fuera de cobertura</p>
+              <p className="text-sm text-red-600">No hay servicio de entrega en esta zona</p>
+              <p className="text-xs text-red-500 mt-1">Mové el pin a una zona cubierta</p>
             </div>
           </Popup>
         )}
