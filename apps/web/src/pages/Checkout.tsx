@@ -44,24 +44,8 @@ const ZONE_COLORS: Record<string, string> = {
 };
 
 
-function DeliveryMap({
-  center,
-  zoom,
-  detectedZone,
-  zones,
-  markerPosition,
-  onClick,
-}: {
-  center: [number, number];
-  zoom: number;
-  detectedZone: ZoneGeometry | null;
-  zones: ZoneGeometry[];
-  markerPosition: [number, number] | null;
-  onClick: (e: any) => void;
-}) {
-  const mapRef = useRef<any>(null);
-  const clickHandlerRef = useRef(onClick);
-    return <div style={{ height: '350px', width: '100%', borderRadius: '12px', background: '#f5f5f5' }} />;
+function DeliveryMap() {
+  return <div style={{ height: '350px', width: '100%', borderRadius: '12px', background: '#f5f5f5' }} />;
 }
 
 export default function Checkout() {
@@ -531,14 +515,7 @@ export default function Checkout() {
                 </div>
               )}
               <div className="mt-4">
-                <DeliveryMap
-                  center={mapCenter}
-                  zoom={mapZoom}
-                  onClick={handleMapClick}
-                  detectedZone={detectedZone}
-                  zones={zones}
-                  markerPosition={markerPosition}
-                />
+                <DeliveryMap />
               </div>
               {/* Leyenda de zonas */}
               {zones.length > 0 && (
