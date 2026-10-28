@@ -10,7 +10,8 @@ import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../leafletSetup';
-import L from 'leaflet';
+// Use global Leaflet to avoid TDZ in bundled modules
+const L: any = (typeof window !== 'undefined' && (window as any).L) ? (window as any).L : require('leaflet');
 
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
