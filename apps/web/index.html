@@ -16,6 +16,28 @@
     <script>
       // Desactivar worker ANTES de que maplibre-gl lo intente crear
       window.MAPLIBRE_GL_NO_WORKER = true;
+      // También desactivar via workerCount cuando el objeto esté disponible
+      if (window.maplibregl) {
+        window.maplibregl.workerCount = 0;
+      } else {
+        // Si no está listo, usar Object.defineProperty para interceptar cuando se cargue
+        Object.defineProperty(window, 'maplibregl', {
+          configurable: true,
+          set: function(val) {
+            if (val && val.workerCount !== undefined) {
+              val.workerCount = 0;
+            }
+            Object.defineProperty(window, 'maplibregl', {
+              configurable: true,
+              value: val,
+              writable: true
+            });
+          },
+          get: function() {
+            return this._maplibregl;
+          }
+        });
+      }
     </script>
   </head>
   <body>

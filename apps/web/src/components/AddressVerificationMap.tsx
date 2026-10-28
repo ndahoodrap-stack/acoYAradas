@@ -5,9 +5,6 @@ import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } fr
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
-// maplibre-gl se carga via UMD en index.html → disponible en window.maplibregl
-const maplibregl = typeof window !== 'undefined' ? (window as any).maplibregl : null;
-
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
   detectedZone: ZoneMatch | null;
@@ -39,24 +36,48 @@ export function AddressVerificationMap({
 }: AddressVerificationMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [maplibreReady, setMaplibreReady] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const protocolRegisteredRef = useRef(false);
 
-  // Registrar protocolo PMTiles cuando el componente monta (UMD ya cargado)
+  // Esperar a que maplibre-gl UMD esté disponible y registrar protocolo
   useEffect(() => {
-    if (!maplibregl) {
-      console.error('[PMTiles] maplibregl not available on window');
-      return;
-    }
-    try {
-      // Desactivar workers (UMD ya los incluye inline, pero por seguridad)
-      maplibregl.workerCount = 0;
-      maplibregl.addProtocol('pmtiles', new Protocol());
-      console.log('[PMTiles] Protocol registered successfully, workers disabled');
-    } catch (e) {
-      console.error('[PMTiles] Failed to register protocol:', e);
-    }
+    let cancelled = false;
+
+    const waitForMaplibre = () => {
+      // Verificar si ya está disponible
+      const maplibregl = (window as any).maplibregl;
+      if (maplibregl) {
+        if (!cancelled && !protocolRegisteredRef.current) {
+          try {
+            // Desactivar workers ANTES de registrar protocolo
+            maplibregl.workerCount = 0;
+            maplibregl.addProtocol('pmtiles', new Protocol());
+            protocolRegisteredRef.current = true;
+            console.log('[PMTiles] Protocol registered successfully, workers disabled');
+          } catch (e) {
+            console.error('[PMTiles] Failed to register protocol:', e);
+          }
+        }
+        if (!cancelled) {
+          setMaplibreReady(true);
+        }
+        return;
+      }
+
+      // Si no está listo, reintentar en 50ms
+      if (!cancelled) {
+        setTimeout(waitForMaplibre, 50);
+      }
+    };
+
+    waitForMaplibre();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -442,6 +463,30 @@ export function AddressVerificationMap({
       },
     ],
   };
+
+  // No renderizar el mapa hasta que maplibre-gl UMD esté listo
+  if (!maplibreReady) {
+    return (
+      <div className="rounded-xl bg-ink-50 border border-ink-200 h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500 mx-auto" />
+          <p className="mt-2 text-sm text-ink-500">Cargando mapa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="rounded-xl bg-ink-50 border border-ink-200 h-[300px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500 mx-auto" />
+          <p className="mt-2 text-sm text-ink-500">Cargando mapa...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-ink-200">
