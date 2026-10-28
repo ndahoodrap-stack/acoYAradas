@@ -2196,10 +2196,10 @@ adminRouter.get(
     requireAdmin(ctx);
     return run(ctx, async (tx) => {
       const { rows } = await tx.query(
-        `select id, name, slug, description, phone, email, address, locality, zone_id,
+        `select id, name, slug, description, phone, email, address, locality, zone_id, category_id,
                 preparation_time_minutes, allows_platform_delivery, allows_merchant_delivery, allows_pickup,
                 merchant_delivery_fee, merchant_delivery_notes, accepts_cash, accepts_transfer, accepts_cash_on_delivery,
-                open_hours, status, is_open, featured, verified
+                open_hours, status, is_open, featured, verified, logo_url, cover_url, whatsapp
            from public.stores
           where slug = 'acoyaradas' and deleted_at is null
           limit 1`,
@@ -2262,9 +2262,16 @@ adminRouter.patch(
       if (body.accepts_cash !== undefined) push('accepts_cash', body.accepts_cash);
       if (body.accepts_transfer !== undefined) push('accepts_transfer', body.accepts_transfer);
       if (body.accepts_cash_on_delivery !== undefined) push('accepts_cash_on_delivery', body.accepts_cash_on_delivery);
-      if (body.open_hours !== undefined) push('open_hours', JSON.stringify(body.open_hours));
+      if (body.open_hours !== undefined) {
+        push('open_hours', JSON.stringify(body.open_hours));
+        // Auto-calculate is_open from open_hours for consistency with public catalog
+        const { isStoreOpenNow } = await import('../lib/storeHours.js');
+        const calculatedIsOpen = isStoreOpenNow(body.open_hours);
+        push('is_open', calculatedIsOpen);
+      }
       if (body.status !== undefined) push('status', body.status);
-      if (body.is_open !== undefined) push('is_open', body.is_open);
+      // Don't allow manual is_open override if open_hours was provided (auto-calculated above)
+      if (body.is_open !== undefined && body.open_hours === undefined) push('is_open', body.is_open);
       if (body.featured !== undefined) push('featured', body.featured);
       if (fields.length === 0) throw badRequest('Sin cambios');
       vals.push('acoyaradas');

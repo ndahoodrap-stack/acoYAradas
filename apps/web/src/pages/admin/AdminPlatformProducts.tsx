@@ -6,6 +6,7 @@ import { DataTable } from '../../components/PanelShell';
 import { ErrorState, Field, Modal, SectionTitle, Spinner } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
 import { IconPicker } from '../../components/IconPicker';
+import { TimeRangeSelect } from '../../components/TimeRangeSelect';
 
 interface PlatformProduct {
   id: string;
@@ -31,6 +32,7 @@ interface PlatformStore {
   address: string | null;
   locality: string | null;
   zone_id: string | null;
+  category_id: string | null;
   preparation_time_minutes: number | null;
   allows_platform_delivery: boolean;
   allows_merchant_delivery: boolean;
@@ -45,6 +47,9 @@ interface PlatformStore {
   is_open: boolean;
   featured: boolean;
   verified: boolean;
+  logo_url: string | null;
+  cover_url: string | null;
+  whatsapp: string | null;
 }
 
 const EMPTY_FORM = {
@@ -57,6 +62,8 @@ const EMPTY_FORM = {
   is_available: true,
   featured: false,
 };
+
+const DAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 export default function AdminPlatformProducts() {
   const queryClient = useQueryClient();
@@ -164,12 +171,19 @@ export default function AdminPlatformProducts() {
         <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
 
-      {/* Configuración de la tienda acoYAradas (plataforma) */}
+      {/* Configuración de la tienda acoYAradas (plataforma) - Diseño igual al panel de comercio */}
       <SectionTitle title="Configuración de acoYAradas!" subtitle="Tienda oficial para productos no afiliados y envíos de plataforma" />
-      <div className="card p-5 space-y-4">
+      <form
+        className="card space-y-4 p-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setMessage(null);
+        }}
+      >
         {platformStore ? (
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <>
+            <h2 className="text-lg font-bold text-ink-900">Datos públicos</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nombre">
                 <input
                   className="input"
@@ -178,6 +192,48 @@ export default function AdminPlatformProducts() {
                   disabled={updateStore.isPending}
                 />
               </Field>
+              <Field label="Categoría">
+                <select
+                  className="input"
+                  value={platformStore.category_id ?? ''}
+                  onChange={(e) => updateStore.mutate({ category_id: e.target.value || null })}
+                  disabled={updateStore.isPending}
+                >
+                  <option value="">Sin categoría</option>
+                  {(categories?.items ?? []).map((cat: any) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="Descripción">
+              <textarea
+                rows={3}
+                className="input"
+                value={platformStore.description ?? ''}
+                onChange={(e) => updateStore.mutate({ description: e.target.value })}
+                disabled={updateStore.isPending}
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FileUpload
+                label="Logo del comercio"
+                aspectRatioPreset="square"
+                recommendedWidth={256}
+                recommendedHeight={256}
+                value={''}
+                onChange={(url) => updateStore.mutate({ logo_url: url })}
+              />
+              <FileUpload
+                label="Foto de portada"
+                aspectRatioPreset="banner"
+                recommendedWidth={1200}
+                recommendedHeight={400}
+                value={''}
+                onChange={(url) => updateStore.mutate({ cover_url: url })}
+              />
               <Field label="Teléfono">
                 <input
                   className="input"
@@ -186,20 +242,20 @@ export default function AdminPlatformProducts() {
                   disabled={updateStore.isPending}
                 />
               </Field>
-              <Field label="Email">
+              <Field label="WhatsApp">
                 <input
                   className="input"
-                  type="email"
-                  value={platformStore.email ?? ''}
-                  onChange={(e) => updateStore.mutate({ email: e.target.value })}
+                  value={platformStore.whatsapp ?? ''}
+                  onChange={(e) => updateStore.mutate({ whatsapp: e.target.value })}
                   disabled={updateStore.isPending}
                 />
               </Field>
-              <Field label="Localidad">
+              <Field label="Email">
                 <input
+                  type="email"
                   className="input"
-                  value={platformStore.locality ?? ''}
-                  onChange={(e) => updateStore.mutate({ locality: e.target.value })}
+                  value={platformStore.email ?? ''}
+                  onChange={(e) => updateStore.mutate({ email: e.target.value })}
                   disabled={updateStore.isPending}
                 />
               </Field>
@@ -211,23 +267,60 @@ export default function AdminPlatformProducts() {
                   disabled={updateStore.isPending}
                 />
               </Field>
-              <Field label="Tiempo de preparación (min)">
+              <Field label="Localidad">
                 <input
                   className="input"
+                  value={platformStore.locality ?? ''}
+                  onChange={(e) => updateStore.mutate({ locality: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Tiempo de preparación (min)">
+                <input
                   type="number"
                   min={0}
-                  max={480}
+                  className="input"
                   value={platformStore.preparation_time_minutes ?? ''}
                   onChange={(e) => updateStore.mutate({ preparation_time_minutes: Number(e.target.value) || null })}
                   disabled={updateStore.isPending}
                 />
               </Field>
+            </div>
+
+            <h2 className="pt-2 text-lg font-bold text-ink-900">Entrega y pagos</h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[
+                ['allows_platform_delivery', 'Entrega organizada por acoYAradas!'],
+                ['allows_merchant_delivery', 'Entrega propia del comercio'],
+                ['allows_pickup', 'Retiro en local'],
+                ['accepts_cash', 'Acepta efectivo'],
+                ['accepts_transfer', 'Acepta transferencia'],
+                ['accepts_cash_on_delivery', 'Acepta contraentrega'],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                    checked={Boolean(platformStore[key as keyof PlatformStore])}
+                    onChange={(e) => updateStore.mutate({ [key]: e.target.checked })}
+                    disabled={updateStore.isPending}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+
+            <p className="text-xs text-ink-500">
+              <span className="font-medium">Estado abierto/cerrado:</span> Se calcula automáticamente según los horarios configurados abajo.
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Costo de envío base (ARS)">
                 <input
-                  className="input"
                   type="number"
                   min={0}
                   step="0.01"
+                  className="input"
                   value={platformStore.merchant_delivery_fee ?? ''}
                   onChange={(e) => updateStore.mutate({ merchant_delivery_fee: Number(e.target.value) || 0 })}
                   disabled={updateStore.isPending}
@@ -257,69 +350,20 @@ export default function AdminPlatformProducts() {
                 </select>
               </Field>
             </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.allows_platform_delivery}
-                  onChange={(e) => updateStore.mutate({ allows_platform_delivery: e.target.checked })}
-                  disabled={updateStore.isPending}
+
+            <h2 className="pt-2 text-lg font-bold text-ink-900">Horarios</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {DAYS.map((day) => (
+                <TimeRangeSelect
+                  key={day}
+                  dayLabel={day}
+                  value={platformStore.open_hours?.[day] ?? ''}
+                  onChange={(v) => updateStore.mutate({ open_hours: { ...(platformStore.open_hours ?? {}), [day]: v } })}
                 />
-                Permitir entrega por acoYAradas!
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.allows_merchant_delivery}
-                  onChange={(e) => updateStore.mutate({ allows_merchant_delivery: e.target.checked })}
-                  disabled={updateStore.isPending}
-                />
-                Permitir entrega propia
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.allows_pickup}
-                  onChange={(e) => updateStore.mutate({ allows_pickup: e.target.checked })}
-                  disabled={updateStore.isPending}
-                />
-                Permitir retiro en local
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.accepts_cash}
-                  onChange={(e) => updateStore.mutate({ accepts_cash: e.target.checked })}
-                  disabled={updateStore.isPending}
-                />
-                Acepta efectivo
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.accepts_transfer}
-                  onChange={(e) => updateStore.mutate({ accepts_transfer: e.target.checked })}
-                  disabled={updateStore.isPending}
-                />
-                Acepta transferencia
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-                  checked={platformStore.accepts_cash_on_delivery}
-                  onChange={(e) => updateStore.mutate({ accepts_cash_on_delivery: e.target.checked })}
-                  disabled={updateStore.isPending}
-                />
-                Acepta contraentrega
-              </label>
+              ))}
             </div>
-            <div className="flex items-center gap-4">
+
+            <div className="flex items-center gap-4 pt-4 border-t border-ink-100">
               <span className={`badge ${platformStore.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-ink-200 text-ink-600'}`}>
                 Estado: {platformStore.status}
               </span>
@@ -327,32 +371,14 @@ export default function AdminPlatformProducts() {
                 {platformStore.is_open ? 'Abierto' : 'Cerrado'}
               </span>
             </div>
-            <Field label="Horarios de apertura (JSON)">
-              <textarea
-                className="input font-mono text-sm"
-                rows={6}
-                placeholder='{"monday": {"open": "09:00", "close": "18:00"}, "tuesday": {"open": "09:00", "close": "18:00"}, "wednesday": {"open": "09:00", "close": "18:00"}, "thursday": {"open": "09:00", "close": "18:00"}, "friday": {"open": "09:00", "close": "18:00"}, "saturday": {"open": "09:00", "close": "14:00"}, "sunday": {"open": null, "close": null}}'
-                value={platformStore.open_hours ? JSON.stringify(platformStore.open_hours, null, 2) : ''}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    updateStore.mutate({ open_hours: parsed });
-                  } catch {
-                    // Ignore invalid JSON while typing
-                  }
-                }}
-                disabled={updateStore.isPending}
-              />
-              <p className="text-xs text-ink-500 mt-1">Formato JSON. Usa null para días cerrados.</p>
-            </Field>
-          </div>
+          </>
         ) : (
           <div className="text-center py-8 text-ink-500">
             <p>Tienda de plataforma no encontrada. Se creará automáticamente al recibir el primer pedido de producto no afiliado.</p>
             <p className="text-xs mt-1">O créala manualmente desde la base de datos con slug 'acoyaradas'.</p>
           </div>
         )}
-      </div>
+      </form>
 
       <DataTable
         headers={['Producto', 'Precio', 'Stock', 'Categoría', 'Estado', 'Acciones']}

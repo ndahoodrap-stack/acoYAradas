@@ -230,7 +230,7 @@ catalogRouter.get(
       const row = store.rows[0];
       if (!row) throw notFound('El comercio no existe o ya no está disponible');
 
-      const [products, promos, categories] = await Promise.all([
+      const [products, platformProducts, promos, categories] = await Promise.all([
         tx.query(
           `select ${PRODUCT_SELECT}, s.name as store_name, s.slug as store_slug
              from public.products p join public.stores s on s.id = p.store_id
@@ -238,6 +238,18 @@ catalogRouter.get(
             order by p.featured desc, p.name`,
           [row.id],
         ),
+        // Include platform products for acoYAradas store
+        row.slug === 'acoyaradas'
+          ? tx.query(
+              `select pp.id, pp.name, pp.description, pp.price, pp.stock, pp.image_url,
+                      pp.category_id, pp.is_available, pp.featured, pp.status, pp.created_at,
+                      s.name as store_name, s.slug as store_slug, s.is_open as store_is_open, s.open_hours, s.status as store_status
+                 from public.platform_products pp
+                 cross join public.stores s
+                where s.slug = 'acoyaradas' and pp.status = 'active' and pp.deleted_at is null and pp.is_available = true
+                order by pp.featured desc, pp.name`,
+            )
+          : Promise.resolve({ rows: [] }),
         tx.query(
           `select id, title, description, discount_type, discount_value, min_subtotal
              from public.promotions
@@ -257,9 +269,15 @@ catalogRouter.get(
         ),
       ]);
 
+      // Combine regular products with platform products for acoYAradas
+      const allProducts = [
+        ...products.rows.map(mapProduct),
+        ...(row.slug === 'acoyaradas' ? platformProducts.rows.map(mapProduct) : []),
+      ];
+
       return {
         store: mapStore(row),
-        products: products.rows.map(mapProduct),
+        products: allProducts,
         promotions: promos.rows,
         categories: categories.rows.map((c: any) => ({ ...c, products_count: Number(c.products_count) })),
       };
