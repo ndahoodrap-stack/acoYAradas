@@ -9,7 +9,12 @@ import { pointInPolygon } from '../lib/zoneDetection';
 
 // Registrar protocolo PMTiles (una sola vez, solo en cliente)
 if (typeof window !== 'undefined') {
-  maplibregl.addProtocol('pmtiles', new Protocol());
+  try {
+    maplibregl.addProtocol('pmtiles', new Protocol());
+    console.log('[PMTiles] Protocol registered successfully');
+  } catch (e) {
+    console.error('[PMTiles] Failed to register protocol:', e);
+  }
 }
 
 interface AddressVerificationMapProps {
@@ -459,7 +464,45 @@ export function AddressVerificationMap({
         style={{ width: '100%', height: `${height}px` }}
         mapStyle={customStyle as any}
         attributionControl={false}
-        onLoad={() => setMapLoaded(true)}
+        onLoad={(map) => {
+          setMapLoaded(true);
+          // DEBUG: Log source info when map loads
+          console.log('[Map] MapLibre loaded, checking source...');
+          try {
+            const source = map.getSource('bolivar');
+            console.log('[Map] Source "bolivar":', source);
+            if (source) {
+              // Check if tiles are loading
+              console.log('[Map] Source type:', source.type);
+            }
+          } catch (e) {
+            console.error('[Map] Error getting source:', e);
+          }
+
+          // Check style layers after a short delay
+          setTimeout(() => {
+            try {
+              const layers = map.getStyle()?.layers;
+              console.log('[Map] All layers:', layers?.map(l => ({ id: l.id, type: l.type, source: l.source, 'source-layer': (l as any)['source-layer'] })));
+
+              // Check source caches
+              const style = map.getStyle();
+              if (style && (style as any).sourceCaches) {
+                console.log('[Map] Source caches:', Object.keys((style as any).sourceCaches));
+                const bolivarCache = (style as any).sourceCaches.bolivar;
+                if (bolivarCache) {
+                  console.log('[Map] Bolivar source cache:', bolivarCache);
+                  // Check tiles
+                  if (bolivarCache._tiles) {
+                    console.log('[Map] Tiles:', Object.keys(bolivarCache._tiles).length);
+                  }
+                }
+              }
+            } catch (e) {
+              console.error('[Map] Error inspecting style:', e);
+            }
+          }, 2000);
+        }}
         onClick={handleMapClick}
         maxBounds={[
           BOLIVAR_BOUNDS[0][0], BOLIVAR_BOUNDS[0][1],
