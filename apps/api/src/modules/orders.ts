@@ -363,17 +363,33 @@ ordersRouter.post(
       const isPlatformDelivery = body.delivery_mode === 'platform';
 
       // Detectar zona automáticamente para entregas de plataforma basándose en la dirección del cliente
+      // Prioridad: 1) detected_zone_code del cliente, 2) geocoding de la dirección
       let detectedZoneId: string | null = null;
-      if (isPlatformDelivery && body.address && body.locality) {
-        try {
-          const fullAddress = buildFullAddress(body.address, body.locality, body.references);
-          const geocodeResult = await rateLimitedGeocode(fullAddress);
-          if (geocodeResult) {
-            detectedZoneId = await detectZoneIdFromCoordinates(tx, geocodeResult.lng, geocodeResult.lat);
-            console.log(`Zona detectada para ${fullAddress}: ${detectedZoneId ?? 'ninguna'}`);
+      if (isPlatformDelivery) {
+        // 1. Si el cliente envió un código de zona detectada, usarlo
+        if (body.detected_zone_code) {
+          const { rows: zoneRows } = await tx.query(
+            `select id from public.coverage_zones where code = $1 and active = true and deleted_at is null`,
+            [body.detected_zone_code],
+          );
+          if (zoneRows.length) {
+            detectedZoneId = zoneRows[0].id;
+            console.log(`Zona detectada por cliente (${body.detected_zone_code}): ${detectedZoneId}`);
           }
-        } catch (error) {
-          console.warn('Error detectando zona, usando zona por defecto:', error);
+        }
+
+        // 2. Fallback: geocoding de la dirección si no hay zona del cliente
+        if (!detectedZoneId && body.address && body.locality) {
+          try {
+            const fullAddress = buildFullAddress(body.address, body.locality, body.references);
+            const geocodeResult = await rateLimitedGeocode(fullAddress);
+            if (geocodeResult) {
+              detectedZoneId = await detectZoneIdFromCoordinates(tx, geocodeResult.lng, geocodeResult.lat);
+              console.log(`Zona detectada por geocoding para ${fullAddress}: ${detectedZoneId ?? 'ninguna'}`);
+            }
+          } catch (error) {
+            console.warn('Error detectando zona por geocoding, usando zona por defecto:', error);
+          }
         }
       }
 

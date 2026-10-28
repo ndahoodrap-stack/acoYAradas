@@ -2,21 +2,9 @@ Analiza toda la pagina, entiende como funciona, y que funciona en render atraves
 
 [Etapa 1]
 Actúa como un diseñador web y de UI experto luego >
-Soluciona un bug/problema que al comprar un producto y darle a finalizar compra para ir al cashout aparece
-"Error en la aplicación
-Cannot access 'D' before initialization\n\nReferenceError: Cannot access 'D' before initialization
-    at Am (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:77:229528)
-    at Mo (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:7:16855)
-    at Kl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:43734)
-    at Fl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39515)
-    at Nl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39443)
-    at Ml (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39298)
-    at bl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:35697)
-    at yl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:34650)
-    at x (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:2:9242)
-    at MessagePort.ne (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:2:9607) "
+Analiza bolivar.geojson y dime la mejor forma de implementar esta funcion:
+Quiero hacer que cuando el cliente entre a la parte de "Pagar el producto final", se detecte automaticamente su ubicación y según donde esté ubicado según las limiticaciones hechas en el "bolivar.geojson", automaticamente ponga una tárifa de delivery, es decir, si detecta que el usuario está en zona barrial (una calle que esta dentro del cuadrado que lo define), automaticamente se le cobre la tarifa de "Zona Barrial", estás tarifas estan en el panel de admin > logistica > "Planta urbana : 3500" "Zona Barrial : 4300" "Zona Rural : 6000"
+El flujo quedaría así:
+El cliente selecciona un producto > agrega al carrito > finalizar compra lleva al cashout final donde el usuario debe rellenar sus datos, ahí es donde se tiene que poner automaticamente dónde está y que detecte que zona es.
 
 
-
-[Etapa 2]
-Deployea para ver los cambios solo luego de haber hecho todo y haber confirmado que todas las etapas corren sin ningun bug.

@@ -4,10 +4,15 @@ import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { ORDER_STATUS_LABELS, SPONSORED_LABEL, type OrderStatus } from '@acoyaradas/shared';
 
-export function Spinner({ label = 'Cargando…' }: { label?: string }) {
+export function Spinner({ label = 'Cargando…', size = 'md' }: { label?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClasses = {
+    sm: 'h-4 w-4 border-[2px]',
+    md: 'h-5 w-5 border-2',
+    lg: 'h-8 w-8 border-2',
+  };
   return (
-    <div className="flex items-center justify-center gap-3 py-12 text-sm text-ink-500">
-      <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500" />
+    <div className="flex items-center justify-center gap-2 py-2 text-sm text-ink-500">
+      <span className={`${sizeClasses[size]} animate-spin rounded-full border-ink-300 border-t-brand-500`} />
       {label}
     </div>
   );

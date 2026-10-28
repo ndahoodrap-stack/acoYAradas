@@ -192,6 +192,7 @@ export const checkoutSchema = z.object({
   payment_method: z.enum(PAYMENT_METHODS),
   guest_token: z.string().max(120).optional().or(z.literal('')),
   idempotency_key: z.string().max(120).optional().or(z.literal('')),
+  detected_zone_code: z.string().max(120).optional().or(z.literal('')),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

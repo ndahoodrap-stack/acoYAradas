@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError, tokens } from '../lib/api';
 import { useCart } from '../lib/cart';
@@ -6,6 +6,7 @@ import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
+import { detectZoneFromGeolocation, type ZoneMatch } from '../lib/zoneDetection';
 
 export default function Checkout() {
   const { cart, loading, refresh } = useCart();
@@ -27,6 +28,37 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Zona detectada automáticamente
+  const [detectedZone, setDetectedZone] = useState<ZoneMatch | null>(null);
+  const [zoneLoading, setZoneLoading] = useState(true);
+  const [zoneError, setZoneError] = useState<string | null>(null);
+
+  // Detectar zona al cargar la página
+  useEffect(() => {
+    let cancelled = false;
+
+    async function detect() {
+      try {
+        setZoneLoading(true);
+        const zone = await detectZoneFromGeolocation();
+        if (!cancelled) {
+          setDetectedZone(zone);
+          if (!zone) setZoneError('Tu ubicación está fuera de nuestra zona de cobertura');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setZoneError('No pudimos detectar tu ubicación automáticamente');
+          console.warn('Geolocation failed:', err);
+        }
+      } finally {
+        if (!cancelled) setZoneLoading(false);
+      }
+    }
+
+    detect();
+    return () => { cancelled = true; };
+  }, []);
 
   const paymentOptions: PaymentMethod[] = ['transfer', 'cash'];
   const cvu = '0000003100000758197056';
@@ -57,6 +89,8 @@ export default function Checkout() {
         promo_code: promoCode.trim() || undefined,
         guest_token: tokens.guest ?? undefined,
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        // Zona detectada para validación server-side
+        detected_zone_code: detectedZone?.code,
       };
       const order = await api.post<{ id: string; code: string; public_token?: string }>('/orders', body);
       await refresh();
@@ -162,8 +196,22 @@ export default function Checkout() {
               <span className="font-bold text-ink-900">{formatMoney(cart.subtotal)}</span>
             </div>
             <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
+              <span className="font-semibold text-ink-900">Envío</span>
+              {zoneLoading ? (
+                <Spinner size="sm" />
+              ) : detectedZone ? (
+                <span className="font-bold text-brand-600">
+                  {formatMoney(detectedZone.price)} <span className="font-normal text-sm text-ink-500">({detectedZone.name})</span>
+                </span>
+              ) : zoneError ? (
+                <span className="text-red-600 text-sm">{zoneError}</span>
+              ) : (
+                <span className="text-ink-500">Por calcular</span>
+              )}
+            </div>
+            <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
               <span className="font-bold text-ink-900">Total</span>
-              <span className="font-bold text-brand-600 text-lg">{formatMoney(cart.subtotal)}</span>
+              <span className="font-bold text-brand-600 text-lg">{formatMoney(cart.subtotal + (detectedZone?.price ?? 0))}</span>
             </div>
 
             {error ? <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
