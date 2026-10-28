@@ -506,25 +506,28 @@ export function AddressVerificationMap({
     );
   }
 
-  // Simple raster tile style for MapLibre - using Stadia Maps (free, no API key, generous limits)
+  // Simple raster tile style for MapLibre - using CartoDB (free, no API key, generous limits)
   const osmStyle = {
     version: 8,
     sources: {
-      stadia: {
+      carto: {
         type: 'raster',
         tiles: [
-          'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+          'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
         ],
         tileSize: 256,
-        attribution: '© Stadia Maps, © OpenStreetMap contributors',
+        attribution: '© CARTO, © OpenStreetMap contributors',
         maxzoom: 20,
       },
     },
     layers: [
       {
-        id: 'stadia-layer',
+        id: 'carto-layer',
         type: 'raster',
-        source: 'stadia',
+        source: 'carto',
         minzoom: 0,
         maxzoom: 20,
       },
