@@ -59,7 +59,7 @@ export default function Checkout() {
                 formatted_address: string;
                 street: string | null;
                 house_number: string | null;
-              }>(`/public/geocode/reverse?lat=${zone.lat}&lng=${zone.lng}`);
+              }>(`/geocode/reverse?lat=${zone.lat}&lng=${zone.lng}`);
               if (res?.formatted_address) {
                 setForm(f => ({ ...f, address: res.formatted_address }));
               }
@@ -98,7 +98,7 @@ export default function Checkout() {
           formatted_address: string;
           street: string | null;
           house_number: string | null;
-        }>(`/public/geocode/reverse?lat=${position[1]}&lng=${position[0]}`);
+        }>(`/geocode/reverse?lat=${position[1]}&lng=${position[0]}`);
         if (res?.formatted_address) {
           setForm(f => ({ ...f, address: res.formatted_address }));
         }
