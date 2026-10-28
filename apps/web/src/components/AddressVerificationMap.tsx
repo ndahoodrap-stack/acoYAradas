@@ -11,7 +11,7 @@ interface AddressVerificationMapProps {
   /** Current marker position [lng, lat] */
   position: [number, number] | null;
   /** Called when user drags the marker to a new position */
-  onPositionChange: (position: [number, number], zoneCode: string | null, streetName: string | null) => void;
+  onPositionChange: (position: [number, number], zoneCode: string | null, fullAddress: string | null) => void;
   /** Whether the map is loading */
   loading?: boolean;
   /** Map loading error (network, tiles, etc.) - shows full error screen */
@@ -42,6 +42,7 @@ export function AddressVerificationMap({
   const [mapLoaded, setMapLoaded] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
   const streetsDataRef = useRef<any>(null);
+  const addressesDataRef = useRef<any>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
@@ -250,7 +251,102 @@ export function AddressVerificationMap({
 
     loadStreets();
     loadZones();
+    loadAddresses();
   }, [mapLoaded]);
+
+  // Load building addresses with house numbers from bolivar-addresses.geojson
+  const loadAddresses = async () => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    const map = mapRef.current.getMap();
+    if (!map) return;
+
+    try {
+      const res = await fetch('/bolivar-addresses.geojson');
+      if (!res.ok) throw new Error('Failed to load addresses');
+      const addressesData = await res.json();
+
+      // Store for client-side building address detection
+      addressesDataRef.current = addressesData;
+
+      // Add addresses source (building footprints)
+      if (!map.getSource('bolivar-addresses')) {
+        map.addSource('bolivar-addresses', {
+          type: 'geojson',
+          data: addressesData,
+        });
+      }
+
+      // Add building footprints layer (subtle, for visual reference at high zoom)
+      if (!map.getLayer('bolivar-addresses-layer')) {
+        map.addLayer({
+          id: 'bolivar-addresses-layer',
+          type: 'fill',
+          source: 'bolivar-addresses',
+          paint: {
+            'fill-color': '#e5e7eb', // gray-200
+            'fill-opacity': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              16, 0,
+              18, 0.15,
+              20, 0.3,
+            ],
+          },
+          minzoom: 16,
+        });
+      }
+
+      // Add building outlines
+      if (!map.getLayer('bolivar-addresses-outline')) {
+        map.addLayer({
+          id: 'bolivar-addresses-outline',
+          type: 'line',
+          source: 'bolivar-addresses',
+          paint: {
+            'line-color': '#9ca3af', // gray-400
+            'line-width': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              16, 0,
+              18, 0.5,
+              20, 1,
+            ],
+            'line-opacity': 0.5,
+          },
+          minzoom: 16,
+        });
+      }
+
+      // Add house number labels at high zoom
+      if (!map.getLayer('bolivar-house-numbers')) {
+        map.addLayer({
+          id: 'bolivar-house-numbers',
+          type: 'symbol',
+          source: 'bolivar-addresses',
+          layout: {
+            'text-field': ['get', 'addr:housenumber'],
+            'text-font': ['Open Sans Regular'],
+            'text-size': 10,
+            'text-anchor': 'center',
+            'text-allow-overlap': true,
+          },
+          paint: {
+            'text-color': '#374151', // gray-700
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1,
+          },
+          minzoom: 18,
+          filter: ['has', 'addr:housenumber'],
+        });
+      }
+
+    } catch (err) {
+      console.warn('Could not load building addresses:', err);
+    }
+  };
 
   // Update marker position when position prop changes
   useEffect(() => {
@@ -278,20 +374,35 @@ export function AddressVerificationMap({
         }
       }
 
-      // Detect nearest street for autocomplete
+      // Detect exact building address (street + house number) using point-in-polygon on building footprints
       let detectedStreet: string | null = null;
-      if (streetsDataRef.current?.features) {
+      let detectedHouseNumber: string | null = null;
+
+      if (addressesDataRef.current?.features) {
+        for (const feature of addressesDataRef.current.features) {
+          const geom = feature.geometry;
+          const props = feature.properties || {};
+
+          // Check if point is inside building polygon
+          if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon') && pointInPolygon(lngLat, geom)) {
+            detectedStreet = props['addr:street'] || props['addr:housename'] || null;
+            detectedHouseNumber = props['addr:housenumber'] || null;
+            break; // Found the building, stop searching
+          }
+        }
+      }
+
+      // Fallback: nearest street if no building found
+      if (!detectedStreet && streetsDataRef.current?.features) {
         let minDistance = Infinity;
         for (const feature of streetsDataRef.current.features) {
           if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
 
           const coords = feature.geometry.coordinates;
-          // Find distance to nearest point on the line
           for (let i = 0; i < coords.length - 1; i++) {
             const [lng1, lat1] = coords[i];
             const [lng2, lat2] = coords[i + 1];
 
-            // Distance from point to line segment
             const A = lngLat[0] - lng1;
             const B = lngLat[1] - lat1;
             const C = lng2 - lng1;
@@ -317,11 +428,15 @@ export function AddressVerificationMap({
             }
           }
         }
-        // Only use street if reasonably close (within ~50 meters at this latitude)
         if (minDistance > 0.0005) detectedStreet = null;
       }
 
-      onPositionChange(lngLat, detectedZoneCode, detectedStreet);
+      // Combine street + house number for the address
+      const fullAddress = detectedStreet && detectedHouseNumber
+        ? `${detectedStreet} ${detectedHouseNumber}`
+        : detectedStreet;
+
+      onPositionChange(lngLat, detectedZoneCode, fullAddress);
     } catch (err) {
       console.warn('Zone detection error:', err);
       onPositionChange(lngLat, null, null);

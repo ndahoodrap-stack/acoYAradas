@@ -53,19 +53,8 @@ export default function Checkout() {
           if (zone?.lng != null && zone?.lat != null) {
             const position: [number, number] = [zone.lng, zone.lat];
             setMapPosition(position);
-            // Hacer reverse geocoding para obtener dirección completa con número
-            try {
-              const res = await api.get<{
-                formatted_address: string;
-                street: string | null;
-                house_number: string | null;
-              }>(`/geocode/reverse?lat=${zone.lat}&lng=${zone.lng}`);
-              if (res?.formatted_address) {
-                setForm(f => ({ ...f, address: res.formatted_address }));
-              }
-            } catch (err) {
-              console.warn('Reverse geocoding failed on initial load:', err);
-            }
+            // La dirección se completará automáticamente via handleMapPositionChange
+            // cuando el mapa cargue y detecte la dirección del edificio
           } else {
             // Fallback al centro de Bolívar
             setMapPosition(BOLIVAR_CENTER);
@@ -88,40 +77,13 @@ export default function Checkout() {
   }, []);
 
   // Manejar cambio de posición desde el mapa
-  const handleMapPositionChange = (position: [number, number], zoneCode: string | null, streetName: string | null) => {
+  const handleMapPositionChange = (position: [number, number], zoneCode: string | null, fullAddress: string | null) => {
     setMapPosition(position);
-
-    // Llamar a geocodificación inversa para obtener dirección completa con número
-    const fetchFullAddress = async () => {
-      try {
-        const res = await api.get<{
-          formatted_address: string;
-          street: string | null;
-          house_number: string | null;
-        }>(`/geocode/reverse?lat=${position[1]}&lng=${position[0]}`);
-        if (res?.formatted_address) {
-          setForm(f => ({ ...f, address: res.formatted_address }));
-        }
-      } catch (err) {
-        console.warn('Reverse geocoding failed:', err);
-        // Fallback: usar solo el nombre de la calle detectado
-        if (streetName) {
-          setForm(f => {
-            const currentAddress = f.address?.trim() || '';
-            const numberMatch = currentAddress.match(/\b\d+[A-Za-z]?\b/g);
-            const houseNumber = numberMatch ? numberMatch[numberMatch.length - 1] : '';
-            const newAddress = houseNumber ? `${streetName} ${houseNumber}` : streetName;
-            const currentStreet = currentAddress.replace(/\s*\b\d+[A-Za-z]?\b\s*$/, '').trim();
-            if (currentStreet.toLowerCase() !== streetName.toLowerCase()) {
-              return { ...f, address: newAddress };
-            }
-            return f;
-          });
-        }
-      }
-    };
-
-    fetchFullAddress();
+    // El mapa ahora devuelve la dirección completa con número (calle + altura)
+    // Usarla directamente para autocompletar
+    if (fullAddress) {
+      setForm(f => ({ ...f, address: fullAddress }));
+    }
 
     if (zoneCode) {
       // Buscar la zona completa para actualizar el precio
