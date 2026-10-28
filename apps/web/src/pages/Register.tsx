@@ -74,7 +74,7 @@ export default function Register() {
             </header>
 
             <form onSubmit={submit} className="space-y-5" noValidate>
-              <Field label="Nombre y apellido" htmlFor="full_name">
+              <Field label="Nombre y apellido">
                 <input
                   id="full_name"
                   required
@@ -89,7 +89,7 @@ export default function Register() {
                 />
               </Field>
 
-              <Field label="Email" htmlFor="email">
+              <Field label="Email">
                 <input
                   id="email"
                   type="email"
@@ -104,7 +104,7 @@ export default function Register() {
                 />
               </Field>
 
-              <Field label="Teléfono" hint="Opcional" htmlFor="phone">
+              <Field label="Teléfono" hint="Opcional">
                 <input
                   id="phone"
                   type="tel"
@@ -118,7 +118,7 @@ export default function Register() {
                 />
               </Field>
 
-              <Field label="Contraseña" hint="Mínimo 8 caracteres" htmlFor="password">
+              <Field label="Contraseña" hint="Mínimo 8 caracteres">
                 <input
                   id="password"
                   type="password"

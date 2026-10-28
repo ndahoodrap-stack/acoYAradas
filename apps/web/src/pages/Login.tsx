@@ -63,7 +63,7 @@ export default function Login() {
             </header>
 
             <form onSubmit={submit} className="space-y-5" noValidate>
-              <Field label="Email" htmlFor="email">
+              <Field label="Email">
                 <input
                   id="email"
                   type="email"
@@ -78,7 +78,7 @@ export default function Login() {
                 />
               </Field>
 
-              <Field label="Contraseña" htmlFor="password">
+              <Field label="Contraseña">
                 <input
                   id="password"
                   type="password"

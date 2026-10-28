@@ -218,12 +218,12 @@ export default function StoreProfile() {
 
         <h2 className="pt-2 text-lg font-bold text-ink-900">Entrega y pagos</h2>
         <div className="grid gap-2 sm:grid-cols-2">
-          {[
+          {([
             ['allows_platform_delivery', 'Entrega organizada por acoYAradas!', true], // fijo, no editable
             ['accepts_cash', 'Acepta efectivo', false],
             ['accepts_transfer', 'Acepta transferencia', false],
             ['accepts_terms', 'Aceptó las condiciones comerciales', true], // fijo, no editable
-          ].map(([key, label, isFixed]) => (
+          ] as const).map(([key, label, isFixed]) => (
             <label key={key} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

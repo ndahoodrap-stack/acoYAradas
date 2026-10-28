@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
@@ -34,18 +34,99 @@ export function AddressVerificationMap({
   zoneLoading = false,
   height = 300,
 }: AddressVerificationMapProps) {
-  const [viewport, setViewport] = useState({
-    longitude: BOLIVAR_CENTER[0],
-    latitude: BOLIVAR_CENTER[1],
-    zoom: ZOOM.CITY,
-  });
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
   const streetsDataRef = useRef<any>(null);
   const addressesDataRef = useRef<any>(null);
-  const mapRef = useRef<Map | null>(null);
-  const markerRef = useRef<Marker | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  // Detect zone at a given position using client-side point-in-polygon
+  const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
+    try {
+      // Client-side zone detection using pointInPolygon (same as server)
+      // Priority: planta_urbana > zona_barrial > zona_rural (smallest first for nested polygons)
+      const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
+
+      let detectedZoneCode: string | null = null;
+
+      for (const code of zoneOrder) {
+        const feature = zoneFeaturesRef.current.find(f => f.properties?.zone_code === code);
+        if (feature && pointInPolygon(lngLat, feature.geometry)) {
+          detectedZoneCode = code;
+          break;
+        }
+      }
+
+      // Detect exact building address (street + house number) using point-in-polygon on building footprints
+      let detectedStreet: string | null = null;
+      let detectedHouseNumber: string | null = null;
+
+      if (addressesDataRef.current?.features) {
+        for (const feature of addressesDataRef.current.features) {
+          const geom = feature.geometry;
+          const props = feature.properties || {};
+
+          // Check if point is inside building polygon
+          if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon') && pointInPolygon(lngLat, geom)) {
+            detectedStreet = props['addr:street'] || props['addr:housename'] || null;
+            detectedHouseNumber = props['addr:housenumber'] || null;
+            break; // Found the building, stop searching
+          }
+        }
+      }
+
+      // Fallback: nearest street if no building found
+      if (!detectedStreet && streetsDataRef.current?.features) {
+        let minDistance = Infinity;
+        for (const feature of streetsDataRef.current.features) {
+          if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
+
+          const coords = feature.geometry.coordinates;
+          for (let i = 0; i < coords.length - 1; i++) {
+            const [lng1, lat1] = coords[i];
+            const [lng2, lat2] = coords[i + 1];
+
+            const A = lngLat[0] - lng1;
+            const B = lngLat[1] - lat1;
+            const C = lng2 - lng1;
+            const D = lat2 - lat1;
+
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+
+            let xx, yy;
+            if (param < 0) { xx = lng1; yy = lat1; }
+            else if (param > 1) { xx = lng2; yy = lat2; }
+            else { xx = lng1 + param * C; yy = lat1 + param * D; }
+
+            const dx = lngLat[0] - xx;
+            const dy = lngLat[1] - yy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDistance) {
+              minDistance = dist;
+              detectedStreet = feature.properties.name;
+            }
+          }
+        }
+        if (minDistance > 0.0005) detectedStreet = null;
+      }
+
+      // Combine street + house number for the address
+      const fullAddress = detectedStreet && detectedHouseNumber
+        ? `${detectedStreet} ${detectedHouseNumber}`
+        : detectedStreet;
+
+      onPositionChange(lngLat, detectedZoneCode, fullAddress);
+    } catch (err) {
+      console.warn('Zone detection error:', err);
+      onPositionChange(lngLat, null, null);
+    }
+  }, [onPositionChange]);
 
   // Handle "My Location" button click
   const handleLocateMe = useCallback(async () => {
@@ -64,7 +145,7 @@ export function AddressVerificationMap({
       });
       const lngLat: [number, number] = [position.coords.longitude, position.coords.latitude];
       // Update viewport to center on user location
-      setViewport(v => ({ ...v, longitude: lngLat[0], latitude: lngLat[1], zoom: ZOOM.NEIGHBORHOOD }));
+      mapRef.current?.jumpTo?.({ center: lngLat, zoom: ZOOM.NEIGHBORHOOD });
       // Move marker and trigger detection
       if (markerRef.current) {
         markerRef.current.setLngLat(lngLat);
@@ -80,21 +161,14 @@ export function AddressVerificationMap({
   // Initialize map viewport when position is available
   useEffect(() => {
     if (position && !loading) {
-      setViewport(v => ({
-        ...v,
-        longitude: position[0],
-        latitude: position[1],
-        zoom: ZOOM.NEIGHBORHOOD,
-      }));
+      mapRef.current?.jumpTo?.({ center: position, zoom: ZOOM.NEIGHBORHOOD });
     }
   }, [position, loading]);
 
   // Load streets GeoJSON and zone boundaries when map loads
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const map = mapRef.current.getMap();
-    if (!map) return;
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
 
     // Load bolivar-calles-simplified.geojson as a source
     const loadStreets = async () => {
@@ -136,7 +210,7 @@ export function AddressVerificationMap({
             filter: ['in', ['get', 'highway'],
               'motorway', 'trunk', 'primary', 'secondary', 'tertiary',
               'unclassified', 'residential', 'living_street'
-            ],
+            ] as any,
           });
         }
 
@@ -180,7 +254,7 @@ export function AddressVerificationMap({
         const processedFeatures = zonesData.features.map((f: any) => {
           const props = f.properties || {};
           // Find the property value that matches a zone code
-          const zoneCode = Object.values(props).find(v =>
+          const zoneCode = (Object.values(props) as string[]).find(v =>
             ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
           );
           return {
@@ -213,7 +287,7 @@ export function AddressVerificationMap({
         // Add zone fill layers (in order: rural, barrial, urbana - so urbana is on top)
         const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
 
-        zoneOrder.forEach((code, index) => {
+        zoneOrder.forEach((code) => {
           const zoneStyle = getZoneStyle(code);
           if (!zoneStyle) return;
 
@@ -287,10 +361,8 @@ export function AddressVerificationMap({
 
   // Load building addresses with house numbers from bolivar-addresses.geojson
   const loadAddresses = async () => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    const map = mapRef.current.getMap();
-    if (!map) return;
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
 
     try {
       const res = await fetch('/bolivar-addresses.geojson');
@@ -379,7 +451,6 @@ export function AddressVerificationMap({
     }
   };
 
-  // Update marker position when position prop changes
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
       markerRef.current.setLngLat(position);
@@ -387,92 +458,6 @@ export function AddressVerificationMap({
       detectZoneAtPosition(position);
     }
   }, [position]);
-
-  // Detect zone at a given position using client-side point-in-polygon
-  const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
-    try {
-      // Client-side zone detection using pointInPolygon (same as server)
-      // Priority: planta_urbana > zona_barrial > zona_rural (smallest first for nested polygons)
-      const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
-
-      let detectedZoneCode: string | null = null;
-
-      for (const code of zoneOrder) {
-        const feature = zoneFeaturesRef.current.find(f => f.properties?.zone_code === code);
-        if (feature && pointInPolygon(lngLat, feature.geometry)) {
-          detectedZoneCode = code;
-          break;
-        }
-      }
-
-      // Detect exact building address (street + house number) using point-in-polygon on building footprints
-      let detectedStreet: string | null = null;
-      let detectedHouseNumber: string | null = null;
-
-      if (addressesDataRef.current?.features) {
-        for (const feature of addressesDataRef.current.features) {
-          const geom = feature.geometry;
-          const props = feature.properties || {};
-
-          // Check if point is inside building polygon
-          if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon') && pointInPolygon(lngLat, geom)) {
-            detectedStreet = props['addr:street'] || props['addr:housename'] || null;
-            detectedHouseNumber = props['addr:housenumber'] || null;
-            break; // Found the building, stop searching
-          }
-        }
-      }
-
-      // Fallback: nearest street if no building found
-      if (!detectedStreet && streetsDataRef.current?.features) {
-        let minDistance = Infinity;
-        for (const feature of streetsDataRef.current.features) {
-          if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
-
-          const coords = feature.geometry.coordinates;
-          for (let i = 0; i < coords.length - 1; i++) {
-            const [lng1, lat1] = coords[i];
-            const [lng2, lat2] = coords[i + 1];
-
-            const A = lngLat[0] - lng1;
-            const B = lngLat[1] - lat1;
-            const C = lng2 - lng1;
-            const D = lat2 - lat1;
-
-            const dot = A * C + B * D;
-            const lenSq = C * C + D * D;
-            let param = -1;
-            if (lenSq !== 0) param = dot / lenSq;
-
-            let xx, yy;
-            if (param < 0) { xx = lng1; yy = lat1; }
-            else if (param > 1) { xx = lng2; yy = lat2; }
-            else { xx = lng1 + param * C; yy = lat1 + param * D; }
-
-            const dx = lngLat[0] - xx;
-            const dy = lngLat[1] - yy;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < minDistance) {
-              minDistance = dist;
-              detectedStreet = feature.properties.name;
-            }
-          }
-        }
-        if (minDistance > 0.0005) detectedStreet = null;
-      }
-
-      // Combine street + house number for the address
-      const fullAddress = detectedStreet && detectedHouseNumber
-        ? `${detectedStreet} ${detectedHouseNumber}`
-        : detectedStreet;
-
-      onPositionChange(lngLat, detectedZoneCode, fullAddress);
-    } catch (err) {
-      console.warn('Zone detection error:', err);
-      onPositionChange(lngLat, null, null);
-    }
-  }, [onPositionChange]);
 
   // Handle marker drag end
   const handleDragEnd = useCallback(() => {
@@ -570,16 +555,18 @@ export function AddressVerificationMap({
           longitude: BOLIVAR_CENTER[0],
           latitude: BOLIVAR_CENTER[1],
           zoom: ZOOM.CITY,
-          maxZoom: ZOOM.BUILDING,
-          minZoom: ZOOM.CITY - 2,
         }}
+        maxZoom={ZOOM.BUILDING}
+        minZoom={ZOOM.CITY - 2}
         style={{ width: '100%', height: `${height}px` }}
-        mapStyle={osmStyle}
+        mapStyle={osmStyle as any}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
-        onViewportChange={setViewport}
         onClick={handleMapClick}
-        maxBounds={BOLIVAR_BOUNDS}
+        maxBounds={[
+          BOLIVAR_BOUNDS[0][0], BOLIVAR_BOUNDS[0][1],
+          BOLIVAR_BOUNDS[1][0], BOLIVAR_BOUNDS[1][1]
+        ] as [number, number, number, number]}
       >
         {/* Current location marker - color changes based on zone status */}
         {position && (
@@ -704,7 +691,7 @@ export function AddressVerificationMap({
         <div className="flex flex-col gap-1 bg-white/5 backdrop-blur-sm rounded-xl border border-ink-200/50 p-1 shadow-lg">
           <button
             type="button"
-            onClick={() => setViewport(v => ({ ...v, zoom: Math.min(v.zoom + 1, ZOOM.BUILDING) }))}
+            onClick={() => mapRef.current?.zoomIn?.()}
             className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150
               hover:bg-ink-100 hover:text-brand-500
               active:scale-95 active:bg-ink-200
@@ -717,7 +704,7 @@ export function AddressVerificationMap({
           <div className="h-px bg-ink-200/50 mx-2 my-0.5" />
           <button
             type="button"
-            onClick={() => setViewport(v => ({ ...v, zoom: Math.max(v.zoom - 1, ZOOM.CITY - 2) }))}
+            onClick={() => mapRef.current?.zoomOut?.()}
             className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150
               hover:bg-ink-100 hover:text-brand-500
               active:scale-95 active:bg-ink-200

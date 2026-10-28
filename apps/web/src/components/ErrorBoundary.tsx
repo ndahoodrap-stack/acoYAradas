@@ -25,7 +25,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     console.error('[ErrorBoundary] Error capturado:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
     // Guardar componentStack en estado para mostrarlo en UI
-    this.setState({ componentStack: errorInfo.componentStack });
+    this.setState({ componentStack: errorInfo.componentStack ?? null });
   }
 
   render() {
@@ -38,7 +38,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <div className="card p-6 max-w-2xl mx-auto">
             <h2 className="text-xl font-bold text-red-600 mb-4">Error en la aplicación</h2>
             <pre className="bg-red-50 p-4 rounded text-sm text-red-800 overflow-auto max-h-96">
-              {this.state.error?.message}\n\n{this.state.error?.stack}
+              {this.state.error?.message ?? 'Error desconocido'}\n\n{this.state.error?.stack}
             </pre>
             {this.state.componentStack && (
               <details className="mt-4">

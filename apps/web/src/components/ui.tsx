@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -340,16 +341,18 @@ export function Field({
   error,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   error?: string;
   children: ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
   return (
     <label className="block">
       <span className="label">{label}</span>
-      {children}
+      {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { id: htmlFor }) : children}
       {hint && !error ? <span className="mt-1 block text-xs text-ink-500">{hint}</span> : null}
       {error ? <span className="mt-1 block text-xs text-red-600">{error}</span> : null}
     </label>
