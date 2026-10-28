@@ -39,6 +39,7 @@ export default function Checkout() {
   const [detectedZone, setDetectedZone] = useState<ZoneMatch | null>(null);
   const [zoneLoading, setZoneLoading] = useState(true);
   const [zoneError, setZoneError] = useState<string | null>(null);
+  const [geoDenied, setGeoDenied] = useState(false);
 
   // Posición en el mapa (para verificación visual)
   const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
@@ -57,8 +58,6 @@ export default function Checkout() {
           if (zone?.lng != null && zone?.lat != null) {
             const position: [number, number] = [zone.lng, zone.lat];
             setMapPosition(position);
-            // La dirección se completará automáticamente via handleMapPositionChange
-            // cuando el mapa cargue y detecte la dirección del edificio
           } else {
             // Fallback al centro de Bolívar
             setMapPosition(BOLIVAR_CENTER);
@@ -67,7 +66,12 @@ export default function Checkout() {
         }
       } catch (err) {
         if (!cancelled) {
-          setZoneError('No pudimos detectar tu ubicación automáticamente');
+          // Detectar si fue por permiso denegado
+          const isPermissionDenied = err instanceof GeolocationPositionError && err.code === GeolocationPositionError.PERMISSION_DENIED;
+          setGeoDenied(isPermissionDenied);
+          setZoneError(isPermissionDenied
+            ? 'Permiso de ubicación denegado. Por favor ajustá el pin en el mapa manualmente.'
+            : 'No pudimos detectar tu ubicación automáticamente. Ajustá el pin en el mapa.');
           console.warn('Geolocation failed:', err);
           setMapPosition(BOLIVAR_CENTER);
         }
@@ -202,6 +206,22 @@ export default function Checkout() {
               <Field label="Localidad">
                 <input className="input bg-ink-50 cursor-not-allowed" value={LOCALIDAD} readOnly />
               </Field>
+              {/* Manual address entry as fallback when geolocation fails */}
+              {geoDenied || zoneError || !detectedZone ? (
+                <Field label="Dirección (manual)" hint="Calle y número, ej: Av. San Martín 123">
+                  <input
+                    className="input"
+                    value={form.address}
+                    onChange={field('address').onChange}
+                    placeholder="Ingresá tu dirección manualmente"
+                    autoComplete="street-address"
+                  />
+                </Field>
+              ) : (
+                <Field label="Dirección">
+                  <input className="input bg-ink-50 cursor-not-allowed" value={form.address || 'Se completa desde el mapa'} readOnly />
+                </Field>
+              )}
               <Field label="Referencias" hint="Timbre, piso, puerta, punto de referencia…">
                 <input className="input" value={form.references} onChange={field('references').onChange} />
               </Field>
@@ -399,6 +419,29 @@ export default function Checkout() {
                 </p>
               </div>
             </div>
+
+            {/* Geolocation fallback guidance */}
+            {(geoDenied || (zoneError && !detectedZone && !zoneLoading)) && (
+              <div className="card border-amber-200 bg-amber-50 p-4 animate-fade-up" role="status">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-amber-100">
+                    <svg className="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800">
+                      {geoDenied ? 'Permiso de ubicación denegado' : 'Ubicación no detectada'}
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      {geoDenied
+                        ? 'Por favor arrastrá el pin en el mapa hasta tu dirección exacta. También podés escribir la dirección manualmente abajo.'
+                        : 'No pudimos detectar tu ubicación. Arrastrá el pin en el mapa hasta tu dirección o escribila manualmente.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Error Display */}
             {error && (
