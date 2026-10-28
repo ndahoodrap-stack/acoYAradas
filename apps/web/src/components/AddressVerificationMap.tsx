@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import { Protocol } from 'pmtiles';
+import maplibregl from 'maplibre-gl';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
+
+// Configurar maplibre-gl ESM (la misma instancia que usa react-map-gl/maplibre)
+maplibregl.workerCount = 0;
+maplibregl.addProtocol('pmtiles', new Protocol());
+console.log('[maplibre-gl] ESM configured: workerCount=0, pmtiles protocol registered');
 
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
@@ -36,36 +42,9 @@ export function AddressVerificationMap({
 }: AddressVerificationMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [maplibreReady, setMaplibreReady] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
-  const protocolRegisteredRef = useRef(false);
-
-  // Esperar a que maplibre-gl UMD esté disponible
-  useEffect(() => {
-    let cancelled = false;
-    let attempt = 0;
-
-    const waitForMaplibre = () => {
-      attempt++;
-      const maplibregl = (window as any).maplibregl;
-      if (maplibregl) {
-        if (!cancelled) {
-          setMaplibreReady(true);
-        }
-        return;
-      }
-      if (!cancelled && attempt < 100) {
-        setTimeout(waitForMaplibre, 50);
-      } else if (!cancelled) {
-        console.error('[Debug] TIMEOUT: maplibregl never loaded after 5s');
-      }
-    };
-
-    waitForMaplibre();
-    return () => { cancelled = true; };
-  }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
   // Uses zoneFeaturesRef populated from the vector tiles on map load
@@ -445,18 +424,6 @@ export function AddressVerificationMap({
     },
   ];
 
-  // No renderizar el mapa hasta que maplibre-gl UMD esté listo
-  if (!maplibreReady) {
-    return (
-      <div className="rounded-xl bg-ink-50 border border-ink-200 h-[300px] flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500 mx-auto" />
-          <p className="mt-2 text-sm text-ink-500">Cargando mapa...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Show loading state
   if (loading) {
     return (
@@ -487,7 +454,7 @@ export function AddressVerificationMap({
 
       <Map
         ref={mapRef}
-        maplibregl={window.maplibregl}
+        maplibregl={maplibregl}
         initialViewState={{
           longitude: BOLIVAR_CENTER[0],
           latitude: BOLIVAR_CENTER[1],
@@ -510,20 +477,7 @@ export function AddressVerificationMap({
           // Expose globally for debugging: window.__MAP__
           (window as any).__MAP__ = map;
 
-          // Registrar protocolo PMTiles en LA MISMA instancia que usa el mapa
-          // (el maplibregl que pasamos por prop debería ser el mismo, pero por seguridad)
-          try {
-            const maplibreglInstance = window.maplibregl;
-            if (maplibreglInstance && !maplibreglInstance.__pmtilesProtocolRegistered) {
-              maplibreglInstance.addProtocol('pmtiles', new Protocol());
-              maplibreglInstance.__pmtilesProtocolRegistered = true;
-              console.log('[PMTiles] Protocol registered on map instance');
-            }
-          } catch (e) {
-            console.warn('[PMTiles] Could not register protocol on map instance:', e);
-          }
-
-          // Añadir source PMTiles programáticamente (usa la instancia con protocolo registrado)
+          // Añadir source PMTiles programáticamente (protocolo ya registrado en maplibregl ESM)
           try {
             map.addSource('bolivar', {
               type: 'vector',
