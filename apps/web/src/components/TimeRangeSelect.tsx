@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface TimeRangeSelectProps {
   value: string;
@@ -11,10 +11,6 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const m = i % 2 === 0 ? 0 : 30;
   return { hour: h, minute: m, label: `${String(h).padStart(2, '0')}:${m === 0 ? '00' : '30'}` };
 });
-
-function formatTime(hour: number, minute: number): string {
-  return `${String(hour).padStart(2, '0')}:${minute === 0 ? '00' : '30'}`;
-}
 
 function parseTimeRange(value: string): { start: number; end: number } | null {
   if (!value || !value.trim()) return null;
@@ -44,6 +40,7 @@ export function TimeRangeSelect({ value, onChange, dayLabel }: TimeRangeSelectPr
   const [startIndex, setStartIndex] = useState(18); // 09:00
   const [endIndex, setEndIndex] = useState(42); // 21:00
   const [isDragging, setIsDragging] = useState<'start' | 'end' | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   // Initialize from value prop
   useEffect(() => {
@@ -100,10 +97,8 @@ export function TimeRangeSelect({ value, onChange, dayLabel }: TimeRangeSelectPr
   };
 
   const handleDragMove = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging) return;
-    const container = document.querySelector('[data-timerange-track]');
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
+    if (!isDragging || !trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const relativeX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const index = Math.round(relativeX * (TIME_SLOTS.length - 1));
@@ -148,8 +143,8 @@ export function TimeRangeSelect({ value, onChange, dayLabel }: TimeRangeSelectPr
 
       {isOpen && (
         <div className="space-y-3">
-          {/* Visual time range slider */}
-          <div className="relative" data-timerange-track>
+          {/* Visual time range slider - THE ONLY interaction */}
+          <div className="relative" ref={trackRef} data-timerange-track>
             <div className="h-6 relative">
               {/* Track background */}
               <div className="absolute inset-0 h-2 rounded-full bg-ink-100" />
@@ -160,7 +155,7 @@ export function TimeRangeSelect({ value, onChange, dayLabel }: TimeRangeSelectPr
                 style={{ left: `${startPos}%`, right: `${100 - endPos}%` }}
               />
 
-              {/* Time markers */}
+              {/* Time markers (every 3 hours) */}
               <div className="absolute inset-0 flex justify-between px-1">
                 {TIME_SLOTS.filter((_, i) => i % 6 === 0).map((slot) => (
                   <div key={slot.label} className="flex-1 text-center">
@@ -215,67 +210,14 @@ export function TimeRangeSelect({ value, onChange, dayLabel }: TimeRangeSelectPr
             </div>
           </div>
 
-          {/* Time inputs for precise control */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium text-ink-600 mb-1">Apertura</label>
-              <select
-                className="input w-full"
-                value={startIndex}
-                onChange={(e) => handleStartChange(parseInt(e.target.value, 10))}
-                aria-label="Hora de apertura"
-              >
-                {TIME_SLOTS.slice(0, -1).map((slot, i) => (
-                  <option key={i} value={i}>
-                    {slot.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-ink-600 mb-1">Cierre</label>
-              <select
-                className="input w-full"
-                value={endIndex}
-                onChange={(e) => handleEndChange(parseInt(e.target.value, 10))}
-                aria-label="Hora de cierre"
-              >
-                {TIME_SLOTS.slice(1).map((slot, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {slot.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Quick preset buttons */}
-          <div className="flex flex-wrap gap-1">
-            {[
-              { label: '9-14h', start: 18, end: 28 },
-              { label: '9-18h', start: 18, end: 36 },
-              { label: '9-21h', start: 18, end: 42 },
-              { label: '12-23h', start: 24, end: 46 },
-              { label: '24h', start: 0, end: 47 },
-            ].map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                className={`px-2 py-1 text-xs rounded transition-colors ${
-                  startIndex === preset.start && endIndex === preset.end
-                    ? 'bg-brand-100 text-brand-700 border border-brand-300'
-                    : 'bg-ink-100 text-ink-600 hover:bg-ink-200'
-                }`}
-                onClick={() => {
-                  setStartIndex(preset.start);
-                  setEndIndex(preset.end);
-                  handleStartChange(preset.start);
-                  handleEndChange(preset.end);
-                }}
-              >
-                {preset.label}
-              </button>
-            ))}
+          {/* Selected time display */}
+          <div className="flex items-center justify-center gap-3 p-2 rounded-lg bg-brand-50 border border-brand-100">
+            <span className="text-sm font-medium text-brand-700">
+              <span className="font-bold">{startTime.label}</span> - <span className="font-bold">{endTime.label}</span>
+            </span>
+            <span className="text-xs text-brand-500">
+              ({endTime.hour - startTime.hour + (endTime.minute - startTime.minute) / 60}h)
+            </span>
           </div>
         </div>
       )}
