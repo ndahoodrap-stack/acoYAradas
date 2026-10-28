@@ -5,13 +5,6 @@ import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } fr
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
-// Cargar maplibre-gl ESM y crear wrapper mutable (namespace ESM es inmutable)
-const maplibreglModule = await import('maplibre-gl');
-const maplibregl = { ...maplibreglModule } as typeof maplibreglModule & { workerCount: number; addProtocol: (name: string, protocol: any) => void };
-maplibregl.workerCount = 0;
-maplibregl.addProtocol('pmtiles', new Protocol());
-console.log('[maplibre-gl] ESM configured: workerCount=0, pmtiles protocol registered');
-
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
   detectedZone: ZoneMatch | null;
@@ -46,6 +39,38 @@ export function AddressVerificationMap({
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const protocolRegisteredRef = useRef(false);
+
+  // Esperar a que maplibre-gl UMD esté disponible y registrar protocolo pmtiles
+  useEffect(() => {
+    let cancelled = false;
+    let attempt = 0;
+
+    const waitForMaplibre = () => {
+      attempt++;
+      const maplibregl = (window as any).maplibregl;
+      if (maplibregl) {
+        if (!cancelled && !protocolRegisteredRef.current) {
+          try {
+            maplibregl.addProtocol('pmtiles', new Protocol());
+            protocolRegisteredRef.current = true;
+            console.log('[PMTiles] Protocol registered on UMD instance');
+          } catch (e) {
+            console.error('[PMTiles] Failed to register protocol:', e);
+          }
+        }
+        return;
+      }
+      if (!cancelled && attempt < 100) {
+        setTimeout(waitForMaplibre, 50);
+      } else if (!cancelled) {
+        console.error('[Debug] TIMEOUT: maplibregl never loaded after 5s');
+      }
+    };
+
+    waitForMaplibre();
+    return () => { cancelled = true; };
+  }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
   // Uses zoneFeaturesRef populated from the vector tiles on map load
@@ -455,7 +480,7 @@ export function AddressVerificationMap({
 
       <Map
         ref={mapRef}
-        maplibregl={maplibregl}
+        maplibregl={(window as any).maplibregl}
         initialViewState={{
           longitude: BOLIVAR_CENTER[0],
           latitude: BOLIVAR_CENTER[1],
@@ -478,7 +503,7 @@ export function AddressVerificationMap({
           // Expose globally for debugging: window.__MAP__
           (window as any).__MAP__ = map;
 
-          // Añadir source PMTiles programáticamente (protocolo ya registrado en maplibregl ESM)
+          // Añadir source PMTiles programáticamente (protocolo ya registrado en UMD global)
           try {
             map.addSource('bolivar', {
               type: 'vector',
