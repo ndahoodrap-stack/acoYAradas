@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Protocol } from 'pmtiles';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
+
+// Registrar protocolo PMTiles (una sola vez, solo en cliente)
+if (typeof window !== 'undefined') {
+  maplibregl.addProtocol('pmtiles', new Protocol());
+}
 
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
@@ -37,12 +44,11 @@ export function AddressVerificationMap({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const zoneFeaturesRef = useRef<any[]>([]);
-  const streetsDataRef = useRef<any>(null);
-  const addressesDataRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
   // Detect zone at a given position using client-side point-in-polygon
+  // Uses zoneFeaturesRef populated from the vector tiles on map load
   const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
     try {
       // Client-side zone detection using pointInPolygon (same as server)
@@ -59,69 +65,11 @@ export function AddressVerificationMap({
         }
       }
 
-      // Detect exact building address (street + house number) using point-in-polygon on building footprints
-      let detectedStreet: string | null = null;
-      let detectedHouseNumber: string | null = null;
+      // For street/house detection, we could query the vector tiles directly
+      // but for simplicity we'll rely on the marker position + zone detection
+      // The PMTiles contains all the data; we could add queryRenderedFeatures here if needed
 
-      if (addressesDataRef.current?.features) {
-        for (const feature of addressesDataRef.current.features) {
-          const geom = feature.geometry;
-          const props = feature.properties || {};
-
-          // Check if point is inside building polygon
-          if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon') && pointInPolygon(lngLat, geom)) {
-            detectedStreet = props['addr:street'] || props['addr:housename'] || null;
-            detectedHouseNumber = props['addr:housenumber'] || null;
-            break; // Found the building, stop searching
-          }
-        }
-      }
-
-      // Fallback: nearest street if no building found
-      if (!detectedStreet && streetsDataRef.current?.features) {
-        let minDistance = Infinity;
-        for (const feature of streetsDataRef.current.features) {
-          if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
-
-          const coords = feature.geometry.coordinates;
-          for (let i = 0; i < coords.length - 1; i++) {
-            const [lng1, lat1] = coords[i];
-            const [lng2, lat2] = coords[i + 1];
-
-            const A = lngLat[0] - lng1;
-            const B = lngLat[1] - lat1;
-            const C = lng2 - lng1;
-            const D = lat2 - lat1;
-
-            const dot = A * C + B * D;
-            const lenSq = C * C + D * D;
-            let param = -1;
-            if (lenSq !== 0) param = dot / lenSq;
-
-            let xx, yy;
-            if (param < 0) { xx = lng1; yy = lat1; }
-            else if (param > 1) { xx = lng2; yy = lat2; }
-            else { xx = lng1 + param * C; yy = lat1 + param * D; }
-
-            const dx = lngLat[0] - xx;
-            const dy = lngLat[1] - yy;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < minDistance) {
-              minDistance = dist;
-              detectedStreet = feature.properties.name;
-            }
-          }
-        }
-        if (minDistance > 0.0005) detectedStreet = null;
-      }
-
-      // Combine street + house number for the address
-      const fullAddress = detectedStreet && detectedHouseNumber
-        ? `${detectedStreet} ${detectedHouseNumber}`
-        : detectedStreet;
-
-      onPositionChange(lngLat, detectedZoneCode, fullAddress);
+      onPositionChange(lngLat, detectedZoneCode, null);
     } catch (err) {
       console.warn('Zone detection error:', err);
       onPositionChange(lngLat, null, null);
@@ -165,296 +113,99 @@ export function AddressVerificationMap({
     }
   }, [position, loading]);
 
-  // Load streets GeoJSON and zone boundaries when map loads
+  // Load zone features from vector tiles for client-side point-in-polygon detection
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    // Load bolivar-calles-simplified.geojson as a source
-    const loadStreets = async () => {
+    // Query the 'zonas' source-layer to get zone polygons for point-in-polygon
+    // We do this once on map load to populate zoneFeaturesRef
+    const loadZoneFeatures = () => {
       try {
-        const res = await fetch('/bolivar-calles-simplified.geojson');
-        if (!res.ok) throw new Error('Failed to load streets');
-        const streetsData = await res.json();
+        // Get features from the vector tile source
+        const features = map.querySourceFeatures('bolivar', {
+          sourceLayer: 'zonas',
+        });
 
-        // Store for client-side street detection
-        streetsDataRef.current = streetsData;
-
-        // Add streets source
-        if (!map.getSource('bolivar-streets')) {
-          map.addSource('bolivar-streets', {
-            type: 'geojson',
-            data: streetsData,
-          });
-        }
-
-        // Add streets layer
-        if (!map.getLayer('bolivar-streets-layer')) {
-          map.addLayer({
-            id: 'bolivar-streets-layer',
-            type: 'line',
-            source: 'bolivar-streets',
-            paint: {
-              'line-color': '#9ca3af', // gray-400
-              'line-width': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                12, 0.5,
-                14, 1,
-                16, 1.5,
-                18, 2,
-              ],
-              'line-opacity': 0.7,
-            },
-            filter: ['in', ['get', 'highway'],
-              'motorway', 'trunk', 'primary', 'secondary', 'tertiary',
-              'unclassified', 'residential', 'living_street'
-            ] as any,
-          });
-        }
-
-        // Add street labels
-        if (!map.getLayer('bolivar-street-labels')) {
-          map.addLayer({
-            id: 'bolivar-street-labels',
-            type: 'symbol',
-            source: 'bolivar-streets',
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Open Sans Regular'],
-              'text-size': 10,
-              'text-anchor': 'center',
-              'symbol-placement': 'line',
-              'symbol-spacing': 200,
-            },
-            paint: {
-              'text-color': '#6b7280', // gray-500
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 1,
-            },
-            minzoom: 15,
-            filter: ['has', 'name'],
-          });
-        }
-      } catch (err) {
-        console.warn('Could not load streets:', err);
-      }
-    };
-
-    // Load zone boundaries from bolivar.geojson
-    const loadZones = async () => {
-      try {
-        const res = await fetch('/bolivar.geojson');
-        if (!res.ok) throw new Error('Failed to load zones');
-        const zonesData = await res.json();
-
-        // Add a consistent zone_code property to each feature for filtering
-        // The original GeoJSON has different property keys: "Planta Urbana", "Zona Barrial", "Zona Rural"
-        const processedFeatures = zonesData.features.map((f: any) => {
+        // Process features to ensure consistent zone_code property
+        const processedFeatures = features.map((f: any) => {
           const props = f.properties || {};
-          // Find the property value that matches a zone code
-          const zoneCode = (Object.values(props) as string[]).find(v =>
-            ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
-          );
+          // The tippecanoe layers should already have zone_code from the original GeoJSON
+          const zoneCode = props.zone_code ||
+            (Object.values(props) as string[]).find(v =>
+              ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
+            ) || null;
+
           return {
             ...f,
             properties: {
               ...props,
-              zone_code: zoneCode || null,
-              name: props['Planta Urbana'] ? 'Planta Urbana' :
-                    props['Zona Barrial'] ? 'Zona Barrial' :
-                    props['Zona Rural'] ? 'Zona Rural' : ''
+              zone_code: zoneCode,
+              name: props.name ||
+                (props['Planta Urbana'] ? 'Planta Urbana' :
+                  props['Zona Barrial'] ? 'Zona Barrial' :
+                    props['Zona Rural'] ? 'Zona Rural' : ''),
             }
           };
         });
 
-        // Store for client-side zone detection
         zoneFeaturesRef.current = processedFeatures;
-
-        const processedData = {
-          ...zonesData,
-          features: processedFeatures
-        };
-
-        if (!map.getSource('delivery-zones')) {
-          map.addSource('delivery-zones', {
-            type: 'geojson',
-            data: processedData,
-          });
-        }
-
-        // Add zone fill layers (in order: rural, barrial, urbana - so urbana is on top)
-        const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
-
-        zoneOrder.forEach((code) => {
-          const zoneStyle = getZoneStyle(code);
-          if (!zoneStyle) return;
-
-          const layerId = `zone-fill-${code}`;
-          if (!map.getLayer(layerId)) {
-            map.addLayer({
-              id: layerId,
-              type: 'fill',
-              source: 'delivery-zones',
-              paint: {
-                'fill-color': zoneStyle.fillColor,
-                'fill-opacity': zoneStyle.fillOpacity,
-                // Remove fill-outline-color to avoid white square artifacts
-              },
-              filter: ['==', ['get', 'zone_code'], code],
-            });
-          }
-        });
-
-        // Add zone border layers on top (separate line layer for clean borders)
-        zoneOrder.forEach((code) => {
-          const zoneStyle = getZoneStyle(code);
-          if (!zoneStyle) return;
-
-          const layerId = `zone-border-${code}`;
-          if (!map.getLayer(layerId)) {
-            map.addLayer({
-              id: layerId,
-              type: 'line',
-              source: 'delivery-zones',
-              paint: {
-                'line-color': zoneStyle.borderColor,
-                'line-width': zoneStyle.borderWidth,
-              },
-              filter: ['==', ['get', 'zone_code'], code],
-            });
-          }
-        });
-
-        // Add zone labels
-        if (!map.getLayer('zone-labels')) {
-          map.addLayer({
-            id: 'zone-labels',
-            type: 'symbol',
-            source: 'delivery-zones',
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Open Sans Bold'],
-              'text-size': 12,
-              'text-anchor': 'center',
-            },
-            paint: {
-              'text-color': '#1f2937', // gray-800
-              'text-halo-color': '#ffffff',
-              'text-halo-width': 2,
-            },
-            minzoom: 12,
-            filter: ['has', 'zone_code'],
-          });
-        }
-
+        console.log('[AddressVerificationMap] Loaded zone features:', processedFeatures.length);
       } catch (err) {
-        console.warn('Could not load zones:', err);
+        console.warn('Could not load zone features from vector tiles:', err);
       }
     };
 
-    loadStreets();
-    loadZones();
-    loadAddresses();
+    // Wait a bit for tiles to load, then query
+    const timer = setTimeout(loadZoneFeatures, 500);
+    return () => clearTimeout(timer);
   }, [mapLoaded]);
 
-  // Load building addresses with house numbers from bolivar-addresses.geojson
-  const loadAddresses = async () => {
+  // Also re-query on map move/zoom to catch tiles at different zoom levels
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    try {
-      const res = await fetch('/bolivar-addresses.geojson');
-      if (!res.ok) throw new Error('Failed to load addresses');
-      const addressesData = await res.json();
+    const handleMapMove = () => {
+      // Debounce
+      clearTimeout((window as any).__zoneQueryTimer);
+      (window as any).__zoneQueryTimer = setTimeout(() => {
+        try {
+          const features = map.querySourceFeatures('bolivar', {
+            sourceLayer: 'zonas',
+          });
+          const processedFeatures = features.map((f: any) => {
+            const props = f.properties || {};
+            const zoneCode = props.zone_code ||
+              (Object.values(props) as string[]).find(v =>
+                ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
+              ) || null;
+            return {
+              ...f,
+              properties: {
+                ...props,
+                zone_code: zoneCode,
+                name: props.name ||
+                  (props['Planta Urbana'] ? 'Planta Urbana' :
+                    props['Zona Barrial'] ? 'Zona Barrial' :
+                      props['Zona Rural'] ? 'Zona Rural' : ''),
+              }
+            };
+          });
+          zoneFeaturesRef.current = processedFeatures;
+        } catch (err) {
+          // Ignore
+        }
+      }, 300);
+    };
 
-      // Store for client-side building address detection
-      addressesDataRef.current = addressesData;
-
-      // Add addresses source (building footprints)
-      if (!map.getSource('bolivar-addresses')) {
-        map.addSource('bolivar-addresses', {
-          type: 'geojson',
-          data: addressesData,
-        });
-      }
-
-      // Add building footprints layer (subtle, for visual reference at high zoom)
-      if (!map.getLayer('bolivar-addresses-layer')) {
-        map.addLayer({
-          id: 'bolivar-addresses-layer',
-          type: 'fill',
-          source: 'bolivar-addresses',
-          paint: {
-            'fill-color': '#e5e7eb', // gray-200
-            'fill-opacity': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              16, 0,
-              18, 0.15,
-              20, 0.3,
-            ],
-          },
-          minzoom: 16,
-        });
-      }
-
-      // Add building outlines
-      if (!map.getLayer('bolivar-addresses-outline')) {
-        map.addLayer({
-          id: 'bolivar-addresses-outline',
-          type: 'line',
-          source: 'bolivar-addresses',
-          paint: {
-            'line-color': '#9ca3af', // gray-400
-            'line-width': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              16, 0,
-              18, 0.5,
-              20, 1,
-            ],
-            'line-opacity': 0.5,
-          },
-          minzoom: 16,
-        });
-      }
-
-      // Add house number labels at high zoom
-      if (!map.getLayer('bolivar-house-numbers')) {
-        map.addLayer({
-          id: 'bolivar-house-numbers',
-          type: 'symbol',
-          source: 'bolivar-addresses',
-          layout: {
-            'text-field': ['get', 'addr:housenumber'],
-            'text-font': ['Open Sans Regular'],
-            'text-size': 10,
-            'text-anchor': 'center',
-            'text-allow-overlap': true,
-          },
-          paint: {
-            'text-color': '#374151', // gray-700
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 1,
-          },
-          minzoom: 18,
-          filter: ['has', 'addr:housenumber'],
-        });
-      }
-
-    } catch (err) {
-      console.warn('Could not load building addresses:', err);
-    }
-  };
+    map.on('moveend', handleMapMove);
+    return () => map.off('moveend', handleMapMove);
+  }, [mapLoaded]);
 
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
       markerRef.current.setLngLat(position);
-      // Re-detect zone at new position
       detectZoneAtPosition(position);
     }
   }, [position]);
@@ -472,10 +223,8 @@ export function AddressVerificationMap({
 
   // Handle map click to move marker
   const handleMapClick = useCallback((e: any) => {
-    // In MapLibre, e.lngLat is an LngLat object, convert to array
     const lngLat = e.lngLat?.toArray?.() ?? [e.lngLat?.lng, e.lngLat?.lat];
     if (!lngLat || Number.isNaN(lngLat[0]) || Number.isNaN(lngLat[1])) return;
-    // Move marker immediately, zone detection will happen async via detectZoneAtPosition
     if (markerRef.current) {
       markerRef.current.setLngLat(lngLat);
       detectZoneAtPosition(lngLat);
@@ -506,28 +255,178 @@ export function AddressVerificationMap({
     );
   }
 
-  // Simple raster tile style for MapLibre - using OSM tile servers with proper attribution
-  // Using tile.openstreetmap.org which is the official OSM tile server (not blocked like osm.org)
-  const osmStyle = {
+  // Custom vector tile style using our PMTiles (hosted on GitHub Pages)
+  const customStyle = {
     version: 8,
     sources: {
-      osm: {
-        type: 'raster',
-        tiles: [
-          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        ],
-        tileSize: 256,
-        attribution: '© OpenStreetMap contributors',
-        maxzoom: 19,
+      bolivar: {
+        type: 'vector',
+        url: 'pmtiles://https://ndahoodrap-stack.github.io/acoYAradas/bolivar.pmtiles',
+        maxzoom: 16,
       },
     },
     layers: [
+      // 1. Calles (de bolivar-calles-simplified.geojson → source-layer: 'calles')
       {
-        id: 'osm-layer',
-        type: 'raster',
-        source: 'osm',
-        minzoom: 0,
-        maxzoom: 19,
+        id: 'streets',
+        type: 'line',
+        source: 'bolivar',
+        'source-layer': 'calles',
+        paint: {
+          'line-color': '#9ca3af',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12, 0.5,
+            14, 1,
+            16, 1.5,
+            18, 2,
+          ],
+          'line-opacity': 0.7,
+        },
+        filter: ['in', ['get', 'highway'], 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street'],
+      },
+      // 2. Labels de calles
+      {
+        id: 'street-labels',
+        type: 'symbol',
+        source: 'bolivar',
+        'source-layer': 'calles',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Open Sans Regular'],
+          'text-size': 10,
+          'text-anchor': 'center',
+          'symbol-placement': 'line',
+          'symbol-spacing': 200,
+        },
+        paint: {
+          'text-color': '#6b7280',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1,
+        },
+        minzoom: 15,
+        filter: ['has', 'name'],
+      },
+
+      // 3. Zonas de entrega - Fills (de bolivar.geojson → source-layer: 'zonas')
+      {
+        id: 'zone-fill-planta_urbana',
+        type: 'fill',
+        source: 'bolivar',
+        'source-layer': 'zonas',
+        paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
+      },
+      {
+        id: 'zone-fill-zona_barrial',
+        type: 'fill',
+        source: 'bolivar',
+        'source-layer': 'zonas',
+        paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
+      },
+      {
+        id: 'zone-fill-zona_rural',
+        type: 'fill',
+        source: 'bolivar',
+        'source-layer': 'zonas',
+        paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'zona_rural'],
+      },
+
+      // 4. Bordes de zonas
+      {
+        id: 'zone-borders',
+        type: 'line',
+        source: 'bolivar',
+        'source-layer': 'zonas',
+        paint: {
+          'line-color': ['get', 'borderColor'],
+          'line-width': ['get', 'borderWidth']
+        },
+        filter: ['has', 'zone_code'],
+      },
+
+      // 5. Labels de zonas
+      {
+        id: 'zone-labels',
+        type: 'symbol',
+        source: 'bolivar',
+        'source-layer': 'zonas',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Open Sans Bold'],
+          'text-size': 12,
+          'text-anchor': 'center',
+        },
+        paint: {
+          'text-color': '#1f2937',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 2
+        },
+        minzoom: 12,
+        filter: ['has', 'zone_code'],
+      },
+
+      // 6. Edificios / números de puerta (de bolivar-addresses.geojson → source-layer: 'direcciones')
+      {
+        id: 'building-footprints',
+        type: 'fill',
+        source: 'bolivar',
+        'source-layer': 'direcciones',
+        paint: {
+          'fill-color': '#e5e7eb',
+          'fill-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            16, 0,
+            18, 0.15,
+            20, 0.3,
+          ],
+        },
+        minzoom: 16,
+      },
+      {
+        id: 'building-outlines',
+        type: 'line',
+        source: 'bolivar',
+        'source-layer': 'direcciones',
+        paint: {
+          'line-color': '#9ca3af',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            16, 0,
+            18, 0.5,
+            20, 1,
+          ],
+          'line-opacity': 0.5,
+        },
+        minzoom: 16,
+      },
+      {
+        id: 'house-numbers',
+        type: 'symbol',
+        source: 'bolivar',
+        'source-layer': 'direcciones',
+        layout: {
+          'text-field': ['get', 'addr:housenumber'],
+          'text-font': ['Open Sans Regular'],
+          'text-size': 10,
+          'text-anchor': 'center',
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#374151',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1
+        },
+        minzoom: 18,
+        filter: ['has', 'addr:housenumber'],
       },
     ],
   };
@@ -558,7 +457,7 @@ export function AddressVerificationMap({
         maxZoom={ZOOM.BUILDING}
         minZoom={ZOOM.CITY - 2}
         style={{ width: '100%', height: `${height}px` }}
-        mapStyle={osmStyle as any}
+        mapStyle={customStyle as any}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
         onClick={handleMapClick}
