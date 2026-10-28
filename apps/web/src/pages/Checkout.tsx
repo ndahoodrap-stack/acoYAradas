@@ -553,25 +553,3 @@ export default function Checkout() {
  * Verifica si un punto (lng, lat) está dentro de un polígono GeoJSON
  * Usa el algoritmo ray-casting (even-odd rule)
  */
-function pointInPolygon(
-  point: [number, number], // [lng, lat]
-  polygon: ZoneGeometry['geometry']
-): boolean {
-  const [lng, lat] = point;
-  const coords = polygon.coordinates[0]; // Anillo exterior
-
-  let inside = false;
-
-  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-    const [lngI, latI] = coords[i];
-    const [lngJ, latJ] = coords[j];
-
-    const intersect =
-      ((latI > lat) !== (latJ > lat)) &&
-      (lng < (lngJ - lngI) * (lat - latI) / (latJ - latI) + lngI);
-
-    if (intersect) inside = !inside;
-  }
-
-  return inside;
-}
