@@ -1,0 +1,55 @@
+name: Build & Deploy PMTiles
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/web/public/*.geojson'
+      - '.github/workflows/pmtiles.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tippecanoe
+        run: sudo apt update && sudo apt install -y tippecanoe
+      - name: Generate PMTiles
+        run: |
+          tippecanoe -o bolivar.pmtiles --drop-densest-as-needed --force \
+            --layer=zonas apps/web/public/bolivar.geojson \
+            --layer=calles apps/web/public/bolivar-calles-simplified.geojson \
+            --layer=direcciones apps/web/public/bolivar-addresses.geojson
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bolivar-pmtiles
+          path: bolivar.pmtiles
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bolivar-pmtiles
+          path: ./
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
