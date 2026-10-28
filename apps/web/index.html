@@ -10,9 +10,9 @@
     />
     <link rel="icon" type="image/svg+xml" href="/placeholders/logo-aco.svg" />
     <title>acoYAradas! - Comercios de tu zona</title>
-    <!-- maplibre-gl UMD build (sin worker externo, CORS OK, worker inline) -->
-    <script src="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.umd.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- maplibre-gl UMD build v4 (con worker inline, CORS OK via jsdelivr) -->
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script>
       // Desactivar worker ANTES de que maplibre-gl lo intente crear
       window.MAPLIBRE_GL_NO_WORKER = true;
