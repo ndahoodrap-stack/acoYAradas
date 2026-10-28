@@ -302,45 +302,57 @@ export default function Checkout() {
     setLocationRequested(true);
     setIsGeocoding(true);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
-        console.log('Ubicación automática detectada:', lat, lng, 'accuracy:', position.coords.accuracy);
+    const tryGeolocation = (highAccuracy: boolean, retriesLeft: number) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          console.log('Ubicación automática detectada:', lat, lng, 'accuracy:', position.coords.accuracy, 'highAccuracy:', highAccuracy);
 
-        const pos: [number, number] = [lat, lng];
-        setMarkerPosition(pos);
-        setMapCenter(pos);
-        setMapZoom(16);
-        detectZoneFromCoords(lng, lat);
-        reverseGeocode(lat, lng);
-        setIsGeocoding(false);
-      },
-      (err) => {
-        const isPermissionDenied = err.code === 1; // PERMISSION_DENIED
-        const isPositionUnavailable = err.code === 2; // POSITION_UNAVAILABLE
-        const isTimeout = err.code === 3; // TIMEOUT
+          const pos: [number, number] = [lat, lng];
+          setMarkerPosition(pos);
+          setMapCenter(pos);
+          setMapZoom(16);
+          detectZoneFromCoords(lng, lat);
+          reverseGeocode(lat, lng);
+          setIsGeocoding(false);
+        },
+        (err) => {
+          const isPermissionDenied = err.code === 1; // PERMISSION_DENIED
+          const isPositionUnavailable = err.code === 2; // POSITION_UNAVAILABLE
+          const isTimeout = err.code === 3; // TIMEOUT
 
-        console.warn('Geolocalización error:', {
-          code: err.code,
-          message: err.message,
-          isPermissionDenied,
-          isPositionUnavailable,
-          isTimeout
-        });
+          console.warn('Geolocalización error:', {
+            code: err.code,
+            message: err.message,
+            isPermissionDenied,
+            isPositionUnavailable,
+            isTimeout,
+            highAccuracy
+          });
 
-        if (isPermissionDenied) {
-          setGeocodeError('Permiso de ubicación denegado. Ingresá tu dirección manualmente o permití el acceso en el navegador.');
-        } else if (isPositionUnavailable) {
-          setGeocodeError('No se pudo obtener tu ubicación (GPS/red no disponible). Ingresá tu dirección manualmente.');
-        } else if (isTimeout) {
-          setGeocodeError('Tiempo agotado obteniendo ubicación. Ingresá tu dirección manualmente o recargá la página.');
-        } else {
-          setGeocodeError('Error obteniendo ubicación. Ingresá tu dirección manualmente.');
-        }
-        setIsGeocoding(false);
-      },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-    );
+          if (isPermissionDenied) {
+            setGeocodeError('Permiso de ubicación denegado. Ingresá tu dirección manualmente o permití el acceso en el navegador.');
+            setIsGeocoding(false);
+          } else if (isPositionUnavailable) {
+            setGeocodeError('No se pudo obtener tu ubicación (GPS/red no disponible). Ingresá tu dirección manualmente.');
+            setIsGeocoding(false);
+          } else if (isTimeout && highAccuracy && retriesLeft > 0) {
+            // Fallback: reintentar con precisión normal (WiFi/red celular, más rápido)
+            console.log('Timeout con alta precisión, reintentando con precisión normal...');
+            tryGeolocation(false, retriesLeft - 1);
+          } else if (isTimeout) {
+            setGeocodeError('Tiempo agotado obteniendo ubicación. Ingresá tu dirección manualmente o recargá la página.');
+            setIsGeocoding(false);
+          } else {
+            setGeocodeError('Error obteniendo ubicación. Ingresá tu dirección manualmente.');
+            setIsGeocoding(false);
+          }
+        },
+        { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 15000 : 10000, maximumAge: 0 }
+      );
+    };
+
+    tryGeolocation(true, 1);
   }, [isPlatform, locationRequested]);
 
   // Geocodificar dirección cuando cambian address/locality
