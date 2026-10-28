@@ -2,7 +2,19 @@ Analiza toda la pagina, entiende como funciona, y que funciona en render atraves
 
 [Etapa 1]
 Actúa como un diseñador web y de UI experto luego >
-
+Soluciona un bug/problema que al comprar un producto y darle a finalizar compra para ir al cashout aparece
+"Error en la aplicación
+Cannot access 'D' before initialization\n\nReferenceError: Cannot access 'D' before initialization
+    at Am (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:77:229528)
+    at Mo (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:7:16855)
+    at Kl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:43734)
+    at Fl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39515)
+    at Nl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39443)
+    at Ml (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:39298)
+    at bl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:35697)
+    at yl (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:9:34650)
+    at x (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:2:9242)
+    at MessagePort.ne (https://acoyaradas.onrender.com/assets/index-C1LeILPE.js:2:9607) "
 
 
 
