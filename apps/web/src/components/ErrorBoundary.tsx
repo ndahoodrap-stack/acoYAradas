@@ -1,4 +1,5 @@
-import { Component, type ReactNode, type ErrorInfo } from 'react';
+import * as React from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -11,7 +12,8 @@ interface ErrorBoundaryProps {
   fallback?: ReactNode;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// Usar React.Component (namespace import) para evitar colisión de nombres minificados con 'D'
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { hasError: false, error: null, componentStack: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
