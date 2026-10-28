@@ -87,6 +87,52 @@ publicRouter.post(
 );
 
 /* ------------------------------------------------------------------ */
+/* Geocodificación inversa (coords → dirección con número)            */
+/* ------------------------------------------------------------------ */
+import { rateLimitedReverseGeocode, type ReverseGeocodeResult } from '../lib/geocoding.js';
+
+publicRouter.get(
+  '/geocode/reverse',
+  route(async (ctx, req) => {
+    const lat = parseFloat(String(req.query.lat ?? ''));
+    const lng = parseFloat(String(req.query.lng ?? ''));
+
+    if (isNaN(lat) || isNaN(lng)) {
+      throw badRequest('Parámetros lat y lng requeridos');
+    }
+
+    // Validar que esté en zona de Bolívar (aprox)
+    if (lat < -36.5 || lat > -35.8 || lng < -61.5 || lng > -60.5) {
+      throw badRequest('Coordenadas fuera del área de cobertura');
+    }
+
+    const result = await rateLimitedReverseGeocode(lat, lng);
+    if (!result) {
+      return null;
+    }
+
+    // Construir dirección formateada: "Calle Número, Localidad"
+    let formattedAddress = '';
+    if (result.road && result.house_number) {
+      formattedAddress = `${result.road} ${result.house_number}`;
+    } else if (result.road) {
+      formattedAddress = result.road;
+    } else {
+      formattedAddress = result.display_name;
+    }
+
+    return {
+      lat: result.lat,
+      lng: result.lng,
+      formatted_address: formattedAddress,
+      street: result.road,
+      house_number: result.house_number,
+      display_name: result.display_name,
+    };
+  }),
+);
+
+/* ------------------------------------------------------------------ */
 /* Seguimiento en vivo (SSE)                                           */
 /* ------------------------------------------------------------------ */
 publicRouter.get(

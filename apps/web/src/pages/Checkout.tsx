@@ -49,9 +49,28 @@ export default function Checkout() {
         const zone = await detectZoneFromGeolocation();
         if (!cancelled) {
           setDetectedZone(zone);
-          // Usar el centro de Bolívar como fallback, la geolocalización real se maneja en el mapa
-          setMapPosition(BOLIVAR_CENTER);
-          if (!zone) setZoneError('Tu ubicación está fuera de nuestra zona de cobertura');
+          // Usar las coordenadas reales de la geolocalización si están disponibles
+          if (zone?.lng != null && zone?.lat != null) {
+            const position: [number, number] = [zone.lng, zone.lat];
+            setMapPosition(position);
+            // Hacer reverse geocoding para obtener dirección completa con número
+            try {
+              const res = await api.get<{
+                formatted_address: string;
+                street: string | null;
+                house_number: string | null;
+              }>(`/public/geocode/reverse?lat=${zone.lat}&lng=${zone.lng}`);
+              if (res?.formatted_address) {
+                setForm(f => ({ ...f, address: res.formatted_address }));
+              }
+            } catch (err) {
+              console.warn('Reverse geocoding failed on initial load:', err);
+            }
+          } else {
+            // Fallback al centro de Bolívar
+            setMapPosition(BOLIVAR_CENTER);
+          }
+          if (zone?.code === 'fuera_cobertura' || !zone) setZoneError('Tu ubicación está fuera de nuestra zona de cobertura');
         }
       } catch (err) {
         if (!cancelled) {
@@ -71,23 +90,39 @@ export default function Checkout() {
   // Manejar cambio de posición desde el mapa
   const handleMapPositionChange = (position: [number, number], zoneCode: string | null, streetName: string | null) => {
     setMapPosition(position);
-    if (streetName) {
-      // Preserve house number from user input, only update street name
-      setForm(f => {
-        const currentAddress = f.address?.trim() || '';
-        // Extract house number (last numeric part) from current address
-        const numberMatch = currentAddress.match(/\b\d+[A-Za-z]?\b/g);
-        const houseNumber = numberMatch ? numberMatch[numberMatch.length - 1] : '';
-        // Combine detected street with preserved house number
-        const newAddress = houseNumber ? `${streetName} ${houseNumber}` : streetName;
-        // Only update if street name actually changed (don't overwrite user's manual input entirely)
-        const currentStreet = currentAddress.replace(/\s*\b\d+[A-Za-z]?\b\s*$/, '').trim();
-        if (currentStreet.toLowerCase() !== streetName.toLowerCase()) {
-          return { ...f, address: newAddress };
+
+    // Llamar a geocodificación inversa para obtener dirección completa con número
+    const fetchFullAddress = async () => {
+      try {
+        const res = await api.get<{
+          formatted_address: string;
+          street: string | null;
+          house_number: string | null;
+        }>(`/public/geocode/reverse?lat=${position[1]}&lng=${position[0]}`);
+        if (res?.formatted_address) {
+          setForm(f => ({ ...f, address: res.formatted_address }));
         }
-        return f;
-      });
-    }
+      } catch (err) {
+        console.warn('Reverse geocoding failed:', err);
+        // Fallback: usar solo el nombre de la calle detectado
+        if (streetName) {
+          setForm(f => {
+            const currentAddress = f.address?.trim() || '';
+            const numberMatch = currentAddress.match(/\b\d+[A-Za-z]?\b/g);
+            const houseNumber = numberMatch ? numberMatch[numberMatch.length - 1] : '';
+            const newAddress = houseNumber ? `${streetName} ${houseNumber}` : streetName;
+            const currentStreet = currentAddress.replace(/\s*\b\d+[A-Za-z]?\b\s*$/, '').trim();
+            if (currentStreet.toLowerCase() !== streetName.toLowerCase()) {
+              return { ...f, address: newAddress };
+            }
+            return f;
+          });
+        }
+      }
+    };
+
+    fetchFullAddress();
+
     if (zoneCode) {
       // Buscar la zona completa para actualizar el precio
       const zoneInfo = { code: zoneCode, name: '', price: 0 } as ZoneMatch;

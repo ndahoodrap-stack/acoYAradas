@@ -17,6 +17,8 @@ export interface ZoneMatch {
   code: string;      // 'planta_urbana' | 'zona_barrial' | 'zona_rural'
   name: string;      // 'Planta Urbana' | 'Zona Barrial' | 'Zona Rural'
   price: number;     // 3500 | 4300 | 6000
+  lng?: number;      // Longitud detectada
+  lat?: number;      // Latitud detectada
 }
 
 /**
@@ -91,11 +93,11 @@ export async function detectZoneFromGeolocation(): Promise<ZoneMatch | null> {
   for (const code of zoneOrder) {
     const feature = features.find(f => Object.values(f.properties)[0] === code);
     if (feature && pointInPolygon([lng, lat], feature.geometry)) {
-      return { code, ...ZONE_PRICES[code] };
+      return { code, ...ZONE_PRICES[code], lng, lat };
     }
   }
 
-  return null; // Fuera de cobertura
+  return { code: 'fuera_cobertura', name: 'Fuera de cobertura', price: 0, lng, lat }; // Fuera de cobertura
 }
 
 /**
