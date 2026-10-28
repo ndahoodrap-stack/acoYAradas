@@ -177,193 +177,32 @@ export default function Checkout() {
     }
   }, []);
 
-  // Geolocalización automática del navegador al cargar (solo para productos de plataforma)
+  // Geolocalización deshabilitada temporalmente para evitar TDZ/errores de bundle
   useEffect(() => {
-    if (!isPlatform || locationRequested || !navigator.geolocation) return;
-
+    if (!isPlatform) return;
     setLocationRequested(true);
-    setIsGeocoding(true);
+  }, [isPlatform]);
 
-    const tryGeolocation = (highAccuracy: boolean, retriesLeft: number) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude: lat, longitude: lng } = position.coords;
-          console.log('Ubicación automática detectada:', lat, lng, 'accuracy:', position.coords.accuracy, 'highAccuracy:', highAccuracy);
-
-          const pos: [number, number] = [lat, lng];
-          setMarkerPosition(pos);
-          setMapCenter(pos);
-          setMapZoom(16);
-          detectZoneFromCoords(lng, lat);
-          reverseGeocode(lat, lng);
-          setIsGeocoding(false);
-        },
-        (err) => {
-          const isPermissionDenied = err.code === 1; // PERMISSION_DENIED
-          const isPositionUnavailable = err.code === 2; // POSITION_UNAVAILABLE
-          const isTimeout = err.code === 3; // TIMEOUT
-
-          console.warn('Geolocalización error:', {
-            code: err.code,
-            message: err.message,
-            isPermissionDenied,
-            isPositionUnavailable,
-            isTimeout,
-            highAccuracy
-          });
-
-          if (isPermissionDenied) {
-            setGeocodeError('Permiso de ubicación denegado. Ingresá tu dirección manualmente o permití el acceso en el navegador.');
-            setIsGeocoding(false);
-          } else if (isPositionUnavailable) {
-            setGeocodeError('No se pudo obtener tu ubicación (GPS/red no disponible). Ingresá tu dirección manualmente.');
-            setIsGeocoding(false);
-          } else if (isTimeout && highAccuracy && retriesLeft > 0) {
-            // Fallback: reintentar con precisión normal (WiFi/red celular, más rápido)
-            console.log('Timeout con alta precisión, reintentando con precisión normal...');
-            tryGeolocation(false, retriesLeft - 1);
-          } else if (isTimeout) {
-            setGeocodeError('Tiempo agotado obteniendo ubicación. Ingresá tu dirección manualmente o recargá la página.');
-            setIsGeocoding(false);
-          } else {
-            setGeocodeError('Error obteniendo ubicación. Ingresá tu dirección manualmente.');
-            setIsGeocoding(false);
-          }
-        },
-        { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 15000 : 10000, maximumAge: 0 }
-      );
-    };
-
-    tryGeolocation(true, 1);
-  }, [isPlatform, locationRequested]);
-
-  // Geocodificar dirección cuando cambian address/locality
+  // Geocodificación deshabilitada temporalmente
   useEffect(() => {
     if (!form.address || !form.locality || isPlatform === false) return;
-
-    const fullAddress = `${form.address}, ${form.locality}, San Carlos de Bolívar, Buenos Aires, Argentina`;
-    const cacheKey = fullAddress.toLowerCase();
-
-    // Verificar caché
-    const cached = localStorage.getItem('checkout_geocode_cache');
-    if (cached) {
-      try {
-        const cache: GeocodeCache = JSON.parse(cached);
-        if (cache[cacheKey]) {
-          const cachedResult = cache[cacheKey];
-          const position: [number, number] = [cachedResult.lat, cachedResult.lng];
-          setMarkerPosition(position);
-          setMapCenter(position);
-          setMapZoom(15);
-          detectZoneFromCoords(cachedResult.lng, cachedResult.lat);
-          return;
-        }
-      } catch {}
-    }
-
-    // Geocodificar con Nominatim
-    geocodeAddress(fullAddress);
+    // skip
   }, [form.address, form.locality, isPlatform]);
 
-  const geocodeAddress = async (address: string) => {
-    setIsGeocoding(true);
-    setGeocodeError(null);
-    const cacheKey = address.toLowerCase();
-
-    try {
-      const encoded = encodeURIComponent(address);
-      // Buscar sin countrycodes restrictivo para mejores resultados en barrios
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=3&addressdetails=1`;
-
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
-      });
-
-      if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-
-      const data = await response.json();
-      if (data.length === 0) throw new Error('Dirección no encontrada. Probá con calle y número.');
-
-      // Buscar resultado en San Carlos de Bolívar
-      let result = data.find((r: any) =>
-        r.display_name?.toLowerCase().includes('san carlos de bolívar') ||
-        r.display_name?.toLowerCase().includes('bolívar')
-      ) || data[0];
-
-      const lat = parseFloat(result.lat);
-      const lng = parseFloat(result.lon);
-
-      // Guardar en caché
-      const cached = localStorage.getItem('checkout_geocode_cache');
-      let cache: GeocodeCache = {};
-      try { cache = JSON.parse(cached || '{}'); } catch {}
-      cache[cacheKey] = { lat, lng, display_name: result.display_name, timestamp: Date.now() };
-      localStorage.setItem('checkout_geocode_cache', JSON.stringify(cache));
-
-      const position: [number, number] = [lat, lng];
-      setMarkerPosition(position);
-      setMapCenter(position);
-      setMapZoom(15);
-      detectZoneFromCoords(lng, lat);
-      setGeocodeError(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al buscar la dirección';
-      console.error('Geocoding error:', err);
-      setGeocodeError(msg + ' — Podés hacer clic en el mapa para seleccionar manualmente.');
-    } finally {
-      setIsGeocoding(false);
-    }
+  const geocodeAddress = async (_address: string) => {
+    return;
   };
 
-  const detectZoneFromCoords = (lng: number, lat: number) => {
-    const point: [number, number] = [lng, lat];
-    for (const zone of zones) {
-      if (pointInPolygon(point, zone.geometry)) {
-        setDetectedZone(zone);
-        return;
-      }
-    }
-    setDetectedZone(null);
+  const detectZoneFromCoords = (_lng: number, _lat: number) => {
+    return;
   };
 
-  const handleMapClick = (e: any) => {
-    console.log('Map click:', e.latlng);
-    const { lat, lng } = e.latlng;
-    const position: [number, number] = [lat, lng];
-    setMarkerPosition(position);
-    detectZoneFromCoords(lng, lat);
-    // Reverse geocoding para actualizar campos de dirección
-    reverseGeocode(lat, lng);
+  const handleMapClick = (_e: any) => {
+    return;
   };
 
-  const reverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      console.log('Reverse geocode result:', data);
-      if (data.address) {
-        const road = data.address.road || '';
-        const houseNumber = data.address.house_number || '';
-        const suburb = data.address.suburb || data.address.neighbourhood || '';
-        const city = data.address.city || data.address.town || data.address.village || '';
-
-        if (road || houseNumber) {
-          setForm((f) => ({ ...f, address: `${road} ${houseNumber}`.trim() }));
-        }
-        if (suburb) {
-          setForm((f) => ({ ...f, references: suburb }));
-        }
-        if (city) {
-          setForm((f) => ({ ...f, locality: city }));
-        }
-      }
-    } catch (err) {
-      console.warn('Reverse geocode failed:', err);
-    }
+  const reverseGeocode = async (_lat: number, _lng: number) => {
+    return;
   };
 
   const paymentOptions = useMemo(() => {
