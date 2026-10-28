@@ -8,16 +8,6 @@ import { pointInPolygon } from '../lib/zoneDetection';
 // Obtener maplibre-gl del global (cargado via CDN en index.html)
 const maplibregl = typeof window !== 'undefined' ? (window as any).maplibregl : null;
 
-// Registrar protocolo PMTiles (una sola vez, solo en cliente)
-if (typeof window !== 'undefined' && maplibregl) {
-  try {
-    maplibregl.addProtocol('pmtiles', new Protocol());
-    console.log('[PMTiles] Protocol registered successfully');
-  } catch (e) {
-    console.error('[PMTiles] Failed to register protocol:', e);
-  }
-}
-
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
   detectedZone: ZoneMatch | null;
@@ -52,6 +42,20 @@ export function AddressVerificationMap({
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+
+  // Registrar protocolo PMTiles cuando el componente monta (CDN ya cargado)
+  useEffect(() => {
+    if (maplibregl) {
+      try {
+        maplibregl.addProtocol('pmtiles', new Protocol());
+        console.log('[PMTiles] Protocol registered successfully');
+      } catch (e) {
+        console.error('[PMTiles] Failed to register protocol:', e);
+      }
+    } else {
+      console.error('[PMTiles] maplibregl not available on window');
+    }
+  }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
   // Uses zoneFeaturesRef populated from the vector tiles on map load
