@@ -305,7 +305,7 @@ export default function Checkout() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
-        console.log('Ubicación automática detectada:', lat, lng);
+        console.log('Ubicación automática detectada:', lat, lng, 'accuracy:', position.coords.accuracy);
 
         const pos: [number, number] = [lat, lng];
         setMarkerPosition(pos);
@@ -316,11 +316,30 @@ export default function Checkout() {
         setIsGeocoding(false);
       },
       (err) => {
-        console.warn('Geolocalización denegada o falló:', err.message);
+        const isPermissionDenied = err.code === 1; // PERMISSION_DENIED
+        const isPositionUnavailable = err.code === 2; // POSITION_UNAVAILABLE
+        const isTimeout = err.code === 3; // TIMEOUT
+
+        console.warn('Geolocalización error:', {
+          code: err.code,
+          message: err.message,
+          isPermissionDenied,
+          isPositionUnavailable,
+          isTimeout
+        });
+
+        if (isPermissionDenied) {
+          setGeocodeError('Permiso de ubicación denegado. Ingresá tu dirección manualmente o permití el acceso en el navegador.');
+        } else if (isPositionUnavailable) {
+          setGeocodeError('No se pudo obtener tu ubicación (GPS/red no disponible). Ingresá tu dirección manualmente.');
+        } else if (isTimeout) {
+          setGeocodeError('Tiempo agotado obteniendo ubicación. Ingresá tu dirección manualmente o recargá la página.');
+        } else {
+          setGeocodeError('Error obteniendo ubicación. Ingresá tu dirección manualmente.');
+        }
         setIsGeocoding(false);
-        // Fallback: seguir con entrada manual de dirección
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }, [isPlatform, locationRequested]);
 
