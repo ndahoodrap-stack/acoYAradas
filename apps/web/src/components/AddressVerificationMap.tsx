@@ -506,30 +506,28 @@ export function AddressVerificationMap({
     );
   }
 
-  // Simple raster tile style for MapLibre - using CartoDB (free, no API key, generous limits)
+  // Simple raster tile style for MapLibre - using OSM tile servers with proper attribution
+  // Using tile.openstreetmap.org which is the official OSM tile server (not blocked like osm.org)
   const osmStyle = {
     version: 8,
     sources: {
-      carto: {
+      osm: {
         type: 'raster',
         tiles: [
-          'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         ],
         tileSize: 256,
-        attribution: '© CARTO, © OpenStreetMap contributors',
-        maxzoom: 20,
+        attribution: '© OpenStreetMap contributors',
+        maxzoom: 19,
       },
     },
     layers: [
       {
-        id: 'carto-layer',
+        id: 'osm-layer',
         type: 'raster',
-        source: 'carto',
+        source: 'osm',
         minzoom: 0,
-        maxzoom: 20,
+        maxzoom: 19,
       },
     ],
   };
