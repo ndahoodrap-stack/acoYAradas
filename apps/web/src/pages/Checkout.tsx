@@ -69,8 +69,12 @@ export default function Checkout() {
   }, []);
 
   // Manejar cambio de posición desde el mapa
-  const handleMapPositionChange = (position: [number, number], zoneCode: string | null) => {
+  const handleMapPositionChange = (position: [number, number], zoneCode: string | null, streetName: string | null) => {
     setMapPosition(position);
+    if (streetName && !form.address.includes(streetName)) {
+      // Autocompletar la dirección con la calle detectada
+      setForm(f => ({ ...f, address: streetName }));
+    }
     if (zoneCode) {
       // Buscar la zona completa para actualizar el precio
       const zoneInfo = { code: zoneCode, name: '', price: 0 } as ZoneMatch;

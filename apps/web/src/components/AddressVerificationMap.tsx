@@ -3,6 +3,7 @@ import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
+import { pointInPolygon } from '../lib/zoneDetection';
 
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
@@ -10,7 +11,7 @@ interface AddressVerificationMapProps {
   /** Current marker position [lng, lat] */
   position: [number, number] | null;
   /** Called when user drags the marker to a new position */
-  onPositionChange: (position: [number, number], zoneCode: string | null) => void;
+  onPositionChange: (position: [number, number], zoneCode: string | null, streetName: string | null) => void;
   /** Whether the map is loading */
   loading?: boolean;
   /** Map loading error (network, tiles, etc.) - shows full error screen */
@@ -39,6 +40,8 @@ export function AddressVerificationMap({
     zoom: ZOOM.CITY,
   });
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [zoneFeatures, setZoneFeatures] = useState<any[]>([]);
+  const [streetsData, setStreetsData] = useState<any>(null);
   const mapRef = useRef<Map | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
@@ -67,6 +70,9 @@ export function AddressVerificationMap({
         const res = await fetch('/bolivar-calles-simplified.geojson');
         if (!res.ok) throw new Error('Failed to load streets');
         const streetsData = await res.json();
+
+        // Store for client-side street detection
+        setStreetsData(streetsData);
 
         // Add streets source
         if (!map.getSource('bolivar-streets')) {
@@ -156,6 +162,9 @@ export function AddressVerificationMap({
             }
           };
         });
+
+        // Store for client-side zone detection
+        setZoneFeatures(processedFeatures);
 
         const processedData = {
           ...zonesData,
@@ -248,48 +257,84 @@ export function AddressVerificationMap({
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
       markerRef.current.setLngLat(position);
       // Re-detect zone at new position
-      if (mapRef.current?.getMap()) {
-        detectZoneAtPosition(mapRef.current.getMap(), position);
-      }
+      detectZoneAtPosition(position);
     }
-  }, [position]);
+  }, [position, detectZoneAtPosition]);
 
-  // Detect zone at a given position using the zone boundaries
-  const detectZoneAtPosition = useCallback(async (map: any, lngLat: [number, number]) => {
-    if (!map.getSource('delivery-zones')) return;
-
+  // Detect zone at a given position using client-side point-in-polygon
+  const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
     try {
-      // Query rendered features at the point
-      const point = map.project(lngLat);
-      const features = map.queryRenderedFeatures(point, {
-        layers: ['zone-fill-planta_urbana', 'zone-fill-zona_barrial', 'zone-fill-zona_rural'],
-      });
-
-      // Priority: planta_urbana > zona_barrial > zona_rural
+      // Client-side zone detection using pointInPolygon (same as server)
+      // Priority: planta_urbana > zona_barrial > zona_rural (smallest first for nested polygons)
       const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
 
+      let detectedZoneCode: string | null = null;
+
       for (const code of zoneOrder) {
-        const found = features.find(f => f.layer.id === `zone-fill-${code}`);
-        if (found) {
-          onPositionChange(lngLat, code);
-          return;
+        const feature = zoneFeatures.find(f => f.properties?.zone_code === code);
+        if (feature && pointInPolygon(lngLat, feature.geometry)) {
+          detectedZoneCode = code;
+          break;
         }
       }
 
-      // No zone found
-      onPositionChange(lngLat, null);
+      // Detect nearest street for autocomplete
+      let detectedStreet: string | null = null;
+      if (streetsData?.features) {
+        let minDistance = Infinity;
+        for (const feature of streetsData.features) {
+          if (!feature.properties?.name || feature.geometry?.type !== 'LineString') continue;
+
+          const coords = feature.geometry.coordinates;
+          // Find distance to nearest point on the line
+          for (let i = 0; i < coords.length - 1; i++) {
+            const [lng1, lat1] = coords[i];
+            const [lng2, lat2] = coords[i + 1];
+
+            // Distance from point to line segment
+            const A = lngLat[0] - lng1;
+            const B = lngLat[1] - lat1;
+            const C = lng2 - lng1;
+            const D = lat2 - lat1;
+
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+
+            let xx, yy;
+            if (param < 0) { xx = lng1; yy = lat1; }
+            else if (param > 1) { xx = lng2; yy = lat2; }
+            else { xx = lng1 + param * C; yy = lat1 + param * D; }
+
+            const dx = lngLat[0] - xx;
+            const dy = lngLat[1] - yy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDistance) {
+              minDistance = dist;
+              detectedStreet = feature.properties.name;
+            }
+          }
+        }
+        // Only use street if reasonably close (within ~50 meters at this latitude)
+        if (minDistance > 0.0005) detectedStreet = null;
+      }
+
+      onPositionChange(lngLat, detectedZoneCode, detectedStreet);
     } catch (err) {
       console.warn('Zone detection error:', err);
+      onPositionChange(lngLat, null, null);
     }
-  }, [onPositionChange]);
+  }, [onPositionChange, zoneFeatures, streetsData]);
 
   // Handle marker drag end
   const handleDragEnd = useCallback(() => {
-    if (markerRef.current && mapRef.current?.getMap()) {
+    if (markerRef.current) {
       const ll = markerRef.current.getLngLat();
       const lngLat = ll?.toArray?.() ?? [ll?.lng, ll?.lat];
       if (lngLat && !Number.isNaN(lngLat[0]) && !Number.isNaN(lngLat[1])) {
-        detectZoneAtPosition(mapRef.current.getMap(), lngLat);
+        detectZoneAtPosition(lngLat);
       }
     }
   }, [detectZoneAtPosition]);
@@ -300,9 +345,9 @@ export function AddressVerificationMap({
     const lngLat = e.lngLat?.toArray?.() ?? [e.lngLat?.lng, e.lngLat?.lat];
     if (!lngLat || Number.isNaN(lngLat[0]) || Number.isNaN(lngLat[1])) return;
     // Move marker immediately, zone detection will happen async via detectZoneAtPosition
-    if (markerRef.current && mapRef.current?.getMap()) {
+    if (markerRef.current) {
       markerRef.current.setLngLat(lngLat);
-      detectZoneAtPosition(mapRef.current.getMap(), lngLat);
+      detectZoneAtPosition(lngLat);
     }
   }, [detectZoneAtPosition]);
 
