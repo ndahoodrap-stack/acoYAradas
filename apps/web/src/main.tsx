@@ -1,3 +1,4 @@
+import './leafletSetup';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,7 +8,6 @@ import { SessionProvider } from './lib/session';
 import { CartProvider } from './lib/cart';
 import { ToastProvider } from './components/Toast';
 import './index.css';
-import './leafletSetup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
