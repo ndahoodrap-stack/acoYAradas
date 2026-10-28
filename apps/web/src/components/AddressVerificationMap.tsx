@@ -131,10 +131,35 @@ export function AddressVerificationMap({
         if (!res.ok) throw new Error('Failed to load zones');
         const zonesData = await res.json();
 
+        // Add a consistent zone_code property to each feature for filtering
+        // The original GeoJSON has different property keys: "Planta Urbana", "Zona Barrial", "Zona Rural"
+        const processedFeatures = zonesData.features.map((f: any) => {
+          const props = f.properties || {};
+          // Find the property value that matches a zone code
+          const zoneCode = Object.values(props).find(v =>
+            ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
+          );
+          return {
+            ...f,
+            properties: {
+              ...props,
+              zone_code: zoneCode || null,
+              name: props['Planta Urbana'] ? 'Planta Urbana' :
+                    props['Zona Barrial'] ? 'Zona Barrial' :
+                    props['Zona Rural'] ? 'Zona Rural' : ''
+            }
+          };
+        });
+
+        const processedData = {
+          ...zonesData,
+          features: processedFeatures
+        };
+
         if (!map.getSource('delivery-zones')) {
           map.addSource('delivery-zones', {
             type: 'geojson',
-            data: zonesData,
+            data: processedData,
           });
         }
 
@@ -154,14 +179,14 @@ export function AddressVerificationMap({
               paint: {
                 'fill-color': zoneStyle.fillColor,
                 'fill-opacity': zoneStyle.fillOpacity,
-                'fill-outline-color': zoneStyle.borderColor,
+                // Remove fill-outline-color to avoid white square artifacts
               },
-              filter: ['==', ['get', code], code],
+              filter: ['==', ['get', 'zone_code'], code],
             });
           }
         });
 
-        // Add zone border layers on top
+        // Add zone border layers on top (separate line layer for clean borders)
         zoneOrder.forEach((code) => {
           const zoneStyle = getZoneStyle(code);
           if (!zoneStyle) return;
@@ -176,7 +201,7 @@ export function AddressVerificationMap({
                 'line-color': zoneStyle.borderColor,
                 'line-width': zoneStyle.borderWidth,
               },
-              filter: ['==', ['get', code], code],
+              filter: ['==', ['get', 'zone_code'], code],
             });
           }
         });
@@ -199,6 +224,7 @@ export function AddressVerificationMap({
               'text-halo-width': 2,
             },
             minzoom: 12,
+            filter: ['has', 'zone_code'],
           });
         }
 
@@ -262,8 +288,12 @@ export function AddressVerificationMap({
   // Handle map click to move marker
   const handleMapClick = useCallback((e: any) => {
     const lngLat = e.lngLat as [number, number];
-    onPositionChange(lngLat, null); // Zone will be detected async
-  }, [onPositionChange]);
+    // Move marker immediately, zone detection will happen async via detectZoneAtPosition
+    if (markerRef.current && mapRef.current?.getMap()) {
+      markerRef.current.setLngLat(lngLat);
+      detectZoneAtPosition(mapRef.current.getMap(), lngLat);
+    }
+  }, [detectZoneAtPosition]);
 
   // Show loading state
   if (loading) {
