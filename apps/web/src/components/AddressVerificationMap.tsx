@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import { Protocol } from 'pmtiles';
-import * as maplibregl from 'maplibre-gl';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
-// Configurar maplibre-gl ESM (la misma instancia que usa react-map-gl/maplibre)
+// Cargar maplibre-gl ESM dinámicamente para poder mutar workerCount y registrar protocolo
+// (top-level await requiere "type": "module" en package.json, ya configurado)
+const maplibregl = await import('maplibre-gl');
 maplibregl.workerCount = 0;
 maplibregl.addProtocol('pmtiles', new Protocol());
 console.log('[maplibre-gl] ESM configured: workerCount=0, pmtiles protocol registered');
