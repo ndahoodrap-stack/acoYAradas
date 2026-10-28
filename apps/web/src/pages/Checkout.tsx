@@ -329,18 +329,24 @@ export default function Checkout() {
 
     try {
       const encoded = encodeURIComponent(address);
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1&countrycodes=ar`;
+      // Buscar sin countrycodes restrictivo para mejores resultados en barrios
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=3&addressdetails=1`;
 
       const response = await fetch(url, {
         headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
       });
 
-      if (!response.ok) throw new Error('Error en geocodificación');
+      if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
 
       const data = await response.json();
-      if (data.length === 0) throw new Error('Dirección no encontrada');
+      if (data.length === 0) throw new Error('Dirección no encontrada. Probá con calle y número.');
 
-      const result = data[0];
+      // Buscar resultado en San Carlos de Bolívar
+      let result = data.find((r: any) =>
+        r.display_name?.toLowerCase().includes('san carlos de bolívar') ||
+        r.display_name?.toLowerCase().includes('bolívar')
+      ) || data[0];
+
       const lat = parseFloat(result.lat);
       const lng = parseFloat(result.lon);
 
@@ -356,8 +362,11 @@ export default function Checkout() {
       setMapCenter(position);
       setMapZoom(15);
       detectZoneFromCoords(lng, lat);
+      setGeocodeError(null);
     } catch (err) {
-      setGeocodeError(err instanceof Error ? err.message : 'Error al buscar la dirección');
+      const msg = err instanceof Error ? err.message : 'Error al buscar la dirección';
+      console.error('Geocoding error:', err);
+      setGeocodeError(msg + ' — Podés hacer clic en el mapa para seleccionar manualmente.');
     } finally {
       setIsGeocoding(false);
     }
@@ -375,6 +384,7 @@ export default function Checkout() {
   };
 
   const handleMapClick = (e: L.LeafletMouseEvent) => {
+    console.log('Map click:', e.latlng);
     const { lat, lng } = e.latlng;
     const position: [number, number] = [lat, lng];
     setMarkerPosition(position);
@@ -596,6 +606,27 @@ export default function Checkout() {
                   ))}
                 </div>
               )}
+
+              {/* Selector manual de zona (respaldo) */}
+              <Field label="Zona de entrega (manual)" hint="Si el mapa no detecta tu zona, seleccionala aquí">
+                <select
+                  className="input"
+                  value={detectedZone?.code || ''}
+                  onChange={(e) => {
+                    const code = e.target.value;
+                    const zone = zones.find(z => z.code === code);
+                    if (zone) setDetectedZone(zone);
+                    else setDetectedZone(null);
+                  }}
+                >
+                  <option value="">-- Seleccionar zona --</option>
+                  {zones.map((zone) => (
+                    <option key={zone.code} value={zone.code}>
+                      {zone.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </section>
           )}
 
