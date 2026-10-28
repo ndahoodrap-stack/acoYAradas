@@ -11,25 +11,22 @@
     <link rel="icon" type="image/svg+xml" href="/placeholders/logo-aco.svg" />
     <title>acoYAradas! - Comercios de tu zona</title>
     <!-- maplibre-gl UMD build v4 (con worker inline, CORS OK via jsdelivr) -->
-    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js" id="maplibre-script"></script>
     <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script>
       // Desactivar worker ANTES de que maplibre-gl lo intente crear
       window.MAPLIBRE_GL_NO_WORKER = true;
-      // Interceptor para desactivar workers cuando UMD cargue
-      let _maplibregl = null;
-      Object.defineProperty(window, 'maplibregl', {
-        configurable: true,
-        set: function(val) {
-          _maplibregl = val;
-          if (val && val.workerCount !== undefined) {
-            val.workerCount = 0;
-          }
-        },
-        get: function() {
-          return _maplibregl;
+      // Cuando el script UMD cargue, desactivar workerCount
+      const script = document.getElementById('maplibre-script');
+      script.onload = () => {
+        if (window.maplibregl && window.maplibregl.workerCount !== undefined) {
+          window.maplibregl.workerCount = 0;
+          console.log('[maplibre-gl] UMD loaded, workerCount=0');
         }
-      });
+      };
+      script.onerror = () => {
+        console.error('[maplibre-gl] Failed to load UMD script');
+      };
     </script>
   </head>
   <body>
