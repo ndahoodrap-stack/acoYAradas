@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
-
-// Obtener maplibre-gl del global (cargado via CDN en index.html)
-const maplibregl = typeof window !== 'undefined' ? (window as any).maplibregl : null;
 
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
@@ -43,17 +42,13 @@ export function AddressVerificationMap({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Registrar protocolo PMTiles cuando el componente monta (CDN ya cargado)
+  // Registrar protocolo PMTiles cuando el componente monta (import ya resuelto)
   useEffect(() => {
-    if (maplibregl) {
-      try {
-        maplibregl.addProtocol('pmtiles', new Protocol());
-        console.log('[PMTiles] Protocol registered successfully');
-      } catch (e) {
-        console.error('[PMTiles] Failed to register protocol:', e);
-      }
-    } else {
-      console.error('[PMTiles] maplibregl not available on window');
+    try {
+      maplibregl.addProtocol('pmtiles', new Protocol());
+      console.log('[PMTiles] Protocol registered successfully');
+    } catch (e) {
+      console.error('[PMTiles] Failed to register protocol:', e);
     }
   }, []);
 
