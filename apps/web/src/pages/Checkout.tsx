@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import * as L from 'leaflet';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, tokens } from '../lib/api';
@@ -46,16 +47,6 @@ const ZONE_COLORS: Record<string, string> = {
   zona_rural: '#ef4444',       // rojo
 };
 
-// Icono custom para evitar colisión de minificación con L.Icon.Default (renombrado a 'D' en bundle)
-// Ver: ErrorBoundary.tsx comentario sobre "colisión de nombres minificados con 'D'"
-const USER_LOCATION_ICON = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
 
 function DeliveryMap({
   center,
@@ -74,6 +65,23 @@ function DeliveryMap({
 }) {
   const mapRef = useRef<L.Map | null>(null);
   const clickHandlerRef = useRef(onClick);
+
+  // Icono creado en render (useMemo) → evita TDZ de L.Icon en bundle minificado
+  // El minificador puede renombrar L.Icon a 'D'; instanciarlo en cuerpo de módulo
+  // causa "Cannot access 'D' before initialization". useMemo se ejecuta tras
+  // la evaluación completa de todos los módulos.
+  const userLocationIcon = useMemo(
+    () =>
+      new L.Icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      }),
+    []
+  );
 
   // Mantener referencia actualizada al handler
   useEffect(() => {
@@ -169,7 +177,7 @@ function DeliveryMap({
       />
       {/* Polígonos de zonas se añaden vía useEffect */}
       {markerPosition && (
-        <Marker position={markerPosition} icon={USER_LOCATION_ICON}>
+        <Marker position={markerPosition} icon={userLocationIcon}>
           <Popup>
             <strong>Tu ubicación</strong><br />
             Haz clic en el mapa para mover el marcador
