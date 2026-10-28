@@ -62,24 +62,26 @@ function DeliveryMap({
   detectedZone: ZoneGeometry | null;
   zones: ZoneGeometry[];
   markerPosition: [number, number] | null;
-  onClick: (e: L.LeafletMouseEvent) => void;
+  onClick: (e: any) => void;
 }) {
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<any>(null);
   const clickHandlerRef = useRef(onClick);
+  const L = (typeof window !== 'undefined' && (window as any).L) ? (window as any).L : null;
 
-  // Icono creado en render (useMemo) → evita TDZ de L.Icon en bundle minificado
-  // El minificador puede renombrar L.Icon a 'D'; instanciarlo en cuerpo de módulo
-  // causa "Cannot access 'D' before initialization". useMemo se ejecuta tras
-  // la evaluación completa de todos los módulos.
   const userLocationIcon = useMemo(() => {
-    return new L.Icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
-    });
+    if (!L || !L.Icon) return undefined as any;
+    try {
+      return new L.Icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+    } catch {
+      return undefined as any;
+    }
   }, []);
 
   // Mantener referencia actualizada al handler
