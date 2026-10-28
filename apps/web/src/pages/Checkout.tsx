@@ -159,8 +159,8 @@ function DeliveryMap({
       whenReady={() => { /* map is available via mapRef.current */ }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
+        url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=b430d31a-db82-47b8-b86d-5338128e66e2"
       />
       {/* Polígonos de zonas se añaden vía useEffect */}
       {markerPosition && (
