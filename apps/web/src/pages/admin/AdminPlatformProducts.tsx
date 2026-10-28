@@ -21,6 +21,32 @@ interface PlatformProduct {
   status: string;
 }
 
+interface PlatformStore {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  locality: string | null;
+  zone_id: string | null;
+  preparation_time_minutes: number | null;
+  allows_platform_delivery: boolean;
+  allows_merchant_delivery: boolean;
+  allows_pickup: boolean;
+  merchant_delivery_fee: number;
+  merchant_delivery_notes: string | null;
+  accepts_cash: boolean;
+  accepts_transfer: boolean;
+  accepts_cash_on_delivery: boolean;
+  open_hours: Record<string, any>;
+  status: string;
+  is_open: boolean;
+  featured: boolean;
+  verified: boolean;
+}
+
 const EMPTY_FORM = {
   name: '',
   description: '',
@@ -44,9 +70,19 @@ export default function AdminPlatformProducts() {
     queryFn: () => api.get<{ items: PlatformProduct[] }>('/admin/platform-products'),
   });
 
+  const { data: platformStore, refetch: refetchStore } = useQuery({
+    queryKey: ['admin-platform-store'],
+    queryFn: () => api.get<PlatformStore | null>('/admin/platform-store'),
+  });
+
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.get<{ items: { id: string; name: string }[] }>('/categories'),
+  });
+
+  const { data: zones } = useQuery({
+    queryKey: ['admin-zones'],
+    queryFn: () => api.get<{ items: { id: string; name: string; code: string }[] }>('/admin/zones'),
   });
 
   const invalidate = async () => {
@@ -88,6 +124,15 @@ export default function AdminPlatformProducts() {
     onError: (err) => setMessage((err as Error).message),
   });
 
+  const updateStore = useMutation({
+    mutationFn: (body: Partial<PlatformStore>) => api.patch('/admin/platform-store', body),
+    onSuccess: async () => {
+      setMessage('Tienda de plataforma actualizada.');
+      await refetchStore();
+    },
+    onError: (err) => setMessage((err as Error).message),
+  });
+
   if (isLoading) return <Spinner />;
   if (error) {
     return <ErrorState message={(error as Error).message} onRetry={() => void refetch()} />;
@@ -118,6 +163,196 @@ export default function AdminPlatformProducts() {
       {message ? (
         <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
+
+      {/* Configuración de la tienda acoYAradas (plataforma) */}
+      <SectionTitle title="Configuración de acoYAradas!" subtitle="Tienda oficial para productos no afiliados y envíos de plataforma" />
+      <div className="card p-5 space-y-4">
+        {platformStore ? (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Nombre">
+                <input
+                  className="input"
+                  value={platformStore.name}
+                  onChange={(e) => updateStore.mutate({ name: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Teléfono">
+                <input
+                  className="input"
+                  value={platformStore.phone ?? ''}
+                  onChange={(e) => updateStore.mutate({ phone: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  className="input"
+                  type="email"
+                  value={platformStore.email ?? ''}
+                  onChange={(e) => updateStore.mutate({ email: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Localidad">
+                <input
+                  className="input"
+                  value={platformStore.locality ?? ''}
+                  onChange={(e) => updateStore.mutate({ locality: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Dirección">
+                <input
+                  className="input"
+                  value={platformStore.address ?? ''}
+                  onChange={(e) => updateStore.mutate({ address: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Tiempo de preparación (min)">
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  max={480}
+                  value={platformStore.preparation_time_minutes ?? ''}
+                  onChange={(e) => updateStore.mutate({ preparation_time_minutes: Number(e.target.value) || null })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Costo de envío base (ARS)">
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={platformStore.merchant_delivery_fee ?? ''}
+                  onChange={(e) => updateStore.mutate({ merchant_delivery_fee: Number(e.target.value) || 0 })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Notas de envío">
+                <input
+                  className="input"
+                  value={platformStore.merchant_delivery_notes ?? ''}
+                  onChange={(e) => updateStore.mutate({ merchant_delivery_notes: e.target.value })}
+                  disabled={updateStore.isPending}
+                />
+              </Field>
+              <Field label="Zona de cobertura">
+                <select
+                  className="input"
+                  value={platformStore.zone_id ?? ''}
+                  onChange={(e) => updateStore.mutate({ zone_id: e.target.value || null })}
+                  disabled={updateStore.isPending}
+                >
+                  <option value="">Sin zona asignada</option>
+                  {(zones?.items ?? []).map((zone: any) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.code})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.allows_platform_delivery}
+                  onChange={(e) => updateStore.mutate({ allows_platform_delivery: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Permitir entrega por acoYAradas!
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.allows_merchant_delivery}
+                  onChange={(e) => updateStore.mutate({ allows_merchant_delivery: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Permitir entrega propia
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.allows_pickup}
+                  onChange={(e) => updateStore.mutate({ allows_pickup: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Permitir retiro en local
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.accepts_cash}
+                  onChange={(e) => updateStore.mutate({ accepts_cash: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Acepta efectivo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.accepts_transfer}
+                  onChange={(e) => updateStore.mutate({ accepts_transfer: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Acepta transferencia
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                  checked={platformStore.accepts_cash_on_delivery}
+                  onChange={(e) => updateStore.mutate({ accepts_cash_on_delivery: e.target.checked })}
+                  disabled={updateStore.isPending}
+                />
+                Acepta contraentrega
+              </label>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className={`badge ${platformStore.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-ink-200 text-ink-600'}`}>
+                Estado: {platformStore.status}
+              </span>
+              <span className={`badge ${platformStore.is_open ? 'bg-blue-100 text-blue-800' : 'bg-ink-200 text-ink-600'}`}>
+                {platformStore.is_open ? 'Abierto' : 'Cerrado'}
+              </span>
+            </div>
+            <Field label="Horarios de apertura (JSON)">
+              <textarea
+                className="input font-mono text-sm"
+                rows={6}
+                placeholder='{"monday": {"open": "09:00", "close": "18:00"}, "tuesday": {"open": "09:00", "close": "18:00"}, "wednesday": {"open": "09:00", "close": "18:00"}, "thursday": {"open": "09:00", "close": "18:00"}, "friday": {"open": "09:00", "close": "18:00"}, "saturday": {"open": "09:00", "close": "14:00"}, "sunday": {"open": null, "close": null}}'
+                value={platformStore.open_hours ? JSON.stringify(platformStore.open_hours, null, 2) : ''}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value);
+                    updateStore.mutate({ open_hours: parsed });
+                  } catch {
+                    // Ignore invalid JSON while typing
+                  }
+                }}
+                disabled={updateStore.isPending}
+              />
+              <p className="text-xs text-ink-500 mt-1">Formato JSON. Usa null para días cerrados.</p>
+            </Field>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-ink-500">
+            <p>Tienda de plataforma no encontrada. Se creará automáticamente al recibir el primer pedido de producto no afiliado.</p>
+            <p className="text-xs mt-1">O créala manualmente desde la base de datos con slug 'acoyaradas'.</p>
+          </div>
+        )}
+      </div>
 
       <DataTable
         headers={['Producto', 'Precio', 'Stock', 'Categoría', 'Estado', 'Acciones']}

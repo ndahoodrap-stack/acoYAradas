@@ -1,0 +1,102 @@
+// 1. IMPORTANTE: Asegurate de incluir Turf.js en tu proyecto.
+// Si usás HTML directo, agregá esto en tu <head>: <script src="https://jsdelivr.net"></script>
+// Si usás Node.js / React / Vue, instalalo con: npm install @turf/turf
+
+// Tus datos geográficos de San Carlos de Bolívar provistos en el archivo
+const mapaBolivarGeoJSON = {
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id_zona": "planta_urbana", "nombre": "Planta Urbana" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.129916,-36.230041],[-61.114462,-36.241843],[-61.099771,-36.2294],[-61.115089,-36.217481],[-61.129916,-36.230041]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id_zona": "zona_barrial", "nombre": "Zona Barrial" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.152535,-36.236374],[-61.135313,-36.249641],[-61.120881,-36.260113],[-61.07742,-36.223304],[-61.108331,-36.198925],[-61.152535,-36.236374]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id_zona": "zona_rural", "nombre": "Zona Rural" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.184035,-36.237076],[-61.121265,-36.284151],[-61.054364,-36.2275],[-61.115774,-36.179238],[-61.184035,-36.237076]]]
+      }
+    }
+  ]
+};
+
+/**
+ * Detecta la zona de entrega basándose en la latitud y longitud.
+ * @param {number} latitud - Ejemplo: -36.2312
+ * @param {number} longitud - Ejemplo: -61.1145
+ * @returns {Object} Datos de la zona asignada y configuraciones de envío.
+ */
+function calcularZonaDeEnvio(latitud, longitud) {
+    // Turf utiliza el formato estandarizado [Longitud, Latitud]
+    const puntoPedido = turf.point([longitud, latitud]);
+
+    // Extraemos las zonas individuales de nuestro mapa
+    const plantaUrbana = mapaBolivarGeoJSON.features[0];
+    const zonaBarrial = mapaBolivarGeoJSON.features[1];
+    const zonaRural = mapaBolivarGeoJSON.features[2];
+
+    // EVALUACIÓN DE ADENTRO HACIA AFUERA
+    
+    // 1. ¿Está en la Planta Urbana?
+    if (turf.booleanPointInPolygon(puntoPedido, plantaUrbana)) {
+        return {
+            zona: "planta_urbana",
+            descripcion: "Planta Urbana / Centro",
+            costoEnvio: 300, // Ajustá acá el valor real de tu tarifa de centro
+            permiteEnvio: true
+        };
+    }
+    
+    // 2. ¿Está en los Barrios periféricos?
+    if (turf.booleanPointInPolygon(puntoPedido, zonaBarrial)) {
+        return {
+            zona: "zona_barrial",
+            descripcion: "Zona Barrial / Periferia",
+            costoEnvio: 500, // Ajustá acá el costo para barrios
+            permiteEnvio: true
+        };
+    }
+    
+    // 3. ¿Está en el cuadrante rural que dibujaste?
+    if (turf.booleanPointInPolygon(puntoPedido, zonaRural)) {
+        return {
+            zona: "zona_rural",
+            descripcion: "Zona Rural / Quintas",
+            costoEnvio: 900, // Ajustá acá el costo de logística rural
+            permiteEnvio: true // Cambiá a false si directamente no enviás acá
+        };
+    }
+
+    // 4. Si no cayó en ninguno de tus tres anillos
+    return {
+        zona: "fuera_de_rango",
+        descripcion: "Fuera de la zona de cobertura",
+        costoEnvio: 0,
+        permiteEnvio: false
+    };
+}
+
+// ==========================================
+// EJEMPLOS DE USO PRÁCTICO
+// ==========================================
+
+// Ejemplo 1: Un pedido en pleno centro de Bolívar (Plaza Alsina aprox.)
+const resultadoPedido1 = calcularZonaDeEnvio(-36.2305, -61.1130);
+console.log("Pedido 1:", resultadoPedido1.descripcion, `-> Costo: $${resultadoPedido1.costoEnvio}`);
+
+// Ejemplo 2: Un pedido fuera del mapa (Camino a Hale / Carlos Casares)
+const resultadoPedido2 = calcularZonaDeEnvio(-36.3500, -61.0100);
+console.log("Pedido 2:", resultadoPedido2.descripcion, `-> ¿Hacemos envíos?: ${resultadoPedido2.permiteEnvio ? 'Sí' : 'No'}`);

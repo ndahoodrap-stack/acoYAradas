@@ -2186,3 +2186,95 @@ adminRouter.delete(
     });
   }),
 );
+
+/* ------------------------------------------------------------------ */
+/* Tienda de plataforma (acoYAradas) para productos no afiliados       */
+/* ------------------------------------------------------------------ */
+adminRouter.get(
+  '/platform-store',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    return run(ctx, async (tx) => {
+      const { rows } = await tx.query(
+        `select id, name, slug, description, phone, email, address, locality, zone_id,
+                preparation_time_minutes, allows_platform_delivery, allows_merchant_delivery, allows_pickup,
+                merchant_delivery_fee, merchant_delivery_notes, accepts_cash, accepts_transfer, accepts_cash_on_delivery,
+                open_hours, status, is_open, featured, verified
+           from public.stores
+          where slug = 'acoyaradas' and deleted_at is null
+          limit 1`,
+      );
+      return rows[0] ?? null;
+    });
+  }),
+);
+
+adminRouter.patch(
+  '/platform-store',
+  route(async (ctx) => {
+    requireAdmin(ctx);
+    const body = validate(
+      z.object({
+        name: z.string().min(1).max(120).optional(),
+        description: z.string().max(2000).optional().or(z.literal('')),
+        phone: z.string().max(50).optional().or(z.literal('')),
+        email: z.string().email().optional().or(z.literal('')),
+        address: z.string().max(500).optional().or(z.literal('')),
+        locality: z.string().max(120).optional().or(z.literal('')),
+        zone_id: z.string().uuid().nullable().optional(),
+        preparation_time_minutes: z.number().int().min(0).max(480).optional(),
+        allows_platform_delivery: z.boolean().optional(),
+        allows_merchant_delivery: z.boolean().optional(),
+        allows_pickup: z.boolean().optional(),
+        merchant_delivery_fee: z.number().min(0).optional(),
+        merchant_delivery_notes: z.string().max(500).optional().or(z.literal('')),
+        accepts_cash: z.boolean().optional(),
+        accepts_transfer: z.boolean().optional(),
+        accepts_cash_on_delivery: z.boolean().optional(),
+        open_hours: z.record(z.string(), z.any()).optional(),
+        status: z.enum(['active', 'pending', 'suspended', 'rejected']).optional(),
+        is_open: z.boolean().optional(),
+        featured: z.boolean().optional(),
+      }),
+      ctx.req.body,
+    );
+    return run(ctx, async (tx) => {
+      const fields: string[] = [];
+      const vals: any[] = [];
+      let i = 1;
+      const push = (col: string, v: any) => {
+        fields.push(`${col} = $${i++}`);
+        vals.push(v);
+      };
+      if (body.name !== undefined) push('name', body.name);
+      if (body.description !== undefined) push('description', body.description || null);
+      if (body.phone !== undefined) push('phone', body.phone || null);
+      if (body.email !== undefined) push('email', body.email || null);
+      if (body.address !== undefined) push('address', body.address || null);
+      if (body.locality !== undefined) push('locality', body.locality || null);
+      if (body.zone_id !== undefined) push('zone_id', body.zone_id);
+      if (body.preparation_time_minutes !== undefined) push('preparation_time_minutes', body.preparation_time_minutes);
+      if (body.allows_platform_delivery !== undefined) push('allows_platform_delivery', body.allows_platform_delivery);
+      if (body.allows_merchant_delivery !== undefined) push('allows_merchant_delivery', body.allows_merchant_delivery);
+      if (body.allows_pickup !== undefined) push('allows_pickup', body.allows_pickup);
+      if (body.merchant_delivery_fee !== undefined) push('merchant_delivery_fee', body.merchant_delivery_fee);
+      if (body.merchant_delivery_notes !== undefined) push('merchant_delivery_notes', body.merchant_delivery_notes || null);
+      if (body.accepts_cash !== undefined) push('accepts_cash', body.accepts_cash);
+      if (body.accepts_transfer !== undefined) push('accepts_transfer', body.accepts_transfer);
+      if (body.accepts_cash_on_delivery !== undefined) push('accepts_cash_on_delivery', body.accepts_cash_on_delivery);
+      if (body.open_hours !== undefined) push('open_hours', JSON.stringify(body.open_hours));
+      if (body.status !== undefined) push('status', body.status);
+      if (body.is_open !== undefined) push('is_open', body.is_open);
+      if (body.featured !== undefined) push('featured', body.featured);
+      if (fields.length === 0) throw badRequest('Sin cambios');
+      vals.push('acoyaradas');
+      const { rowCount } = await tx.query(
+        `update public.stores set ${fields.join(', ')}, updated_at = now() where slug = $${i} and deleted_at is null`,
+        vals,
+      );
+      if (!rowCount) throw notFound('Tienda de plataforma no encontrada');
+      await audit(tx, { actorId: ctx.claims.sub, actorRole: ctx.claims.role, action: 'platform_store.update', entityType: 'store', entityId: 'acoyaradas', metadata: body });
+      return { ok: true };
+    });
+  }),
+);

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, tokens } from '../lib/api';
@@ -7,9 +7,173 @@ import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod, type StoreDto } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet default marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
+
+interface ZoneGeometry {
+  id: string;
+  name: string;
+  code: string;
+  geometry: {
+    type: 'Polygon';
+    coordinates: number[][][];
+  };
+}
+
+interface GeocodeCache {
+  [address: string]: {
+    lat: number;
+    lng: number;
+    display_name: string;
+    timestamp: number;
+  };
+}
+
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
+const BOLIVAR_CENTER: [number, number] = [-36.23, -61.11]; // [lat, lng]
+const BOLIVAR_BOUNDS: [[number, number], [number, number]] = [
+  [-36.30, -61.25], // suroeste
+  [-36.15, -61.00], // noreste
+];
+
+const ZONE_COLORS: Record<string, string> = {
+  planta_urbana: '#22c55e',    // verde
+  zona_barrial: '#f59e0b',     // ámbar
+  zona_rural: '#ef4444',       // rojo
+};
+
+function DeliveryMap({
+  center,
+  zoom,
+  detectedZone,
+  zones,
+  markerPosition,
+  onClick,
+}: {
+  center: [number, number];
+  zoom: number;
+  detectedZone: ZoneGeometry | null;
+  zones: ZoneGeometry[];
+  markerPosition: [number, number] | null;
+  onClick: (e: L.LeafletMouseEvent) => void;
+}) {
+  const mapRef = useRef<L.Map | null>(null);
+  const clickHandlerRef = useRef(onClick);
+
+  // Mantener referencia actualizada al handler
+  useEffect(() => {
+    clickHandlerRef.current = onClick;
+  }, [onClick]);
+
+  // Configurar event listener de click cuando el mapa está listo
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    const handleClick = (e: L.LeafletMouseEvent) => {
+      clickHandlerRef.current?.(e);
+    };
+
+    map.on('click', handleClick);
+    return () => {
+      map.off('click', handleClick);
+    };
+  }, []);
+
+  // Añadir polígonos de zonas al mapa
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    // Limpiar capas anteriores de zonas
+    map.eachLayer((layer) => {
+      if ((layer as any)._isZonePolygon) {
+        map.removeLayer(layer);
+      }
+    });
+
+    // Añadir polígonos de cada zona
+    zones.forEach((zone) => {
+      const coords = zone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
+      const polygon = L.polygon(coords, {
+        color: ZONE_COLORS[zone.code] || '#3b82f6',
+        weight: 2,
+        fillColor: ZONE_COLORS[zone.code] || '#3b82f6',
+        fillOpacity: 0.15,
+        className: 'zone-polygon',
+      }).addTo(map);
+      (polygon as any)._isZonePolygon = true;
+
+      // Tooltip con nombre de zona
+      polygon.bindTooltip(zone.name, {
+        permanent: false,
+        direction: 'center',
+        className: 'zone-tooltip',
+      });
+    });
+  }, [mapRef.current, zones]);
+
+  // Resaltar zona detectada
+  useEffect(() => {
+    if (!mapRef.current || !detectedZone) return;
+    const map = mapRef.current;
+
+    map.eachLayer((layer) => {
+      if ((layer as any)._isDetectedZone) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const coords = detectedZone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]);
+    const polygon = L.polygon(coords, {
+      color: ZONE_COLORS[detectedZone.code] || '#3b82f6',
+      weight: 3,
+      fillColor: ZONE_COLORS[detectedZone.code] || '#3b82f6',
+      fillOpacity: 0.3,
+      className: 'detected-zone-polygon',
+    }).addTo(map);
+    (polygon as any)._isDetectedZone = true;
+  }, [mapRef.current, detectedZone]);
+
+  return (
+    <MapContainer
+      ref={mapRef}
+      center={center}
+      zoom={zoom}
+      scrollWheelZoom={false}
+      style={{ height: '350px', width: '100%', borderRadius: '12px' }}
+      maxBounds={BOLIVAR_BOUNDS}
+      maxBoundsViscosity={0.8}
+      whenReady={() => { /* map is available via mapRef.current */ }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      {/* Polígonos de zonas se añaden vía useEffect */}
+      {markerPosition && (
+        <Marker position={markerPosition}>
+          <Popup>
+            <strong>Tu ubicación</strong><br />
+            Haz clic en el mapa para mover el marcador
+          </Popup>
+        </Marker>
+      )}
+    </MapContainer>
+  );
+}
 
 export default function Checkout() {
   const { cart, loading, refresh } = useCart();
@@ -44,6 +208,37 @@ export default function Checkout() {
   });
   const cvu = String(publicSettings?.settings?.transfer_cvu ?? '0000003100000758197056');
 
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<{ profile: any }>('/auth/me'),
+    enabled: Boolean(user),
+  });
+
+  // Cargar zonas para el mapa
+  const { data: zonesData } = useQuery({
+    queryKey: ['zones-for-map'],
+    queryFn: async () => {
+      const response = await fetch('/bolivar.geojson');
+      const data = await response.json();
+      return data.features
+        .map((f: any) => {
+          const entries = Object.entries(f.properties);
+          if (entries.length === 0) return null;
+          const [name, code] = entries[0];
+          if (f.geometry.type !== 'Polygon') return null;
+          return {
+            id: '',
+            name,
+            code,
+            geometry: f.geometry,
+          };
+        })
+        .filter(Boolean) as ZoneGeometry[];
+    },
+  });
+
+  const zones = zonesData ?? [];
+
   const [form, setForm] = useState({
     customer_name: user?.full_name ?? '',
     phone: user?.phone ?? '',
@@ -56,11 +251,18 @@ export default function Checkout() {
     payment_method: 'transfer' as PaymentMethod,
   });
 
-  const { data: me } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.get<{ profile: any }>('/auth/me'),
-    enabled: Boolean(user),
-  });
+  const [promoCode, setPromoCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Estado para el mapa y geocodificación
+  const [mapCenter, setMapCenter] = useState<[number, number]>(BOLIVAR_CENTER);
+  const [mapZoom, setMapZoom] = useState(13);
+  const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(null);
+  const [detectedZone, setDetectedZone] = useState<ZoneGeometry | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
+
   useEffect(() => {
     const p = me?.profile;
     if (p) {
@@ -71,9 +273,143 @@ export default function Checkout() {
       }));
     }
   }, [me]);
-  const [promoCode, setPromoCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  // Cargar caché de geocodificación y posición guardada
+  useEffect(() => {
+    const cached = localStorage.getItem('checkout_geocode_cache');
+    if (cached) {
+      try {
+        const cache: GeocodeCache = JSON.parse(cached);
+        // Limpiar entradas antiguas
+        const now = Date.now();
+        Object.keys(cache).forEach((key) => {
+          if (now - cache[key].timestamp > CACHE_DURATION) {
+            delete cache[key];
+          }
+        });
+        localStorage.setItem('checkout_geocode_cache', JSON.stringify(cache));
+      } catch {
+        localStorage.removeItem('checkout_geocode_cache');
+      }
+    }
+  }, []);
+
+  // Geocodificar dirección cuando cambian address/locality
+  useEffect(() => {
+    if (!form.address || !form.locality || isPlatform === false) return;
+
+    const fullAddress = `${form.address}, ${form.locality}, San Carlos de Bolívar, Buenos Aires, Argentina`;
+    const cacheKey = fullAddress.toLowerCase();
+
+    // Verificar caché
+    const cached = localStorage.getItem('checkout_geocode_cache');
+    if (cached) {
+      try {
+        const cache: GeocodeCache = JSON.parse(cached);
+        if (cache[cacheKey]) {
+          const cachedResult = cache[cacheKey];
+          const position: [number, number] = [cachedResult.lat, cachedResult.lng];
+          setMarkerPosition(position);
+          setMapCenter(position);
+          setMapZoom(15);
+          detectZoneFromCoords(cachedResult.lng, cachedResult.lat);
+          return;
+        }
+      } catch {}
+    }
+
+    // Geocodificar con Nominatim
+    geocodeAddress(fullAddress);
+  }, [form.address, form.locality, isPlatform]);
+
+  const geocodeAddress = async (address: string) => {
+    setIsGeocoding(true);
+    setGeocodeError(null);
+    const cacheKey = address.toLowerCase();
+
+    try {
+      const encoded = encodeURIComponent(address);
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1&countrycodes=ar`;
+
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
+      });
+
+      if (!response.ok) throw new Error('Error en geocodificación');
+
+      const data = await response.json();
+      if (data.length === 0) throw new Error('Dirección no encontrada');
+
+      const result = data[0];
+      const lat = parseFloat(result.lat);
+      const lng = parseFloat(result.lon);
+
+      // Guardar en caché
+      const cached = localStorage.getItem('checkout_geocode_cache');
+      let cache: GeocodeCache = {};
+      try { cache = JSON.parse(cached || '{}'); } catch {}
+      cache[cacheKey] = { lat, lng, display_name: result.display_name, timestamp: Date.now() };
+      localStorage.setItem('checkout_geocode_cache', JSON.stringify(cache));
+
+      const position: [number, number] = [lat, lng];
+      setMarkerPosition(position);
+      setMapCenter(position);
+      setMapZoom(15);
+      detectZoneFromCoords(lng, lat);
+    } catch (err) {
+      setGeocodeError(err instanceof Error ? err.message : 'Error al buscar la dirección');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  const detectZoneFromCoords = (lng: number, lat: number) => {
+    const point: [number, number] = [lng, lat];
+    for (const zone of zones) {
+      if (pointInPolygon(point, zone.geometry)) {
+        setDetectedZone(zone);
+        return;
+      }
+    }
+    setDetectedZone(null);
+  };
+
+  const handleMapClick = (e: L.LeafletMouseEvent) => {
+    const { lat, lng } = e.latlng;
+    const position: [number, number] = [lat, lng];
+    setMarkerPosition(position);
+    detectZoneFromCoords(lng, lat);
+    // Reverse geocoding para actualizar campos de dirección
+    reverseGeocode(lat, lng);
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`;
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
+      });
+      const data = await response.json();
+      if (data.address) {
+        const road = data.address.road || '';
+        const houseNumber = data.address.house_number || '';
+        const suburb = data.address.suburb || data.address.neighbourhood || '';
+        const city = data.address.city || data.address.town || data.address.village || '';
+
+        if (road || houseNumber) {
+          setForm((f) => ({ ...f, address: `${road} ${houseNumber}`.trim() }));
+        }
+        if (suburb) {
+          setForm((f) => ({ ...f, references: suburb }));
+        }
+        if (city) {
+          setForm((f) => ({ ...f, locality: city }));
+        }
+      }
+    } catch {
+      // Ignorar errores de reverse geocoding
+    }
+  };
 
   const paymentOptions = useMemo(() => {
     if (!store) return ['transfer'] as PaymentMethod[];
@@ -170,10 +506,7 @@ export default function Checkout() {
                   }}
                 />
               </Field>
-              <Field
-                label="Dirección"
-                hint={form.fulfillment_type === 'pickup' ? 'Opcional si retirás en el local.' : undefined}
-              >
+              <Field label="Dirección" hint={form.fulfillment_type === 'pickup' ? 'Opcional si retirás en el local.' : undefined}>
                 <input
                   className="input"
                   placeholder="Av. Corrientes 1234, 3B"
@@ -206,15 +539,77 @@ export default function Checkout() {
             </div>
           </section>
 
-          <section className="card p-5">
-            <h2 className="text-lg font-bold text-ink-900">Entrega</h2>
-            <div className="mt-4 space-y-4">
-              <div className="rounded-xl border border-ink-200 p-3 text-sm">
-                <p className="font-medium text-ink-900">Envío por acoYAradas!</p>
-                <p className="text-xs text-ink-500">El costo se calcula por zona al confirmar.</p>
+          {/* Mapa interactivo para selección de zona */}
+          {isPlatform && (
+            <section className="card p-5">
+              <h2 className="text-lg font-bold text-ink-900 flex items-center gap-2">
+                Ubicación de entrega
+                {isGeocoding && <span className="animate-spin text-sm text-brand-600">⟳ Buscando…</span>}
+                {detectedZone && (
+                  <span className="badge" style={{ backgroundColor: ZONE_COLORS[detectedZone.code] + '20', color: ZONE_COLORS[detectedZone.code] }}>
+                    Zona detectada: {detectedZone.name}
+                  </span>
+                )}
+              </h2>
+              <p className="mt-2 text-sm text-ink-500">
+                Hacé clic en el mapa para seleccionar tu ubicación exacta. La zona se detectará automáticamente.
+              </p>
+              {geocodeError && (
+                <div className="mt-2 text-sm text-amber-700 bg-amber-50 p-3 rounded-xl">
+                  ⚠️ {geocodeError}. Podés hacer clic en el mapa para seleccionar manualmente.
+                </div>
+              )}
+              <div className="mt-4">
+                <DeliveryMap
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  onClick={handleMapClick}
+                  detectedZone={detectedZone}
+                  zones={zones}
+                  markerPosition={markerPosition}
+                />
               </div>
-            </div>
-          </section>
+              {/* Leyenda de zonas */}
+              {zones.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {zones.map((zone) => (
+                    <span
+                      key={zone.code}
+                      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full"
+                      style={{
+                        backgroundColor: ZONE_COLORS[zone.code] + '20',
+                        color: ZONE_COLORS[zone.code],
+                        border: `1px solid ${ZONE_COLORS[zone.code]}`
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: ZONE_COLORS[zone.code],
+                          display: 'inline-block'
+                        }}
+                      />
+                      {zone.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {!isPlatform && store ? (
+            <section className="card p-5">
+              <h2 className="text-lg font-bold text-ink-900">Entrega</h2>
+              <div className="mt-4 space-y-4">
+                <div className="rounded-xl border border-ink-200 p-3 text-sm">
+                  <p className="font-medium text-ink-900">Envío gestionado por el comercio</p>
+                  <p className="text-xs text-ink-500">El costo y modalidad los define el comercio.</p>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <section className="card p-5">
             <h2 className="text-lg font-bold text-ink-900">Método de pago</h2>
@@ -287,6 +682,11 @@ export default function Checkout() {
             </div>
             <p className="mt-1 text-xs text-ink-500">
               El envío y los descuentos se calculan en el servidor al confirmar el pedido.
+              {detectedZone && (
+                <span className="ml-2 font-medium" style={{ color: ZONE_COLORS[detectedZone.code] }}>
+                  (Zona: {detectedZone.name})
+                </span>
+              )}
             </p>
 
             {error ? (
@@ -309,4 +709,31 @@ export default function Checkout() {
       </form>
     </div>
   );
+}
+
+/**
+ * Verifica si un punto (lng, lat) está dentro de un polígono GeoJSON
+ * Usa el algoritmo ray-casting (even-odd rule)
+ */
+function pointInPolygon(
+  point: [number, number], // [lng, lat]
+  polygon: ZoneGeometry['geometry']
+): boolean {
+  const [lng, lat] = point;
+  const coords = polygon.coordinates[0]; // Anillo exterior
+
+  let inside = false;
+
+  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    const [lngI, latI] = coords[i];
+    const [lngJ, latJ] = coords[j];
+
+    const intersect =
+      ((latI > lat) !== (latJ > lat)) &&
+      (lng < (lngJ - lngI) * (lat - latI) / (latJ - latI) + lngI);
+
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
 }

@@ -12,6 +12,8 @@ import { computeCommission, computeDiscount, computeShipping } from './pricing.j
 import { applyOrderStatus } from './orderStatus.js';
 import { notifyOrderWhatsApp } from '../lib/whatsapp.js';
 import { config } from '../config.js';
+import { rateLimitedGeocode, buildFullAddress } from '../lib/geocoding.js';
+import { detectZoneIdFromCoordinates } from '../lib/zoneDetectionServer.js';
 
 /** Pedidos (Etapa 1 y 3). */
 export const ordersRouter = Router();
@@ -320,10 +322,26 @@ ordersRouter.post(
       // Para entregas platform (productos no afiliados), usar tarifas globales (store_id = null)
       // ya que el envío lo gestiona acoYAradas!, no un comercio específico
       const isPlatformDelivery = body.delivery_mode === 'platform';
+
+      // Detectar zona automáticamente para entregas de plataforma basándose en la dirección del cliente
+      let detectedZoneId: string | null = null;
+      if (isPlatformDelivery && body.address && body.locality) {
+        try {
+          const fullAddress = buildFullAddress(body.address, body.locality, body.references);
+          const geocodeResult = await rateLimitedGeocode(fullAddress);
+          if (geocodeResult) {
+            detectedZoneId = await detectZoneIdFromCoordinates(tx, geocodeResult.lng, geocodeResult.lat);
+            console.log(`Zona detectada para ${fullAddress}: ${detectedZoneId ?? 'ninguna'}`);
+          }
+        } catch (error) {
+          console.warn('Error detectando zona, usando zona por defecto:', error);
+        }
+      }
+
       const shippingStore = isPlatformDelivery
         ? {
             id: null, // fuerza tarifas globales (store_id IS NULL)
-            zone_id: store.zone_id, // mantiene zona para tarifas por zona globales
+            zone_id: detectedZoneId ?? store.zone_id, // usa zona detectada o fallback a zona de la tienda
             merchant_delivery_fee: 0,
             merchant_delivery_notes: null,
           }
@@ -379,9 +397,9 @@ ordersRouter.post(
            (code, public_token, store_id, customer_id, customer_name, phone, address, locality,
             reference_notes, notes, fulfillment_type, delivery_mode, status, subtotal, discount,
             shipping_cost, total, payment_method, payment_status, estimated_preparation_minutes,
-            shipping_notes, promotion_id, idempotency_key)
+            shipping_notes, promotion_id, idempotency_key, zone_id)
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending_confirmation',$13,$14,$15,$16,$17,
-                 'pending',$18,$19,$20,$21)
+                 'pending',$18,$19,$20,$21,$22)
          returning id`,
         [
           code,
@@ -405,6 +423,7 @@ ordersRouter.post(
           shipping.notes,
           promotion?.id ?? null,
           body.idempotency_key || null,
+          detectedZoneId,
         ],
       );
       const orderId = inserted.rows[0].id;
