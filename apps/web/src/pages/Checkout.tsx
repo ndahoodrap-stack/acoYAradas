@@ -71,9 +71,22 @@ export default function Checkout() {
   // Manejar cambio de posición desde el mapa
   const handleMapPositionChange = (position: [number, number], zoneCode: string | null, streetName: string | null) => {
     setMapPosition(position);
-    if (streetName && !form.address.includes(streetName)) {
-      // Autocompletar la dirección con la calle detectada
-      setForm(f => ({ ...f, address: streetName }));
+    if (streetName) {
+      // Preserve house number from user input, only update street name
+      setForm(f => {
+        const currentAddress = f.address?.trim() || '';
+        // Extract house number (last numeric part) from current address
+        const numberMatch = currentAddress.match(/\b\d+[A-Za-z]?\b/g);
+        const houseNumber = numberMatch ? numberMatch[numberMatch.length - 1] : '';
+        // Combine detected street with preserved house number
+        const newAddress = houseNumber ? `${streetName} ${houseNumber}` : streetName;
+        // Only update if street name actually changed (don't overwrite user's manual input entirely)
+        const currentStreet = currentAddress.replace(/\s*\b\d+[A-Za-z]?\b\s*$/, '').trim();
+        if (currentStreet.toLowerCase() !== streetName.toLowerCase()) {
+          return { ...f, address: newAddress };
+        }
+        return f;
+      });
     }
     if (zoneCode) {
       // Buscar la zona completa para actualizar el precio
