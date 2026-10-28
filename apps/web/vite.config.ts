@@ -37,5 +37,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      external: ['maplibre-gl'],
+      output: {
+        globals: { 'maplibre-gl': 'maplibregl' }
+      }
+    }
   },
 });
