@@ -46,6 +46,17 @@ const ZONE_COLORS: Record<string, string> = {
   zona_rural: '#ef4444',       // rojo
 };
 
+// Icono custom para evitar colisión de minificación con L.Icon.Default (renombrado a 'D' en bundle)
+// Ver: ErrorBoundary.tsx comentario sobre "colisión de nombres minificados con 'D'"
+const USER_LOCATION_ICON = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 function DeliveryMap({
   center,
   zoom,
@@ -158,7 +169,7 @@ function DeliveryMap({
       />
       {/* Polígonos de zonas se añaden vía useEffect */}
       {markerPosition && (
-        <Marker position={markerPosition}>
+        <Marker position={markerPosition} icon={USER_LOCATION_ICON}>
           <Popup>
             <strong>Tu ubicación</strong><br />
             Haz clic en el mapa para mover el marcador
