@@ -10,8 +10,7 @@ import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../leafletSetup';
-import * as Leaflet from 'leaflet';
-const L = Leaflet as any;
+import L from 'leaflet';
 
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
@@ -72,8 +71,7 @@ function DeliveryMap({
   // causa "Cannot access 'D' before initialization". useMemo se ejecuta tras
   // la evaluación completa de todos los módulos.
   const userLocationIcon = useMemo(() => {
-    const Icon = (L as any).Icon;
-    return new Icon({
+    return new L.Icon({
       iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
