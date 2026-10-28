@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, Component, type ReactNode } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, tokens } from '../lib/api';
@@ -10,35 +10,6 @@ import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-
-// Error Boundary para ver errores en lugar de pantalla blanca
-class CheckoutErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
-  state = { hasError: false, error: null };
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="container-app py-8">
-          <div className="card p-6 max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold text-red-600 mb-4">Error en Checkout</h2>
-            <pre className="bg-red-50 p-4 rounded text-sm text-red-800 overflow-auto max-h-96">
-              {this.state.error?.message}\n\n{this.state.error?.stack}
-            </pre>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null })}
-              className="btn-primary mt-4"
-            >
-              Reintentar
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // Fix Leaflet default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -582,7 +553,6 @@ export default function Checkout() {
   });
 
   return (
-    <CheckoutErrorBoundary>
       <div className="container-app py-8">
         <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">Finalizar compra</h1>
         <p className="mt-1 text-sm text-ink-500">
@@ -872,7 +842,6 @@ export default function Checkout() {
         </aside>
       </form>
     </div>
-    </CheckoutErrorBoundary>
   );
 }
 

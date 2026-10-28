@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Spinner } from './components/ui';
 import { useSession } from './lib/session';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import Home from './pages/Home';
 import Stores from './pages/Stores';
@@ -68,7 +69,7 @@ export default function App() {
           <Route path="/productos/:id" element={<ProductDetail />} />
           <Route path="/buscar" element={<SearchPage />} />
           <Route path="/carrito" element={<CartPage />} />
-          <Route path="/finalizar-compra" element={<Checkout />} />
+          <Route path="/finalizar-compra" element={<ErrorBoundary><Checkout /></ErrorBoundary>} />
           <Route path="/pedido/:code" element={<OrderConfirmation />} />
           <Route path="/seguimiento" element={<Track />} />
           <Route path="/seguimiento/:code" element={<Track />} />
