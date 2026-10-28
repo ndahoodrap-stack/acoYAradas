@@ -9,7 +9,7 @@ import { PAYMENT_METHOD_LABELS, type PaymentMethod, type StoreDto } from '@acoya
 import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import * as L from 'leaflet';
 
 // Fix Leaflet default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
