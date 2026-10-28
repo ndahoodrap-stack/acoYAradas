@@ -239,6 +239,14 @@ export default function Checkout() {
 
   const zones = zonesData ?? [];
 
+  // Consultar tarifa de envío para la zona detectada
+  const { data: shippingTariff } = useQuery({
+    queryKey: ['shipping-tariff', detectedZone?.id],
+    queryFn: () => api.get<any>(`/orders/shipping/tariff/${detectedZone!.id}`),
+    enabled: Boolean(detectedZone?.id),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [form, setForm] = useState({
     customer_name: user?.full_name ?? '',
     phone: user?.phone ?? '',
@@ -460,7 +468,9 @@ export default function Checkout() {
       const response = await fetch(url, {
         headers: { 'User-Agent': 'acoYAradas/1.0 (contact@acoyaradas.app)' },
       });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
+      console.log('Reverse geocode result:', data);
       if (data.address) {
         const road = data.address.road || '';
         const houseNumber = data.address.house_number || '';
@@ -477,8 +487,8 @@ export default function Checkout() {
           setForm((f) => ({ ...f, locality: city }));
         }
       }
-    } catch {
-      // Ignorar errores de reverse geocoding
+    } catch (err) {
+      console.warn('Reverse geocode failed:', err);
     }
   };
 
@@ -788,8 +798,22 @@ export default function Checkout() {
               <span className="font-semibold text-ink-900">Subtotal</span>
               <span className="font-bold text-ink-900">{formatMoney(cart.subtotal)}</span>
             </div>
+            {shippingTariff && (
+              <div className="mt-2 flex justify-between text-sm">
+                <span className="text-ink-600">Envío ({detectedZone?.name})</span>
+                <span className="font-bold text-ink-900">{formatMoney(shippingTariff.base_price)}</span>
+              </div>
+            )}
+            <div className="mt-2 flex justify-between border-t border-ink-100 pt-4">
+              <span className="font-bold text-ink-900">Total</span>
+              <span className="font-bold text-brand-600 text-lg">
+                {formatMoney(cart.subtotal + (shippingTariff?.base_price ?? 0))}
+              </span>
+            </div>
             <p className="mt-1 text-xs text-ink-500">
-              El envío y los descuentos se calculan en el servidor al confirmar el pedido.
+              {shippingTariff
+                ? 'El envío se calcula según tu zona detectada. Los descuentos se aplican al confirmar.'
+                : 'El envío y los descuentos se calculan en el servidor al confirmar el pedido.'}
               {detectedZone && (
                 <span className="ml-2 font-medium" style={{ color: ZONE_COLORS[detectedZone.code] }}>
                   (Zona: {detectedZone.name})

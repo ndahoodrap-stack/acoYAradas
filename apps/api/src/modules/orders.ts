@@ -18,6 +18,26 @@ import { detectZoneIdFromCoordinates } from '../lib/zoneDetectionServer.js';
 /** Pedidos (Etapa 1 y 3). */
 export const ordersRouter = Router();
 
+/** Tarifa de envío pública por zona (para mostrar en checkout). */
+ordersRouter.get(
+  '/shipping/tariff/:zoneId',
+  route(async (ctx) => {
+    return run(ctx, async (tx) => {
+      const { rows } = await tx.query<any>(
+        `select id, name, mode, base_price, price_per_km, min_price, max_price
+           from public.shipping_tariffs
+          where active = true and deleted_at is null
+            and zone_id = $1
+            and (store_id is null)
+          order by base_price asc
+          limit 1`,
+        [ctx.req.params.zoneId],
+      );
+      return rows[0] ?? null;
+    });
+  }),
+);
+
 export const ORDER_SELECT = `
   o.id, o.code, o.public_token, o.store_id, o.customer_id, o.customer_name, o.phone,
   o.address, o.locality, o.reference_notes, o.notes, o.fulfillment_type, o.delivery_mode,
