@@ -82,9 +82,11 @@ export async function detectZoneFromGeolocation(): Promise<ZoneMatch | null> {
   // 3. Buscar en qué zona cae el punto
   const features = data.features as ZoneFeature[];
 
-  // Orden de prioridad: rural (más grande) -> barrial -> urbana (más pequeña)
-  // Así si un punto está en el borde, se asigna a la zona más específica
-  const zoneOrder = ['zona_rural', 'zona_barrial', 'planta_urbana'];
+  // Orden de prioridad: MÁS ESPECÍFICA (interior) -> MENOS ESPECÍFICA (exterior)
+  // Los polígonos están anidados: Rural contiene Barrial contiene Urbana
+  // Si estás en Barrial, TAMBIÉN estás en Rural, así que hay que chequear
+  // primero la zona más chica para que matchee la correcta
+  const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
 
   for (const code of zoneOrder) {
     const feature = features.find(f => Object.values(f.properties)[0] === code);
