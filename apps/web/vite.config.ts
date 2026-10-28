@@ -37,5 +37,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rolldownOptions: {
+      output: {
+        manualChunks: {
+          leaflet: ['leaflet'],
+        },
+      },
+    },
   },
 });
