@@ -3,6 +3,7 @@ import { Component, type ReactNode, type ErrorInfo } from 'react';
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 interface ErrorBoundaryProps {
@@ -11,16 +12,18 @@ interface ErrorBoundaryProps {
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, error: null };
+  state: ErrorBoundaryState = { hasError: false, error: null, componentStack: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error, componentStack: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log a consola donde los sourcemaps SÍ funcionan
     console.error('[ErrorBoundary] Error capturado:', error);
     console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+    // Guardar componentStack en estado para mostrarlo en UI
+    this.setState({ componentStack: errorInfo.componentStack });
   }
 
   render() {
@@ -35,14 +38,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <pre className="bg-red-50 p-4 rounded text-sm text-red-800 overflow-auto max-h-96">
               {this.state.error?.message}\n\n{this.state.error?.stack}
             </pre>
-            <details className="mt-4">
-              <summary className="text-sm text-ink-500 cursor-pointer">Ver component stack</summary>
-              <pre className="mt-2 bg-ink-50 p-3 rounded text-xs text-ink-700 overflow-auto max-h-64">
-                {this.state.error?.stack}
-              </pre>
-            </details>
+            {this.state.componentStack && (
+              <details className="mt-4">
+                <summary className="text-sm text-ink-500 cursor-pointer">Ver component stack (React)</summary>
+                <pre className="mt-2 bg-ink-50 p-3 rounded text-xs text-ink-700 overflow-auto max-h-64">
+                  {this.state.componentStack}
+                </pre>
+              </details>
+            )}
             <button
-              onClick={() => this.setState({ hasError: false, error: null })}
+              onClick={() => this.setState({ hasError: false, error: null, componentStack: null })}
               className="btn-primary mt-4"
             >
               Reintentar
