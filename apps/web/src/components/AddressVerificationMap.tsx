@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { DELIVERY_ZONES, getZoneStyle, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
+// Obtener maplibre-gl del global (cargado via CDN en index.html)
+const maplibregl = typeof window !== 'undefined' ? (window as any).maplibregl : null;
+
 // Registrar protocolo PMTiles (una sola vez, solo en cliente)
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && maplibregl) {
   try {
     maplibregl.addProtocol('pmtiles', new Protocol());
     console.log('[PMTiles] Protocol registered successfully');
