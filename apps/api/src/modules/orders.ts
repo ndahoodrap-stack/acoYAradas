@@ -18,11 +18,30 @@ import { detectZoneIdFromCoordinates } from '../lib/zoneDetectionServer.js';
 /** Pedidos (Etapa 1 y 3). */
 export const ordersRouter = Router();
 
-/** Tarifa de envío pública por zona (para mostrar en checkout). */
+/** Tarifa de envío pública por zona (para mostrar en checkout).
+ *  Acepta UUID de zona O código de zona (planta_urbana, zona_barrial, zona_rural).
+ */
 ordersRouter.get(
-  '/shipping/tariff/:zoneId',
+  '/shipping/tariff/:zoneRef',
   route(async (ctx) => {
+    const zoneRef = ctx.req.params.zoneRef;
     return run(ctx, async (tx) => {
+      // Primero intentar como UUID, si falla buscar por código
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(zoneRef);
+
+      let zoneId: string;
+      if (isUuid) {
+        zoneId = zoneRef;
+      } else {
+        // Buscar zona por código
+        const { rows: zoneRows } = await tx.query(
+          `select id from public.coverage_zones where code = $1 and active = true and deleted_at is null`,
+          [zoneRef],
+        );
+        if (!zoneRows.length) return null;
+        zoneId = zoneRows[0].id;
+      }
+
       const { rows } = await tx.query<any>(
         `select id, name, mode, base_price, price_per_km, min_price, max_price
            from public.shipping_tariffs
@@ -31,7 +50,7 @@ ordersRouter.get(
             and (store_id is null)
           order by base_price asc
           limit 1`,
-        [ctx.req.params.zoneId],
+        [zoneId],
       );
       return rows[0] ?? null;
     });

@@ -239,11 +239,11 @@ export default function Checkout() {
 
   const zones = zonesData ?? [];
 
-  // Consultar tarifa de envío para la zona detectada
+  // Consultar tarifa de envío para la zona detectada (usa código, no UUID)
   const { data: shippingTariff } = useQuery({
-    queryKey: ['shipping-tariff', detectedZone?.id],
-    queryFn: () => api.get<any>(`/orders/shipping/tariff/${detectedZone!.id}`),
-    enabled: Boolean(detectedZone?.id),
+    queryKey: ['shipping-tariff', detectedZone?.code],
+    queryFn: () => api.get<any>(`/orders/shipping/tariff/${detectedZone!.code}`),
+    enabled: Boolean(detectedZone?.code),
     staleTime: 5 * 60 * 1000,
   });
 
