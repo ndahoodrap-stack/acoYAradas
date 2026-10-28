@@ -9,8 +9,9 @@ import { PAYMENT_METHOD_LABELS, type PaymentMethod, type StoreDto } from '@acoya
 import { EmptyState, Field, Spinner } from '../components/ui';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../leafletSetup';
 import * as Leaflet from 'leaflet';
-const L = Leaflet;
+const L = Leaflet as any;
 
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
