@@ -11,14 +11,6 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import * as L from 'leaflet';
 
-// Fix Leaflet default marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
 type Fulfillment = 'delivery' | 'pickup';
 type DeliveryMode = 'platform' | 'merchant';
 
@@ -158,7 +150,7 @@ function DeliveryMap({
       style={{ height: '350px', width: '100%', borderRadius: '12px' }}
       maxBounds={BOLIVAR_BOUNDS}
       maxBoundsViscosity={0.8}
-      whenReady={() => { /* map is available via mapRef.current */ }}
+      whenReady={(map) => { /* map is available via mapRef.current or parameter */ }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
@@ -240,6 +232,16 @@ export default function Checkout() {
   });
 
   const zones = zonesData ?? [];
+
+  // Fix Leaflet default marker icons (en useEffect para evitar TDZ en bundle minificado)
+  useEffect(() => {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+  }, []);
 
   // Consultar tarifa de envío para la zona detectada (usa código, no UUID)
   const { data: shippingTariff } = useQuery({
