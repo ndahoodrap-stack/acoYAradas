@@ -12,7 +12,6 @@ import StoreDetail from './pages/StoreDetail';
 import ProductDetail from './pages/ProductDetail';
 import SearchPage from './pages/SearchPage';
 import CartPage from './pages/CartPage';
-import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Track from './pages/Track';
 import Login from './pages/Login';
@@ -24,6 +23,7 @@ import BecomeStore from './pages/BecomeStore';
 import Advertising from './pages/Advertising';
 import NotFound from './pages/NotFound';
 
+const Checkout = lazy(() => import('./pages/Checkout'));
 const StorePanel = lazy(() => import('./pages/store/StorePanel'));
 const AdminPanel = lazy(() => import('./pages/admin/AdminPanel'));
 const RiderPanel = lazy(() => import('./pages/rider/RiderPanel'));
@@ -69,7 +69,7 @@ export default function App() {
           <Route path="/productos/:id" element={<ProductDetail />} />
           <Route path="/buscar" element={<SearchPage />} />
           <Route path="/carrito" element={<CartPage />} />
-          <Route path="/finalizar-compra" element={<ErrorBoundary><Checkout /></ErrorBoundary>} />
+          <Route path="/finalizar-compra" element={<ErrorBoundary><Suspense fallback={<Spinner />}><Checkout /></Suspense></ErrorBoundary>} />
           <Route path="/pedido/:code" element={<OrderConfirmation />} />
           <Route path="/seguimiento" element={<Track />} />
           <Route path="/seguimiento/:code" element={<Track />} />
