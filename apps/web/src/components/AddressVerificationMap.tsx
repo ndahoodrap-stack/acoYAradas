@@ -45,11 +45,16 @@ export function AddressVerificationMap({
   // Esperar a que maplibre-gl UMD esté disponible y registrar protocolo
   useEffect(() => {
     let cancelled = false;
+    let attempt = 0;
 
     const waitForMaplibre = () => {
+      attempt++;
       // Verificar si ya está disponible
       const maplibregl = (window as any).maplibregl;
+      console.log(`[Debug] Polling attempt ${attempt}, maplibregl:`, maplibregl ? 'FOUND' : 'undefined');
+
       if (maplibregl) {
+        console.log('[Debug] maplibregl found, keys:', Object.keys(maplibregl).slice(0, 10));
         if (!cancelled && !protocolRegisteredRef.current) {
           try {
             // Desactivar workers ANTES de registrar protocolo
@@ -62,14 +67,17 @@ export function AddressVerificationMap({
           }
         }
         if (!cancelled) {
+          console.log('[Debug] Setting maplibreReady = true');
           setMaplibreReady(true);
         }
         return;
       }
 
-      // Si no está listo, reintentar en 50ms
-      if (!cancelled) {
+      // Si no está listo, reintentar en 50ms (max 100 intentos = 5s)
+      if (!cancelled && attempt < 100) {
         setTimeout(waitForMaplibre, 50);
+      } else if (!cancelled) {
+        console.error('[Debug] TIMEOUT: maplibregl never loaded after 5s');
       }
     };
 
