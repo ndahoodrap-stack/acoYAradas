@@ -492,7 +492,7 @@ export default function Checkout() {
     setDetectedZone(null);
   };
 
-  const handleMapClick = (e: L.LeafletMouseEvent) => {
+  const handleMapClick = (e: any) => {
     console.log('Map click:', e.latlng);
     const { lat, lng } = e.latlng;
     const position: [number, number] = [lat, lng];
