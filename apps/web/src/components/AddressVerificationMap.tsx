@@ -220,10 +220,18 @@ export function AddressVerificationMap({
       const ll = markerRef.current.getLngLat();
       const lngLat = ll?.toArray?.() ?? [ll?.lng, ll?.lat];
       if (lngLat && !Number.isNaN(lngLat[0]) && !Number.isNaN(lngLat[1])) {
-        detectZoneAtPosition(lngLat);
+        // Find nearest street at new position for address update
+        let fullAddress: string;
+        if (callesGeoJson) {
+          const streetName = findNearestStreet(lngLat, callesGeoJson);
+          fullAddress = streetName ? `${streetName} [número]` : formatCoordinatesAsAddress(lngLat);
+        } else {
+          fullAddress = formatCoordinatesAsAddress(lngLat);
+        }
+        detectZoneAtPosition(lngLat, fullAddress);
       }
     }
-  }, [detectZoneAtPosition]);
+  }, [detectZoneAtPosition, callesGeoJson]);
 
   // Handle map click to move marker
   const handleMapClick = useCallback((e: any) => {
@@ -231,9 +239,17 @@ export function AddressVerificationMap({
     if (!lngLat || Number.isNaN(lngLat[0]) || Number.isNaN(lngLat[1])) return;
     if (markerRef.current) {
       markerRef.current.setLngLat(lngLat);
-      detectZoneAtPosition(lngLat);
+      // Find nearest street at clicked position for address update
+      let fullAddress: string;
+      if (callesGeoJson) {
+        const streetName = findNearestStreet(lngLat, callesGeoJson);
+        fullAddress = streetName ? `${streetName} [número]` : formatCoordinatesAsAddress(lngLat);
+      } else {
+        fullAddress = formatCoordinatesAsAddress(lngLat);
+      }
+      detectZoneAtPosition(lngLat, fullAddress);
     }
-  }, [detectZoneAtPosition]);
+  }, [detectZoneAtPosition, callesGeoJson]);
 
   // Show loading state
   if (loading || !geojsonLoaded) {
