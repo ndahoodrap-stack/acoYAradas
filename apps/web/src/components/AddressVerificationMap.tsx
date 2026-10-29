@@ -236,6 +236,14 @@ export function AddressVerificationMap({
             },
           },
           layers: [
+            // Background layer (solid color - no external tiles needed)
+            {
+              id: 'background',
+              type: 'background',
+              paint: {
+                'background-color': '#f3f4f6', // light gray (gray-100)
+              },
+            },
             // Calles (líneas)
             {
               id: 'streets',
