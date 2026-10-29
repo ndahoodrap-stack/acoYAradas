@@ -340,6 +340,7 @@ export function AddressVerificationMap({
           ],
         }}
         onLoad={() => {
+          console.log('[Map] onLoad FIRED');
           setMapLoaded(true);
           const map = mapRef.current?.getMap?.();
           if (!map) {
@@ -348,6 +349,15 @@ export function AddressVerificationMap({
           }
           (window as any).__MAP__ = map;
           console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
+
+          // Debug: Check map's actual style sources
+          try {
+            const style = map.getStyle();
+            console.log('[Map] Style sources:', style?.sources);
+            console.log('[Map] Style layers:', style?.layers?.map(l => l.id));
+          } catch (err) {
+            console.warn('[Map] getStyle failed:', err);
+          }
 
           // Debug: Check sources immediately
           const checkSources = () => {
