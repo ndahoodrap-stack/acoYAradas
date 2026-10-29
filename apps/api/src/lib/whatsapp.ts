@@ -308,7 +308,8 @@ export async function logWhatsAppMessages(
     const id = inserted.rows[0].id;
 
     if (settings.mode === 'bridge' && settings.auto_send && settings.bridge_url) {
-      const result = await sendThroughBridge(settings, input.phone, input.text);
+      const mediaUrl = getWhatsAppImageUrl(input.template as any, config.publicBaseUrl);
+      const result = await sendThroughBridge(settings, input.phone, input.text, mediaUrl);
       await db.system.query(
         `update public.notifications
             set status = $2, attempts = attempts + 1, error = $3, sent_at = case when $2 = 'sent' then now() else null end
@@ -329,6 +330,7 @@ export async function sendThroughBridge(
   settings: WhatsAppConfig,
   phone: string,
   text: string,
+  mediaUrl?: string | null,
 ): Promise<{ ok: boolean; error: string | null }> {
   if (!settings.bridge_url) return { ok: false, error: 'Puente de WhatsApp no configurado' };
   try {
@@ -338,7 +340,7 @@ export async function sendThroughBridge(
         'content-type': 'application/json',
         ...(settings.bridge_token ? { authorization: `Bearer ${settings.bridge_token}` } : {}),
       },
-      body: JSON.stringify({ phone, message: text }),
+      body: JSON.stringify({ phone, message: text, mediaUrl }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');

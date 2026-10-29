@@ -304,3 +304,27 @@ export function buildOrderMessage(
 export function canWhatsApp(phone: string | null | undefined): boolean {
   return normalizePhoneAR(phone).length >= 10;
 }
+
+/** Mapeo de tipo de mensaje a nombre de archivo de imagen para adjuntar en el puente. */
+export const WHATSAPP_IMAGES: Record<WhatsAppMessageKind, string | null> = {
+  owner_new_order: null,
+  store_new_order: 'acoYAradasLLEGOUNPEDIDO.jpg',
+  store_pickup_request: 'acoYAradasLLEGOUNPEDIDO.jpg',
+  rider_assignment: null,
+  customer_created: 'acoYAradasTUPEDIDOENCAMINO.jpg',
+  customer_status: 'acoYAradasTUPEDIDOENCAMINO.jpg',
+};
+
+/**
+ * Devuelve la URL completa de la imagen para un tipo de mensaje, dado el base URL.
+ * Retorna null si ese tipo de mensaje no tiene imagen asociada.
+ */
+export function getWhatsAppImageUrl(
+  kind: WhatsAppMessageKind,
+  imageBaseUrl: string | null | undefined,
+): string | null {
+  const fileName = WHATSAPP_IMAGES[kind];
+  if (!fileName || !imageBaseUrl) return null;
+  const base = imageBaseUrl.replace(/\/$/, '');
+  return `${base}/${fileName}`;
+}

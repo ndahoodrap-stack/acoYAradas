@@ -1,6 +1,6 @@
 import express from 'express';
 import qrcode from 'qrcode-terminal';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 
 const PORT = Number(process.env.BRIDGE_PORT ?? 3010);
 const TOKEN = process.env.BRIDGE_TOKEN ?? '';
@@ -35,7 +35,7 @@ client.initialize().catch((error) => {
 });
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 function auth(req, res, next) {
   if (!TOKEN) return next();
@@ -57,12 +57,19 @@ app.post('/send', auth, async (req, res) => {
   }
   const phone = String(req.body?.phone ?? '').replace(/\D/g, '');
   const message = String(req.body?.message ?? '');
-  if (!phone || !message) {
-    return res.status(400).json({ ok: false, error: 'Faltan phone o message' });
+  const mediaUrl = req.body?.mediaUrl ? String(req.body.mediaUrl).trim() : null;
+  if (!phone || (!message && !mediaUrl)) {
+    return res.status(400).json({ ok: false, error: 'Faltan phone, message o mediaUrl' });
   }
   try {
     const chatId = `${phone}@c.us`;
-    await client.sendMessage(chatId, message);
+    if (mediaUrl) {
+      // Descargar la imagen y enviarla como adjunto con el mensaje como caption
+      const media = await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true });
+      await client.sendMessage(chatId, media, { caption: message || undefined });
+    } else {
+      await client.sendMessage(chatId, message);
+    }
     return res.json({ ok: true });
   } catch (error) {
     return res.status(500).json({ ok: false, error: String(error?.message ?? error) });

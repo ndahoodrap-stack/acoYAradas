@@ -7,6 +7,8 @@ import {
   sendThroughBridge,
   type OrderMessageSourceFull,
 } from '../lib/whatsapp.js';
+import { getWhatsAppImageUrl } from '@acoyaradas/shared';
+import { config } from '../config.js';
 import { requireAdmin } from '../http/context.js';
 import { route, validate } from '../http/router.js';
 import { badRequest, notFound } from '../lib/errors.js';
@@ -146,15 +148,17 @@ whatsappRouter.post(
     const settings = await getWhatsAppConfig(ctx.db);
     if (settings.mode !== 'bridge') throw badRequest('El modo puente no está habilitado');
     const res = await ctx.db.system.query<any>(
-      `select payload from public.notifications where id = $1 and channel = 'whatsapp'`,
+      `select payload, template from public.notifications where id = $1 and channel = 'whatsapp'`,
       [id],
     );
     if (!res.rows.length) throw notFound('Notificación no encontrada');
     const payload = res.rows[0].payload ?? {};
+    const template = res.rows[0].template;
     const phone = payload.phone;
     const text = payload.text ?? '';
     if (!phone || !text) throw badRequest('Datos incompletos');
-    const result = await sendThroughBridge(settings, phone, text);
+    const mediaUrl = getWhatsAppImageUrl(template, config.publicBaseUrl);
+    const result = await sendThroughBridge(settings, phone, text, mediaUrl);
     await ctx.db.system.query(
       `update public.notifications set status = $2, attempts = attempts + 1, error = $3, sent_at = case when $2 = 'sent' then now() else null end where id = $1`,
       [id, result.ok ? 'sent' : 'failed', result.ok ? null : result.error],
@@ -167,12 +171,12 @@ whatsappRouter.post(
   '/test',
   route(async (ctx, req) => {
     requireAdmin(ctx);
-    const schema = z.object({ phone: z.string().min(6), message: z.string().optional() });
+    const schema = z.object({ phone: z.string().min(6), message: z.string().optional(), mediaUrl: z.string().url().optional() });
     const body = validate(schema, req.body);
     const settings = await getWhatsAppConfig(ctx.db);
     const text = body.message ?? 'Prueba de WhatsApp desde acoYAradas! - ' + new Date().toISOString();
     if (settings.mode === 'bridge' && settings.bridge_url) {
-      const result = await sendThroughBridge(settings, body.phone, text);
+      const result = await sendThroughBridge(settings, body.phone, text, body.mediaUrl ?? null);
       return result;
     }
     return { ok: false, error: 'Modo enlaces. Usá los enlaces wa.me desde el panel.' };
