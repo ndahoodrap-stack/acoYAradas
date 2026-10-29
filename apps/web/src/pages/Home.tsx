@@ -215,6 +215,7 @@ export default function Home() {
             {categories.map((cat) => {
               const ICONS: Record<string, string> = {
                 gastronomia: '🍽️',
+                restaurantes: '🍽️',
                 rotiserias: '🍗',
                 kioscos: '🏪',
                 almacenes: '🛒',

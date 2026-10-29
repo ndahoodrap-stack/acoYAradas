@@ -19,17 +19,6 @@ interface PaymentRow {
   created_at: string;
 }
 
-interface SubscriptionRow {
-  id: string;
-  status: 'active' | 'past_due' | 'cancelled' | 'expired';
-  starts_at: string;
-  ends_at: string;
-  plan_name: string;
-  plan_code: string;
-  price: number;
-  billing_period: string;
-}
-
 interface CommissionRow {
   id: string;
   order_id: string;
@@ -58,21 +47,12 @@ interface CampaignRow {
   clicks: number;
 }
 
-interface Limits {
-  name: string;
-  code: string;
-  product_limit: number;
-  promo_limit: number;
-  ends_at: string | null;
-  paid: boolean;
-}
-
 interface FinanceResponse {
   payments: PaymentRow[];
-  subscriptions: SubscriptionRow[];
+  subscriptions: any[];
   commissions: CommissionRow[];
   campaigns: CampaignRow[];
-  limits: Limits;
+  limits: any;
 }
 
 interface StatsResponse {
@@ -112,9 +92,7 @@ const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
 };
 
 export default function StoreFinance() {
-  const [tab, setTab] = useState<'resumen' | 'pagos' | 'suscripcion' | 'comisiones' | 'publicidad'>(
-    'resumen',
-  );
+  const [tab, setTab] = useState<'resumen' | 'pagos' | 'comisiones' | 'publicidad'>('resumen');
 
   const finance = useQuery({
     queryKey: ['store-finance'],
@@ -151,7 +129,6 @@ export default function StoreFinance() {
   const tabs: { key: typeof tab; label: string }[] = [
     { key: 'resumen', label: 'Resumen' },
     { key: 'pagos', label: 'Pagos' },
-    { key: 'suscripcion', label: 'Suscripción' },
     { key: 'comisiones', label: 'Comisiones' },
     { key: 'publicidad', label: 'Publicidad' },
   ];
@@ -200,35 +177,6 @@ export default function StoreFinance() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <section className="card p-5">
-              <SectionTitle title="Tu plan" subtitle="Límites vigentes de tu suscripción" />
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-ink-500">Plan</dt>
-                  <dd className="font-semibold text-ink-900">{data.limits.name}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-ink-500">Productos permitidos</dt>
-                  <dd className="font-semibold text-ink-900">{data.limits.product_limit}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-ink-500">Promociones activas</dt>
-                  <dd className="font-semibold text-ink-900">{data.limits.promo_limit}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-ink-500">Vence</dt>
-                  <dd className="font-semibold text-ink-900">
-                    {data.limits.ends_at ? formatDate(data.limits.ends_at) : '—'}
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-                Los importes de esta pantalla son registros internos. Un pago figura como
-                &laquo;confirmado&raquo; sólo cuando acoYAradas! verifica su acreditación; hasta ese
-                momento queda como pendiente.
-              </p>
-            </section>
-
             <section className="card p-5">
               <SectionTitle title="Productos más vendidos" subtitle="Top 10 por importe" />
               {s.top_products.length === 0 ? (
@@ -306,46 +254,6 @@ export default function StoreFinance() {
                   </td>
                   <td className="text-xs">{p.due_at ? formatDate(p.due_at) : '—'}</td>
                   <td className="text-xs text-ink-500">{formatDateTime(p.created_at)}</td>
-                </tr>
-              ))}
-            </DataTable>
-          )}
-        </section>
-      ) : null}
-
-      {tab === 'suscripcion' ? (
-        <section className="space-y-3">
-          {data.subscriptions.length === 0 ? (
-            <EmptyState
-              title="Sin suscripciones"
-              description="Cuando un administrador active un plan para tu comercio vas a verlo acá."
-            />
-          ) : (
-            <DataTable
-              headers={['Plan', 'Estado', 'Desde', 'Hasta', 'Precio', 'Período']}
-              empty="Sin suscripciones."
-            >
-              {data.subscriptions.map((sub) => (
-                <tr key={sub.id}>
-                  <td>
-                    <p className="font-medium text-ink-900">{sub.plan_name}</p>
-                    <p className="text-xs text-ink-500">{sub.plan_code}</p>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        sub.status === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-ink-200 text-ink-600'
-                      }`}
-                    >
-                      {sub.status}
-                    </span>
-                  </td>
-                  <td className="text-xs">{formatDate(sub.starts_at)}</td>
-                  <td className="text-xs">{formatDate(sub.ends_at)}</td>
-                  <td>{formatMoney(sub.price)}</td>
-                  <td className="text-xs">{sub.billing_period}</td>
                 </tr>
               ))}
             </DataTable>

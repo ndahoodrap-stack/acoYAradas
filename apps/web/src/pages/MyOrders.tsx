@@ -85,14 +85,9 @@ export default function MyOrders() {
   const orders = data?.items ?? [];
 
   return (
-    <div className="container-app py-8">
-      <h1 className="text-2xl font-black tracking-tight text-ink-900 sm:text-3xl">Mis pedidos</h1>
-      <p className="mt-1 text-sm text-ink-500">
-        Historial de compras de {user.email}.
-      </p>
-
+    <div className="space-y-6">
       {message ? (
-        <div className="mt-4 rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
+        <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
 
       <div className="card mb-6 flex items-center gap-4 p-4">
@@ -110,7 +105,7 @@ export default function MyOrders() {
         </button>
       </div>
 
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4">
         {orders.length === 0 ? (
           <EmptyState
             title="Todavía no tenés pedidos"

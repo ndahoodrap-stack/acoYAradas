@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useSession } from '../lib/session';
 import { formatDateTime } from '../lib/format';
-import { EmptyState, ErrorState, Field, Modal, SectionTitle, Spinner } from '../components/ui';
+import { EmptyState, ErrorState, Field, Modal, Spinner } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 
 export default function MyProfile() {
@@ -61,11 +61,7 @@ export default function MyProfile() {
   });
 
   if (!user) {
-    return (
-      <div className="container-app py-10">
-        <EmptyState title="Iniciá sesión" description="Necesitás una cuenta para ver tu perfil." />
-      </div>
-    );
+    return <EmptyState title="Iniciá sesión" description="Necesitás una cuenta para ver tu perfil." />;
   }
   if (isLoading) return <Spinner />;
   if (error) {
@@ -75,10 +71,9 @@ export default function MyProfile() {
   const profile = data?.profile;
 
   return (
-    <div className="container-app max-w-2xl py-8">
-      <SectionTitle title="Mi perfil" subtitle="Tus datos y foto de perfil" />
+    <div className="space-y-6">
       {message ? (
-        <div className="mb-4 rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
+        <div className="rounded-xl bg-ink-100 px-4 py-3 text-sm text-ink-700">{message}</div>
       ) : null}
 
       <div className="card space-y-4 p-6">

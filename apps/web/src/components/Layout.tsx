@@ -157,7 +157,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              Comercios
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden>🏪</span> Comercios
+              </span>
             </NavLink>
             <NavLink
               to="/categorias"
@@ -165,7 +167,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              Categorías
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden>🗂️</span> Categorías
+              </span>
             </NavLink>
             <NavLink
               to="/publicidad"
@@ -173,7 +177,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              Publicidad
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden>📣</span> Publicidad
+              </span>
             </NavLink>
             <NavLink
               to="/sumate"
@@ -181,7 +187,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              Sumate
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden>➕</span> Sumate
+              </span>
             </NavLink>
           </nav>
 
@@ -252,20 +260,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="border-t border-ink-200 bg-white lg:hidden">
             <div className="container-app flex flex-col gap-1 py-3">
               {[
-                { to: '/comercios', label: 'Comercios' },
-                { to: '/categorias', label: 'Categorías' },
-                { to: '/publicidad', label: 'Publicidad' },
-                { to: '/sumate', label: 'Sumate como comercio' },
-                { to: '/mi-perfil', label: 'Mi perfil' },
-                { to: '/mis-pedidos', label: 'Mis pedidos' },
-                { to: '/seguimiento', label: 'Seguir un pedido' },
+                { to: '/comercios', label: 'Comercios', icon: '🏪' },
+                { to: '/categorias', label: 'Categorías', icon: '🗂️' },
+                { to: '/publicidad', label: 'Publicidad', icon: '📣' },
+                { to: '/sumate', label: 'Sumate como comercio', icon: '➕' },
+                { to: '/mi-perfil', label: 'Mi perfil', icon: '👤' },
+                { to: '/mis-pedidos', label: 'Mis pedidos', icon: '📦' },
+                { to: '/seguimiento', label: 'Seguir un pedido', icon: '📍' },
               ].map((link) => (
                 <NavLink
                   key={link.to}
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-100"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-100 flex items-center gap-2"
                 >
+                  <span aria-hidden>{link.icon}</span>
                   {link.label}
                 </NavLink>
               ))}

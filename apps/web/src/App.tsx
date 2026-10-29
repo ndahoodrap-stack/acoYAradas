@@ -17,8 +17,6 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import Track from './pages/Track';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import MyOrders from './pages/MyOrders';
-import MyProfile from './pages/MyProfile';
 import Legal from './pages/Legal';
 import BecomeStore from './pages/BecomeStore';
 import Advertising from './pages/Advertising';
@@ -27,6 +25,7 @@ import NotFound from './pages/NotFound';
 const StorePanel = lazy(() => import('./pages/store/StorePanel'));
 const AdminPanel = lazy(() => import('./pages/admin/AdminPanel'));
 const RiderPanel = lazy(() => import('./pages/rider/RiderPanel'));
+const UserPanel = lazy(() => import('./pages/user/UserPanel'));
 
 function Protected({
   children,
@@ -75,8 +74,14 @@ export default function App() {
           <Route path="/seguimiento/:code" element={<Track />} />
           <Route path="/ingresar" element={<Login />} />
           <Route path="/registrarse" element={<Register />} />
-          <Route path="/mis-pedidos" element={<MyOrders />} />
-          <Route path="/mi-perfil" element={<MyProfile />} />
+          <Route
+            path="/mis-pedidos*"
+            element={
+              <Protected allow={['customer', 'store_owner', 'store_staff', 'courier', 'admin']}>
+                <UserPanel />
+              </Protected>
+            }
+          />
           <Route path="/legal/:slug" element={<Legal />} />
           <Route path="/sumate" element={<BecomeStore />} />
           <Route path="/publicidad" element={<Advertising />} />

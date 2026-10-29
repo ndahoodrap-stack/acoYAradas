@@ -4,6 +4,19 @@ import { api } from '../lib/api';
 import type { CategoryDto } from '@acoyaradas/shared';
 import { ErrorState, Spinner } from '../components/ui';
 
+const CATEGORY_ICONS: Record<string, string> = {
+  gastronomia: '🍽️',
+  restaurantes: '🍽️',
+  rotiserias: '🍗',
+  kioscos: '🏪',
+  almacenes: '🛒',
+  bebidas: '🥤',
+  indumentaria: '👕',
+  ferreterias: '🔧',
+  tecnologia: '💻',
+  farmacias: '💊',
+};
+
 export default function Categories() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['categories'],
@@ -41,7 +54,7 @@ export default function Categories() {
               </p>
             </div>
             <span className="text-2xl" aria-hidden>
-              🛍️
+              {CATEGORY_ICONS[cat.slug] ?? '🛍️'}
             </span>
           </Link>
         ))}
