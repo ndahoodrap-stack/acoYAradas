@@ -35,9 +35,13 @@ export function AddressVerificationMap({
 }: AddressVerificationMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [geojsonLoaded, setGeojsonLoaded] = useState(false);
+  const [geojsonError, setGeojsonError] = useState<string | null>(null);
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const zonasDataRef = useRef<any>(null);
+  const callesDataRef = useRef<any>(null);
 
   // Initialize map when ref is set (callback ref pattern - replaces onLoad which doesn't fire in v8)
   const initializeMap = useCallback((mapInstance: any) => {
@@ -167,44 +171,44 @@ export function AddressVerificationMap({
     return () => console.log('[AddressVerificationMap] Component UNMOUNTED');
   }, []);
 
-  // Verify calles GeoJSON URL is accessible
+  // Fetch both GeoJSON files on mount and pass data objects to mapStyle
   useEffect(() => {
-    const verifyCallesUrl = async () => {
-      try {
-        const res = await fetch('/bolivar-calles-simplified.geojson');
-        console.log('[Map] Calles GeoJSON fetch status:', res.status, res.ok ? 'OK' : 'FAILED');
-        if (res.ok) {
-          const data = await res.json();
-          console.log('[Map] Calles GeoJSON type:', data.type);
-          console.log('[Map] Calles GeoJSON features count:', data.features?.length);
-          if (data.features?.length > 0) {
-            console.log('[Map] Calles first feature geometry type:', data.features[0].geometry?.type);
-            console.log('[Map] Calles first feature properties:', Object.keys(data.features[0].properties || {}));
-          }
-        }
-      } catch (err) {
-        console.warn('[Map] Calles GeoJSON fetch failed:', err);
-      }
-    };
-    verifyCallesUrl();
-  }, []);
+    let cancelled = false;
 
-  // Load zone features from GeoJSON for client-side point-in-polygon detection
-  // Fetch directly on mount - no external dependencies
-  useEffect(() => {
-    const loadZoneFeatures = async () => {
+    const loadBothGeoJSON = async () => {
       try {
-        const res = await fetch('/bolivar.geojson');
-        if (!res.ok) throw new Error('Failed to load bolivar.geojson');
-        const data = await res.json();
+        console.log('[Map] Fetching both GeoJSON files...');
 
-        const features = (data.features || []).map((f: any) => {
+        // Fetch both in parallel
+        const [zonasRes, callesRes] = await Promise.all([
+          fetch('/bolivar.geojson'),
+          fetch('/bolivar-calles-simplified.geojson'),
+        ]);
+
+        if (!zonasRes.ok) throw new Error(`Failed to load bolivar.geojson: ${zonasRes.status}`);
+        if (!callesRes.ok) throw new Error(`Failed to load bolivar-calles-simplified.geojson: ${callesRes.status}`);
+
+        const [zonasData, callesData] = await Promise.all([
+          zonasRes.json(),
+          callesRes.json(),
+        ]);
+
+        if (cancelled) return;
+
+        console.log('[Map] Zonas GeoJSON loaded:', zonasData.features?.length, 'features');
+        console.log('[Map] Calles GeoJSON loaded:', callesData.features?.length, 'features');
+
+        // Store data in refs for mapStyle
+        zonasDataRef.current = zonasData;
+        callesDataRef.current = callesData;
+
+        // Process zone features for client-side detection
+        const features = (zonasData.features || []).map((f: any) => {
           const props = f.properties || {};
           const zoneCode = (Object.values(props) as string[]).find(v =>
             ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
           ) || null;
 
-          // Get border color/width from DELIVERY_ZONES config
           const zoneStyle = DELIVERY_ZONES.find(z => z.code === zoneCode);
 
           return {
@@ -224,12 +228,21 @@ export function AddressVerificationMap({
 
         zoneFeaturesRef.current = features;
         console.log('[AddressVerificationMap] Loaded zone features from GeoJSON:', features.length, features.map(f => f.properties.zone_code));
+
+        setGeojsonLoaded(true);
+        setGeojsonError(null);
       } catch (err) {
-        console.warn('Could not load zone features from GeoJSON:', err);
+        if (cancelled) return;
+        console.error('[Map] Failed to load GeoJSON files:', err);
+        setGeojsonError(err instanceof Error ? err.message : 'Error loading map data');
       }
     };
 
-    loadZoneFeatures();
+    loadBothGeoJSON();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -261,12 +274,15 @@ export function AddressVerificationMap({
   }, [detectZoneAtPosition]);
 
   // Show loading state
-  if (loading) {
+  if (loading || !geojsonLoaded) {
     return (
       <div className="rounded-xl bg-ink-50 border border-ink-200 h-[300px] flex items-center justify-center">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500 mx-auto" />
-          <p className="mt-2 text-sm text-ink-500">Cargando mapa...</p>
+          <p className="mt-2 text-sm text-ink-500">
+            {geojsonError ? 'Error cargando datos del mapa' : 'Cargando mapa...'}
+          </p>
+          {geojsonError && <p className="mt-1 text-xs text-red-500">{geojsonError}</p>}
         </div>
       </div>
     );
@@ -316,11 +332,11 @@ export function AddressVerificationMap({
           sources: {
             zonas: {
               type: 'geojson',
-              data: '/bolivar.geojson',
+              data: zonasDataRef.current,
             },
             calles: {
               type: 'geojson',
-              data: '/bolivar-calles-simplified.geojson',
+              data: callesDataRef.current,
             },
           },
           layers: [
