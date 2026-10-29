@@ -33,6 +33,8 @@ export default defineConfig({
   optimizeDeps: {
     // El paquete compartido se entrega como código TypeScript.
     exclude: ['@acoyaradas/shared'],
+    // Forzar pre-bundling de maplibre-gl para evitar imports dinámicos sueltos
+    include: ['maplibre-gl'],
   },
   build: {
     outDir: 'dist',
