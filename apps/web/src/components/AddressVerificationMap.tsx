@@ -92,8 +92,11 @@ export function AddressVerificationMap({
       }
     });
 
-    // Also check after a short delay
+    // Also check after a short delay (500ms)
     setTimeout(checkSources, 500);
+    // Check again after longer delay for large GeoJSON (173KB calles)
+    setTimeout(checkSources, 3000);
+    setTimeout(checkSources, 8000);
   }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -162,6 +165,28 @@ export function AddressVerificationMap({
   useEffect(() => {
     console.log('[AddressVerificationMap] Component MOUNTED');
     return () => console.log('[AddressVerificationMap] Component UNMOUNTED');
+  }, []);
+
+  // Verify calles GeoJSON URL is accessible
+  useEffect(() => {
+    const verifyCallesUrl = async () => {
+      try {
+        const res = await fetch('/bolivar-calles-simplified.geojson');
+        console.log('[Map] Calles GeoJSON fetch status:', res.status, res.ok ? 'OK' : 'FAILED');
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Map] Calles GeoJSON type:', data.type);
+          console.log('[Map] Calles GeoJSON features count:', data.features?.length);
+          if (data.features?.length > 0) {
+            console.log('[Map] Calles first feature geometry type:', data.features[0].geometry?.type);
+            console.log('[Map] Calles first feature properties:', Object.keys(data.features[0].properties || {}));
+          }
+        }
+      } catch (err) {
+        console.warn('[Map] Calles GeoJSON fetch failed:', err);
+      }
+    };
+    verifyCallesUrl();
   }, []);
 
   // Load zone features from GeoJSON for client-side point-in-polygon detection
