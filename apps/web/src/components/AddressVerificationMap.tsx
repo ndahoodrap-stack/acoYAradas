@@ -42,12 +42,14 @@ export function AddressVerificationMap({
   const markerRef = useRef<any>(null);
   const zonasDataRef = useRef<any>(null);
   const callesDataRef = useRef<any>(null);
+  const mapInstanceRef = useRef<any>(null);
 
   // Initialize map when ref is set (callback ref pattern - replaces onLoad which doesn't fire in v8)
   const initializeMap = useCallback((mapInstance: any) => {
     if (!mapInstance) return;
     console.log('[Map] Map instance ready via callback ref');
     setMapLoaded(true);
+    mapInstanceRef.current = mapInstance;
     (window as any).__MAP__ = mapInstance;
     console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
 
@@ -58,32 +60,6 @@ export function AddressVerificationMap({
       console.log('[Map] Style layers:', style?.layers?.map((l: any) => l.id));
     } catch (err) {
       console.warn('[Map] getStyle failed:', err);
-    }
-
-    // Push GeoJSON data to sources using setData() - this forces immediate load
-    // instead of relying on async source initialization which gets stuck
-    if (zonasDataRef.current) {
-      try {
-        const zonasSource = mapInstance.getSource('zonas');
-        if (zonasSource) {
-          console.log('[Map] setData called for zonas');
-          mapInstance.getSource('zonas').setData(zonasDataRef.current);
-        }
-      } catch (err) {
-        console.warn('[Map] setData zonas failed:', err);
-      }
-    }
-
-    if (callesDataRef.current) {
-      try {
-        const callesSource = mapInstance.getSource('calles');
-        if (callesSource) {
-          console.log('[Map] setData called for calles');
-          mapInstance.getSource('calles').setData(callesDataRef.current);
-        }
-      } catch (err) {
-        console.warn('[Map] setData calles failed:', err);
-      }
     }
 
     // Debug: Check sources immediately
@@ -127,6 +103,40 @@ export function AddressVerificationMap({
     // Check again after longer delay for large GeoJSON (173KB calles)
     setTimeout(checkSources, 3000);
     setTimeout(checkSources, 8000);
+
+    // If GeoJSON data is already loaded, push it to sources now
+    pushGeoJSONToMap(mapInstance);
+  }, []);
+
+  // Push GeoJSON data to map sources using setData()
+  const pushGeoJSONToMap = useCallback((mapInstance: any) => {
+    if (!mapInstance) return;
+
+    // Push zonas data
+    if (zonasDataRef.current) {
+      try {
+        const zonasSource = mapInstance.getSource('zonas');
+        if (zonasSource) {
+          console.log('[Map] setData called for zonas');
+          mapInstance.getSource('zonas').setData(zonasDataRef.current);
+        }
+      } catch (err) {
+        console.warn('[Map] setData zonas failed:', err);
+      }
+    }
+
+    // Push calles data
+    if (callesDataRef.current) {
+      try {
+        const callesSource = mapInstance.getSource('calles');
+        if (callesSource) {
+          console.log('[Map] setData called for calles');
+          mapInstance.getSource('calles').setData(callesDataRef.current);
+        }
+      } catch (err) {
+        console.warn('[Map] setData calles failed:', err);
+      }
+    }
   }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -253,10 +263,15 @@ export function AddressVerificationMap({
         });
 
         zoneFeaturesRef.current = features;
-        console.log('[AddressVerificationMap] Loaded zone features from GeoJSON:', features.length, features.map(f => f.properties.zone_code));
+        console.log('[AddressVerificationMap] Loaded zone features from GeoJSON:', features.length, features.map((f: any) => f.properties.zone_code));
 
         setGeojsonLoaded(true);
         setGeojsonError(null);
+
+        // Push data to map if map is already initialized
+        if (mapInstanceRef.current) {
+          pushGeoJSONToMap(mapInstanceRef.current);
+        }
       } catch (err) {
         if (cancelled) return;
         console.error('[Map] Failed to load GeoJSON files:', err);
@@ -269,7 +284,7 @@ export function AddressVerificationMap({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pushGeoJSONToMap]);
 
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
@@ -352,7 +367,6 @@ export function AddressVerificationMap({
         maxZoom={ZOOM.BUILDING}
         minZoom={ZOOM.CITY - 2}
         style={{ width: '100%', height: `${height}px` }}
-        mapOptions={{ workerCount: 0 }}
         mapStyle={{
           version: 8,
           sources: {
