@@ -262,6 +262,7 @@ export function AddressVerificationMap({
         maxZoom={ZOOM.BUILDING}
         minZoom={ZOOM.CITY - 2}
         style={{ width: '100%', height: `${height}px` }}
+        mapOptions={{ workerCount: 0 }}
         mapStyle={{
           version: 8,
           sources: {

@@ -37,5 +37,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'maplibre-gl': ['maplibre-gl']
+        }
+      }
+    },
+    worker: {
+      format: 'es',
+      plugins: () => []
+    }
   },
 });
