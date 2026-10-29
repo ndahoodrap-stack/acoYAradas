@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { DataTable } from '../../components/PanelShell';
 import { EmptyState, ErrorState, Field, Modal, SectionTitle, Spinner } from '../../components/ui';
+import { IconPicker } from '../../components/IconPicker';
 
 interface Category {
   id: string;
@@ -183,11 +184,10 @@ export default function AdminCategories() {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
         </Field>
-        <Field label="Icono (URL)" hint="Opcional">
-          <input
-            className="input"
+        <Field label="Icono" hint="Opcional - Elegí de la galería">
+          <IconPicker
             value={form.icon_url}
-            onChange={(e) => setForm((f) => ({ ...f, icon_url: e.target.value }))}
+            onChange={(url) => setForm((f) => ({ ...f, icon_url: url }))}
           />
         </Field>
         <Field label="Orden" hint="Menor número, antes en el listado.">

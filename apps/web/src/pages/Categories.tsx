@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import type { CategoryDto } from '@acoyaradas/shared';
 import { ErrorState, Spinner } from '../components/ui';
 
-const CATEGORY_ICONS: Record<string, string> = {
+const FALLBACK_EMOJI: Record<string, string> = {
   gastronomia: '🍽️',
   restaurantes: '🍽️',
   rotiserias: '🍗',
@@ -53,9 +53,11 @@ export default function Categories() {
                 {cat.stores_count ?? 0} comercio(s) · {cat.products_count ?? 0} producto(s)
               </p>
             </div>
-            <span className="text-2xl" aria-hidden>
-              {CATEGORY_ICONS[cat.slug] ?? '🛍️'}
-            </span>
+            {cat.icon_url ? (
+              <img src={cat.icon_url} alt="" className="h-10 w-10 object-contain" />
+            ) : (
+              <span className="text-2xl" aria-hidden>{FALLBACK_EMOJI[cat.slug] ?? '🛍️'}</span>
+            )}
           </Link>
         ))}
       </div>

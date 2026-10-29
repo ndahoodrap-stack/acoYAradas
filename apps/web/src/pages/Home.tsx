@@ -213,7 +213,7 @@ export default function Home() {
           />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map((cat) => {
-              const ICONS: Record<string, string> = {
+              const FALLBACK_EMOJI: Record<string, string> = {
                 gastronomia: '🍽️',
                 restaurantes: '🍽️',
                 rotiserias: '🍗',
@@ -225,16 +225,18 @@ export default function Home() {
                 tecnologia: '💻',
                 farmacias: '💊',
               };
-              const icon = ICONS[cat.slug] ?? '🛍️';
+              const icon = cat.icon_url ? (
+                <img src={cat.icon_url} alt="" className="h-8 w-8 object-contain" />
+              ) : (
+                <span className="text-2xl" aria-hidden>{FALLBACK_EMOJI[cat.slug] ?? '🛍️'}</span>
+              );
               return (
               <Link
                 key={cat.id}
                 to={`/comercios?categoria=${cat.id}`}
                 className="card flex items-center gap-3 px-4 py-3 transition hover:border-brand-300 hover:shadow-md"
               >
-                <span className="text-2xl" aria-hidden>
-                  {icon}
-                </span>
+                {icon}
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-ink-900">{cat.name}</span>
                   <span className="block text-xs text-ink-500">

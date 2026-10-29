@@ -265,13 +265,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className="btn-ghost px-3"
                   onClick={handleLogout}
                   title={user.email}
+                  aria-label="Cerrar sesión"
                 >
-                  Salir
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
                 </button>
               </div>
             ) : (
-              <Link to="/ingresar" className="btn-primary hidden px-4 md:inline-flex">
-                Ingresar
+              <Link to="/ingresar" className="btn-primary hidden px-4 md:inline-flex" aria-label="Iniciar sesión">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
               </Link>
             )}
 
@@ -337,12 +346,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   ) : null}
                   <button
                     type="button"
-                    className="rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-700 hover:bg-ink-100"
+                    className="rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-700 hover:bg-ink-100 flex items-center gap-2"
                     onClick={() => {
                       handleLogout();
                       setMobileOpen(false);
                     }}
+                    aria-label="Cerrar sesión"
                   >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
                     Cerrar sesión
                   </button>
                 </>
@@ -350,8 +365,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Link
                   to="/ingresar"
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-ink-100"
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-ink-100 flex items-center gap-2"
+                  aria-label="Iniciar sesión"
                 >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
                   Ingresar / crear cuenta
                 </Link>
               )}
