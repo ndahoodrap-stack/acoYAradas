@@ -39,12 +39,65 @@ export function AddressVerificationMap({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Debug: Check mapRef after render
+  // Initialize map when ref is ready (replaces onLoad which doesn't fire in v8)
   useEffect(() => {
-    console.log('[AddressVerificationMap] mapRef.current:', mapRef.current);
-    if (mapRef.current) {
-      console.log('[AddressVerificationMap] mapRef.current.getMap:', typeof mapRef.current.getMap);
+    const map = mapRef.current?.getMap?.();
+    if (!map) {
+      console.log('[AddressVerificationMap] Waiting for map ref...');
+      return;
     }
+    console.log('[Map] Map instance ready via ref');
+    setMapLoaded(true);
+    (window as any).__MAP__ = map;
+    console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
+
+    // Debug: Check map's actual style sources
+    try {
+      const style = map.getStyle();
+      console.log('[Map] Style sources:', style?.sources);
+      console.log('[Map] Style layers:', style?.layers?.map(l => l.id));
+    } catch (err) {
+      console.warn('[Map] getStyle failed:', err);
+    }
+
+    // Debug: Check sources immediately
+    const checkSources = () => {
+      try {
+        const zonasSource = map.getSource('zonas');
+        const callesSource = map.getSource('calles');
+        console.log('[Map] Zonas source:', zonasSource);
+        console.log('[Map] Calles source:', callesSource);
+        if (zonasSource) {
+          const zonasFeatures = map.querySourceFeatures('zonas');
+          console.log('[Map] Zonas features (immediate):', zonasFeatures.length);
+        }
+        if (callesSource) {
+          const callesFeatures = map.querySourceFeatures('calles');
+          console.log('[Map] Calles features (immediate):', callesFeatures.length);
+        }
+      } catch (err) {
+        console.warn('[Map] Immediate debug check failed:', err);
+      }
+    };
+    checkSources();
+
+    // Debug: Listen for source data loading events
+    map.on('sourcedata', (e: any) => {
+      if (e.sourceId === 'calles' || e.sourceId === 'zonas') {
+        console.log('[Map] sourcedata event:', e.sourceId, e.isSourceLoaded ? 'loaded' : 'loading', e.dataType);
+        if (e.isSourceLoaded) {
+          try {
+            const features = map.querySourceFeatures(e.sourceId);
+            console.log('[Map] Features after load:', e.sourceId, features.length);
+          } catch (err) {
+            console.warn('[Map] sourcedata query failed:', err);
+          }
+        }
+      }
+    });
+
+    // Also check after a short delay
+    setTimeout(checkSources, 500);
   }, [mapRef.current]);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -112,10 +165,6 @@ export function AddressVerificationMap({
   // Debug: Component mount
   useEffect(() => {
     console.log('[AddressVerificationMap] Component MOUNTED');
-    console.log('[AddressVerificationMap] mapStyle sources:', Object.keys({
-      zonas: { type: 'geojson', data: '/bolivar.geojson' },
-      calles: { type: 'geojson', data: '/bolivar-calles-simplified.geojson' },
-    }));
     return () => console.log('[AddressVerificationMap] Component UNMOUNTED');
   }, []);
 
@@ -356,65 +405,6 @@ export function AddressVerificationMap({
               filter: ['has', 'zone_code'],
             },
           ],
-        }}
-        onLoad={(map) => {
-          console.log('[Map] onLoad FIRED - received map instance:', !!map);
-          setMapLoaded(true);
-          const mapInstance = map || mapRef.current?.getMap?.();
-          if (!mapInstance) {
-            console.error('[Map] No se pudo obtener instancia MapLibre via ref o parámetro');
-            return;
-          }
-          (window as any).__MAP__ = mapInstance;
-          console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
-
-          // Debug: Check map's actual style sources
-          try {
-            const style = map.getStyle();
-            console.log('[Map] Style sources:', style?.sources);
-            console.log('[Map] Style layers:', style?.layers?.map(l => l.id));
-          } catch (err) {
-            console.warn('[Map] getStyle failed:', err);
-          }
-
-          // Debug: Check sources immediately
-          const checkSources = () => {
-            try {
-              const zonasSource = map.getSource('zonas');
-              const callesSource = map.getSource('calles');
-              console.log('[Map] Zonas source:', zonasSource);
-              console.log('[Map] Calles source:', callesSource);
-              if (zonasSource) {
-                const zonasFeatures = map.querySourceFeatures('zonas');
-                console.log('[Map] Zonas features (immediate):', zonasFeatures.length);
-              }
-              if (callesSource) {
-                const callesFeatures = map.querySourceFeatures('calles');
-                console.log('[Map] Calles features (immediate):', callesFeatures.length);
-              }
-            } catch (err) {
-              console.warn('[Map] Immediate debug check failed:', err);
-            }
-          };
-          checkSources();
-
-          // Debug: Listen for source data loading events
-          map.on('sourcedata', (e: any) => {
-            if (e.sourceId === 'calles' || e.sourceId === 'zonas') {
-              console.log('[Map] sourcedata event:', e.sourceId, e.isSourceLoaded ? 'loaded' : 'loading', e.dataType);
-              if (e.isSourceLoaded) {
-                try {
-                  const features = map.querySourceFeatures(e.sourceId);
-                  console.log('[Map] Features after load:', e.sourceId, features.length);
-                } catch (err) {
-                  console.warn('[Map] sourcedata query failed:', err);
-                }
-              }
-            }
-          });
-
-          // Also check after a short delay
-          setTimeout(checkSources, 500);
         }}
         onClick={handleMapClick}
         maxBounds={[
