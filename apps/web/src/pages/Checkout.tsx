@@ -6,7 +6,7 @@ import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
-import { detectZoneFromGeolocation, type ZoneMatch } from '../lib/zoneDetection';
+import { detectZoneFromGeolocation, type ZoneMatch, formatCoordinatesAsAddress } from '../lib/zoneDetection';
 import { AddressVerificationMap } from '../components/AddressVerificationMap';
 import { BOLIVAR_CENTER } from '../lib/zoneStyles';
 
@@ -59,6 +59,8 @@ export default function Checkout() {
           if (zone?.lng != null && zone?.lat != null) {
             const position: [number, number] = [zone.lng, zone.lat];
             setMapPosition(position);
+            // Rellenar dirección con coordenadas formateadas (local, sin API externa)
+            setForm(f => ({ ...f, address: formatCoordinatesAsAddress(position) }));
           } else {
             // Fallback al centro de Bolívar
             setMapPosition(BOLIVAR_CENTER);

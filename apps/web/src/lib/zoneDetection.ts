@@ -115,3 +115,12 @@ export async function fetchTariffForZone(zoneCode: string): Promise<{ cost: numb
     return null;
   }
 }
+
+/**
+ * Formatea coordenadas como string legible para usar como dirección local
+ * Útil cuando no hay reverse geocoding externo disponible
+ */
+export function formatCoordinatesAsAddress(lngLat: [number, number]): string {
+  const [lng, lat] = lngLat;
+  return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+}
