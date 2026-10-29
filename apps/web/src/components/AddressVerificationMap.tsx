@@ -47,22 +47,7 @@ export function AddressVerificationMap({
     console.log('[Map] Map instance ready via callback ref');
     setMapLoaded(true);
     (window as any).__MAP__ = mapInstance;
-    console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
-
-    // Debug: Listen for source data loading events
-    mapInstance.on('sourcedata', (e: any) => {
-      if (e.sourceId === 'calles' || e.sourceId === 'zonas') {
-        console.log('[Map] sourcedata event:', e.sourceId, e.isSourceLoaded ? 'loaded' : 'loading', e.dataType);
-        if (e.isSourceLoaded) {
-          try {
-            const features = mapInstance.querySourceFeatures(e.sourceId);
-            console.log('[Map] Features after load:', e.sourceId, features.length);
-          } catch (err) {
-            console.warn('[Map] sourcedata query failed:', err);
-          }
-        }
-      }
-    });
+    console.log('[Map] MapLibre loaded with raster tiles (self-hosted, no external deps)');
   }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -289,12 +274,18 @@ export function AddressVerificationMap({
           version: 8,
           sources: {
             zonas: {
-              type: 'geojson',
-              data: '/bolivar.geojson',
+              type: 'raster',
+              tiles: ['/tiles/zonas/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              minzoom: 10,
+              maxzoom: 16,
             },
             calles: {
-              type: 'geojson',
-              data: '/bolivar-calles-simplified.geojson',
+              type: 'raster',
+              tiles: ['/tiles/calles/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              minzoom: 10,
+              maxzoom: 16,
             },
           },
           layers: [
@@ -306,97 +297,23 @@ export function AddressVerificationMap({
                 'background-color': '#f3f4f6', // light gray (gray-100)
               },
             },
-            // Calles (líneas)
+            // Calles raster layer
             {
-              id: 'streets',
-              type: 'line',
+              id: 'streets-raster',
+              type: 'raster',
               source: 'calles',
               paint: {
-                'line-color': '#9ca3af',
-                'line-width': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  12, 0.5,
-                  14, 1,
-                  16, 1.5,
-                  18, 2,
-                ],
-                'line-opacity': 0.7,
+                'raster-opacity': 0.8,
               },
             },
-            // Labels de calles
+            // Zonas raster layer
             {
-              id: 'street-labels',
-              type: 'symbol',
-              source: 'calles',
-              layout: {
-                'text-field': ['get', 'name'],
-                'text-font': ['Open Sans Regular'],
-                'text-size': 10,
-                'text-anchor': 'center',
-                'symbol-placement': 'line',
-                'symbol-spacing': 200,
-              },
-              paint: {
-                'text-color': '#6b7280',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 1,
-              },
-              minzoom: 15,
-              filter: ['has', 'name'],
-            },
-            // Zonas fills
-            {
-              id: 'zone-fill-planta_urbana',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
-            },
-            {
-              id: 'zone-fill-zona_barrial',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
-            },
-            {
-              id: 'zone-fill-zona_rural',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'zona_rural'],
-            },
-            // Bordes de zonas
-            {
-              id: 'zone-borders',
-              type: 'line',
+              id: 'zonas-raster',
+              type: 'raster',
               source: 'zonas',
               paint: {
-                'line-color': ['get', 'borderColor'],
-                'line-width': ['get', 'borderWidth']
+                'raster-opacity': 0.9,
               },
-              filter: ['has', 'zone_code'],
-            },
-            // Labels de zonas
-            {
-              id: 'zone-labels',
-              type: 'symbol',
-              source: 'zonas',
-              layout: {
-                'text-field': ['get', 'name'],
-                'text-font': ['Open Sans Bold'],
-                'text-size': 12,
-                'text-anchor': 'center',
-              },
-              paint: {
-                'text-color': '#1f2937',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 2
-              },
-              minzoom: 12,
-              filter: ['has', 'zone_code'],
             },
           ],
         }}
