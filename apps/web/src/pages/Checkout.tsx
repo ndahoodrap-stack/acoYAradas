@@ -59,8 +59,14 @@ export default function Checkout() {
           if (zone?.lng != null && zone?.lat != null) {
             const position: [number, number] = [zone.lng, zone.lat];
             setMapPosition(position);
-            // Rellenar dirección con coordenadas formateadas (local, sin API externa)
-            setForm(f => ({ ...f, address: formatCoordinatesAsAddress(position) }));
+            // Rellenar dirección con nombre de calle detectado (local, sin API externa)
+            // El usuario solo necesita agregar su número de casa
+            if (zone.streetName) {
+              setForm(f => ({ ...f, address: `${zone.streetName} [número]` }));
+            } else {
+              // Fallback a coordenadas si no se detecta calle
+              setForm(f => ({ ...f, address: formatCoordinatesAsAddress(position) }));
+            }
           } else {
             // Fallback al centro de Bolívar
             setMapPosition(BOLIVAR_CENTER);
@@ -222,8 +228,14 @@ export default function Checkout() {
                   />
                 </Field>
               ) : (
-                <Field label="Dirección">
-                  <input className="input bg-ink-50 cursor-not-allowed" value={form.address || 'Se completa desde el mapa'} readOnly />
+                <Field label="Dirección" hint="Se detectó la calle automáticamente. Agregá tu número de casa.">
+                  <input
+                    className="input"
+                    value={form.address}
+                    onChange={field('address').onChange}
+                    placeholder="Ej: 123"
+                    autoComplete="street-address"
+                  />
                 </Field>
               )}
               <Field label="Referencias" hint="Timbre, piso, puerta, punto de referencia…">

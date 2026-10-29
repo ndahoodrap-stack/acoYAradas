@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/maplibre';
 import { DELIVERY_ZONES, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zoneStyles';
 import type { ZoneMatch } from '../lib/zoneDetection';
-import { pointInPolygon, formatCoordinatesAsAddress } from '../lib/zoneDetection';
+import { pointInPolygon, formatCoordinatesAsAddress, findNearestStreet } from '../lib/zoneDetection';
 
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
@@ -95,19 +95,29 @@ export function AddressVerificationMap({
       const lngLat: [number, number] = [position.coords.longitude, position.coords.latitude];
       // Update viewport to center on user location
       mapRef.current?.jumpTo?.({ center: lngLat, zoom: ZOOM.NEIGHBORHOOD });
-      // Move marker and trigger detection with formatted address
+      // Move marker and trigger detection
       if (markerRef.current) {
         markerRef.current.setLngLat(lngLat);
       }
-      // Pass formatted coordinates as address (local, no external API)
-      const formattedAddress = formatCoordinatesAsAddress(lngLat);
-      detectZoneAtPosition(lngLat, formattedAddress);
+      // Find nearest street name from loaded GeoJSON (local, no external API)
+      let fullAddress: string;
+      if (callesGeoJson) {
+        const streetName = findNearestStreet(lngLat, callesGeoJson);
+        if (streetName) {
+          fullAddress = `${streetName} [número]`;
+        } else {
+          fullAddress = formatCoordinatesAsAddress(lngLat);
+        }
+      } else {
+        fullAddress = formatCoordinatesAsAddress(lngLat);
+      }
+      detectZoneAtPosition(lngLat, fullAddress);
     } catch (err) {
       console.warn('Geolocation failed:', err);
     } finally {
       setIsLocating(false);
     }
-  }, [detectZoneAtPosition]);
+  }, [detectZoneAtPosition, callesGeoJson]);
 
   // Initialize map viewport when position is available
   useEffect(() => {
