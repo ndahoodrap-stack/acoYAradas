@@ -39,6 +39,14 @@ export function AddressVerificationMap({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
+  // Debug: Check mapRef after render
+  useEffect(() => {
+    console.log('[AddressVerificationMap] mapRef.current:', mapRef.current);
+    if (mapRef.current) {
+      console.log('[AddressVerificationMap] mapRef.current.getMap:', typeof mapRef.current.getMap);
+    }
+  }, [mapRef.current]);
+
   // Detect zone at a given position using client-side point-in-polygon
   // Uses zoneFeaturesRef populated from the GeoJSON on mount
   const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
@@ -100,6 +108,16 @@ export function AddressVerificationMap({
       mapRef.current?.jumpTo?.({ center: position, zoom: ZOOM.NEIGHBORHOOD });
     }
   }, [position, loading]);
+
+  // Debug: Component mount
+  useEffect(() => {
+    console.log('[AddressVerificationMap] Component MOUNTED');
+    console.log('[AddressVerificationMap] mapStyle sources:', Object.keys({
+      zonas: { type: 'geojson', data: '/bolivar.geojson' },
+      calles: { type: 'geojson', data: '/bolivar-calles-simplified.geojson' },
+    }));
+    return () => console.log('[AddressVerificationMap] Component UNMOUNTED');
+  }, []);
 
   // Load zone features from GeoJSON for client-side point-in-polygon detection
   // Fetch directly on mount - no external dependencies
@@ -339,15 +357,15 @@ export function AddressVerificationMap({
             },
           ],
         }}
-        onLoad={() => {
-          console.log('[Map] onLoad FIRED');
+        onLoad={(map) => {
+          console.log('[Map] onLoad FIRED - received map instance:', !!map);
           setMapLoaded(true);
-          const map = mapRef.current?.getMap?.();
-          if (!map) {
-            console.error('[Map] No se pudo obtener instancia MapLibre via ref');
+          const mapInstance = map || mapRef.current?.getMap?.();
+          if (!mapInstance) {
+            console.error('[Map] No se pudo obtener instancia MapLibre via ref o parámetro');
             return;
           }
-          (window as any).__MAP__ = map;
+          (window as any).__MAP__ = mapInstance;
           console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
 
           // Debug: Check map's actual style sources
