@@ -319,7 +319,7 @@ export function AddressVerificationMap({
           'text-size': 11,
           'text-letter-spacing': 0.05,
           'text-anchor': 'center',
-          'text-placement': 'line',
+          'symbol-placement': 'line',
           'text-rotate': 0,
           'text-padding': 2,
           'text-keep-upright': true,
