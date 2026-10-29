@@ -157,9 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden>🏪</span> Comercios
-              </span>
+              Comercios
             </NavLink>
             <NavLink
               to="/categorias"
@@ -167,9 +165,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden>🗂️</span> Categorías
-              </span>
+              Categorías
             </NavLink>
             <NavLink
               to="/publicidad"
@@ -177,9 +173,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden>📣</span> Publicidad
-              </span>
+              Publicidad
             </NavLink>
             <NavLink
               to="/sumate"
@@ -187,9 +181,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 `btn-ghost relative px-3 ${isActive ? 'text-brand-600 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-brand-500' : ''}`
               }
             >
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden>➕</span> Sumate
-              </span>
+              Sumate
             </NavLink>
           </nav>
 
