@@ -85,127 +85,147 @@ export function AddressVerificationMap({
       // Add zonas source with data
       if (zonasDataRef.current) {
         console.log('[Map] Adding zonas source with', zonasDataRef.current.features?.length, 'features');
-        mapInstance.addSource('zonas', {
-          type: 'geojson',
-          data: zonasDataRef.current,
-        });
+        if (!mapInstance.getSource('zonas')) {
+          mapInstance.addSource('zonas', {
+            type: 'geojson',
+            data: zonasDataRef.current,
+          });
+        }
       }
 
       // Add calles source with data
       if (callesDataRef.current) {
         console.log('[Map] Adding calles source with', callesDataRef.current.features?.length, 'features');
-        mapInstance.addSource('calles', {
-          type: 'geojson',
-          data: callesDataRef.current,
-        });
+        if (!mapInstance.getSource('calles')) {
+          mapInstance.addSource('calles', {
+            type: 'geojson',
+            data: callesDataRef.current,
+          });
+        }
       }
 
       // Add layers (must be done after sources are added)
-      // Background layer
-      mapInstance.addLayer({
-        id: 'background',
-        type: 'background',
-        paint: { 'background-color': '#f3f4f6' },
-      });
+      // Background layer - only add if not exists
+      if (!mapInstance.getLayer('background')) {
+        mapInstance.addLayer({
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': '#f3f4f6' },
+        });
+      }
 
       // Calles (líneas)
-      mapInstance.addLayer({
-        id: 'streets',
-        type: 'line',
-        source: 'calles',
-        paint: {
-          'line-color': '#9ca3af',
-          'line-width': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            12, 0.5,
-            14, 1,
-            16, 1.5,
-            18, 2,
-          ],
-          'line-opacity': 0.7,
-        },
-      });
+      if (!mapInstance.getLayer('streets')) {
+        mapInstance.addLayer({
+          id: 'streets',
+          type: 'line',
+          source: 'calles',
+          paint: {
+            'line-color': '#9ca3af',
+            'line-width': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              12, 0.5,
+              14, 1,
+              16, 1.5,
+              18, 2,
+            ],
+            'line-opacity': 0.7,
+          },
+        });
+      }
 
       // Labels de calles
-      mapInstance.addLayer({
-        id: 'street-labels',
-        type: 'symbol',
-        source: 'calles',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-font': ['Open Sans Regular'],
-          'text-size': 10,
-          'text-anchor': 'center',
-          'symbol-placement': 'line',
-          'symbol-spacing': 200,
-        },
-        paint: {
-          'text-color': '#6b7280',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1,
-        },
-        minzoom: 15,
-        filter: ['has', 'name'],
-      });
+      if (!mapInstance.getLayer('street-labels')) {
+        mapInstance.addLayer({
+          id: 'street-labels',
+          type: 'symbol',
+          source: 'calles',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Regular'],
+            'text-size': 10,
+            'text-anchor': 'center',
+            'symbol-placement': 'line',
+            'symbol-spacing': 200,
+          },
+          paint: {
+            'text-color': '#6b7280',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1,
+          },
+          minzoom: 15,
+          filter: ['has', 'name'],
+        });
+      }
 
       // Zonas fills
-      mapInstance.addLayer({
-        id: 'zone-fill-planta_urbana',
-        type: 'fill',
-        source: 'zonas',
-        paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
-        filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
-      });
+      if (!mapInstance.getLayer('zone-fill-planta_urbana')) {
+        mapInstance.addLayer({
+          id: 'zone-fill-planta_urbana',
+          type: 'fill',
+          source: 'zonas',
+          paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+          filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
+        });
+      }
 
-      mapInstance.addLayer({
-        id: 'zone-fill-zona_barrial',
-        type: 'fill',
-        source: 'zonas',
-        paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
-        filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
-      });
+      if (!mapInstance.getLayer('zone-fill-zona_barrial')) {
+        mapInstance.addLayer({
+          id: 'zone-fill-zona_barrial',
+          type: 'fill',
+          source: 'zonas',
+          paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
+          filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
+        });
+      }
 
-      mapInstance.addLayer({
-        id: 'zone-fill-zona_rural',
-        type: 'fill',
-        source: 'zonas',
-        paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
-        filter: ['==', ['get', 'zone_code'], 'zona_rural'],
-      });
+      if (!mapInstance.getLayer('zone-fill-zona_rural')) {
+        mapInstance.addLayer({
+          id: 'zone-fill-zona_rural',
+          type: 'fill',
+          source: 'zonas',
+          paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
+          filter: ['==', ['get', 'zone_code'], 'zona_rural'],
+        });
+      }
 
       // Bordes de zonas
-      mapInstance.addLayer({
-        id: 'zone-borders',
-        type: 'line',
-        source: 'zonas',
-        paint: {
-          'line-color': ['get', 'borderColor'],
-          'line-width': ['get', 'borderWidth']
-        },
-        filter: ['has', 'zone_code'],
-      });
+      if (!mapInstance.getLayer('zone-borders')) {
+        mapInstance.addLayer({
+          id: 'zone-borders',
+          type: 'line',
+          source: 'zonas',
+          paint: {
+            'line-color': ['get', 'borderColor'],
+            'line-width': ['get', 'borderWidth']
+          },
+          filter: ['has', 'zone_code'],
+        });
+      }
 
       // Labels de zonas
-      mapInstance.addLayer({
-        id: 'zone-labels',
-        type: 'symbol',
-        source: 'zonas',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-font': ['Open Sans Bold'],
-          'text-size': 12,
-          'text-anchor': 'center',
-        },
-        paint: {
-          'text-color': '#1f2937',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 2
-        },
-        minzoom: 12,
-        filter: ['has', 'zone_code'],
-      });
+      if (!mapInstance.getLayer('zone-labels')) {
+        mapInstance.addLayer({
+          id: 'zone-labels',
+          type: 'symbol',
+          source: 'zonas',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Open Sans Bold'],
+            'text-size': 12,
+            'text-anchor': 'center',
+          },
+          paint: {
+            'text-color': '#1f2937',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2
+          },
+          minzoom: 12,
+          filter: ['has', 'zone_code'],
+        });
+      }
 
       layersAddedRef.current = true;
       console.log('[Map] Sources and layers added successfully');
@@ -457,16 +477,7 @@ export function AddressVerificationMap({
         mapStyle={{
           version: 8,
           sources: {},
-          layers: [
-            // Background layer (solid color - no external tiles needed)
-            {
-              id: 'background',
-              type: 'background',
-              paint: {
-                'background-color': '#f3f4f6', // light gray (gray-100)
-              },
-            },
-          ],
+          layers: [],
         }}
         onClick={handleMapClick}
         maxBounds={[
