@@ -19,3 +19,12 @@ uploads/
 # Logs
 *.log
 npm-debug.log*
+
+# Generated map tiles (auto-generated, not for version control)
+apps/web/public/tiles/
+
+# Generated/duplicate files
+acoYAradasLLEGOUNPEDIDO.jpg
+acoYAradasTUPEDIDOENCAMINO.jpg
+CONTEXTO.md
+calles_categorizadas.txt
