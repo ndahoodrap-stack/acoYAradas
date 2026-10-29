@@ -194,6 +194,7 @@ export function buildOrderTargets(
       trackingUrl: tracking,
       panelUrl: recipient === 'owner' ? panelUrl : null,
       locality: config.platform.city,
+      imageBaseUrl: config.publicBaseUrl,
     });
     targets.push({
       recipient,

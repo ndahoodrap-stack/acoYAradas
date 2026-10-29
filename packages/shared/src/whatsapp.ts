@@ -57,6 +57,8 @@ export interface WhatsAppMessageOptions {
   panelUrl?: string | null;
   /** Nombre de la ciudad/pueblo donde opera la plataforma. */
   locality?: string;
+  /** Base URL para imágenes (ej: https://dominio.com). Se usa para adjuntar fotos en los mensajes. */
+  imageBaseUrl?: string | null;
 }
 
 /**
@@ -165,6 +167,11 @@ export function buildOrderMessage(
   const panel = options.panelUrl ? `\n🖥️ Panel: ${options.panelUrl}` : '';
   const note = options.statusNote ? `\n📝 Nota: ${options.statusNote}` : '';
   const city = options.locality ?? 'San Carlos de Bolívar';
+  const imageBaseUrl = options.imageBaseUrl?.replace(/\/$/, '') ?? '';
+
+  // Construir URLs de imágenes si se proporciona base URL
+  const storeImage = imageBaseUrl ? `\n🖼️ ${imageBaseUrl}/acoYAradasLLEGOUNPEDIDO.jpg` : '';
+  const customerImage = imageBaseUrl ? `\n🖼️ ${imageBaseUrl}/acoYAradasTUPEDIDOENCAMINO.jpg` : '';
 
   switch (kind) {
     case 'owner_new_order':
@@ -213,6 +220,7 @@ export function buildOrderMessage(
         pickup ? '\nEl repartidor pasa a retirarlo por el local.' : '',
         note,
         tracking,
+        storeImage,
       ]
         .filter(Boolean)
         .join('\n')
@@ -261,6 +269,7 @@ export function buildOrderMessage(
         '',
         'El comercio va a confirmarlo en breve. Te avisamos por acá.',
         tracking,
+        customerImage,
         '',
         `acoYAradas! · ${city}`,
       ]
@@ -281,6 +290,7 @@ export function buildOrderMessage(
         note,
         order.status === 'cancelled' ? 'Si tenés dudas, escribinos y lo revisamos.' : '',
         tracking,
+        customerImage,
         '',
         `acoYAradas! · ${city}`,
       ]
