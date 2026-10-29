@@ -43,6 +43,7 @@ export function AddressVerificationMap({
   const zonasDataRef = useRef<any>(null);
   const callesDataRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
+  const layersAddedRef = useRef(false);
 
   // Initialize map when ref is set (callback ref pattern - replaces onLoad which doesn't fire in v8)
   const initializeMap = useCallback((mapInstance: any) => {
@@ -52,36 +53,6 @@ export function AddressVerificationMap({
     mapInstanceRef.current = mapInstance;
     (window as any).__MAP__ = mapInstance;
     console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
-
-    // Debug: Check map's actual style sources
-    try {
-      const style = mapInstance.getStyle();
-      console.log('[Map] Style sources:', style?.sources);
-      console.log('[Map] Style layers:', style?.layers?.map((l: any) => l.id));
-    } catch (err) {
-      console.warn('[Map] getStyle failed:', err);
-    }
-
-    // Debug: Check sources immediately
-    const checkSources = () => {
-      try {
-        const zonasSource = mapInstance.getSource('zonas');
-        const callesSource = mapInstance.getSource('calles');
-        console.log('[Map] Zonas source:', zonasSource);
-        console.log('[Map] Calles source:', callesSource);
-        if (zonasSource) {
-          const zonasFeatures = mapInstance.querySourceFeatures('zonas');
-          console.log('[Map] Zonas features (immediate):', zonasFeatures.length);
-        }
-        if (callesSource) {
-          const callesFeatures = mapInstance.querySourceFeatures('calles');
-          console.log('[Map] Calles features (immediate):', callesFeatures.length);
-        }
-      } catch (err) {
-        console.warn('[Map] Immediate debug check failed:', err);
-      }
-    };
-    checkSources();
 
     // Debug: Listen for source data loading events
     mapInstance.on('sourcedata', (e: any) => {
@@ -98,57 +69,160 @@ export function AddressVerificationMap({
       }
     });
 
-    // Also check after a short delay (500ms)
-    setTimeout(checkSources, 500);
-    // Check again after longer delay for large GeoJSON (173KB calles)
-    setTimeout(checkSources, 3000);
-    setTimeout(checkSources, 8000);
-
-    // If GeoJSON data is already loaded, push it to sources now
-    pushGeoJSONToMap(mapInstance);
+    // If GeoJSON data is already loaded, add sources and layers now
+    if (zonasDataRef.current && callesDataRef.current) {
+      addSourcesAndLayers(mapInstance);
+    }
   }, []);
 
-  // Push GeoJSON data to map sources using setData()
-  const pushGeoJSONToMap = useCallback((mapInstance: any) => {
-    if (!mapInstance) return;
+  // Add sources and layers programmatically after map is ready
+  const addSourcesAndLayers = useCallback((mapInstance: any) => {
+    if (!mapInstance || layersAddedRef.current) return;
 
-    // Push zonas data
-    if (zonasDataRef.current) {
-      try {
-        const zonasSource = mapInstance.getSource('zonas');
-        if (zonasSource) {
-          console.log('[Map] setData called for zonas, data type:', typeof zonasDataRef.current, 'keys:', Object.keys(zonasDataRef.current || {}), 'features:', zonasDataRef.current.features?.length);
-          mapInstance.getSource('zonas').setData(zonasDataRef.current);
-        } else {
-          console.log('[Map] zonas source not found, trying addSource');
-          // Try adding source explicitly
-          mapInstance.addSource('zonas', {
-            type: 'geojson',
-            data: zonasDataRef.current,
-          });
-        }
-      } catch (err) {
-        console.warn('[Map] setData/addSource zonas failed:', err);
-      }
-    }
+    console.log('[Map] Adding sources and layers programmatically...');
 
-    // Push calles data
-    if (callesDataRef.current) {
-      try {
-        const callesSource = mapInstance.getSource('calles');
-        if (callesSource) {
-          console.log('[Map] setData called for calles, data type:', typeof callesDataRef.current, 'keys:', Object.keys(callesDataRef.current || {}), 'features:', callesDataRef.current.features?.length);
-          mapInstance.getSource('calles').setData(callesDataRef.current);
-        } else {
-          console.log('[Map] calles source not found, trying addSource');
-          mapInstance.addSource('calles', {
-            type: 'geojson',
-            data: callesDataRef.current,
-          });
-        }
-      } catch (err) {
-        console.warn('[Map] setData/addSource calles failed:', err);
+    try {
+      // Add zonas source with data
+      if (zonasDataRef.current) {
+        console.log('[Map] Adding zonas source with', zonasDataRef.current.features?.length, 'features');
+        mapInstance.addSource('zonas', {
+          type: 'geojson',
+          data: zonasDataRef.current,
+        });
       }
+
+      // Add calles source with data
+      if (callesDataRef.current) {
+        console.log('[Map] Adding calles source with', callesDataRef.current.features?.length, 'features');
+        mapInstance.addSource('calles', {
+          type: 'geojson',
+          data: callesDataRef.current,
+        });
+      }
+
+      // Add layers (must be done after sources are added)
+      // Background layer
+      mapInstance.addLayer({
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#f3f4f6' },
+      });
+
+      // Calles (líneas)
+      mapInstance.addLayer({
+        id: 'streets',
+        type: 'line',
+        source: 'calles',
+        paint: {
+          'line-color': '#9ca3af',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12, 0.5,
+            14, 1,
+            16, 1.5,
+            18, 2,
+          ],
+          'line-opacity': 0.7,
+        },
+      });
+
+      // Labels de calles
+      mapInstance.addLayer({
+        id: 'street-labels',
+        type: 'symbol',
+        source: 'calles',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Open Sans Regular'],
+          'text-size': 10,
+          'text-anchor': 'center',
+          'symbol-placement': 'line',
+          'symbol-spacing': 200,
+        },
+        paint: {
+          'text-color': '#6b7280',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1,
+        },
+        minzoom: 15,
+        filter: ['has', 'name'],
+      });
+
+      // Zonas fills
+      mapInstance.addLayer({
+        id: 'zone-fill-planta_urbana',
+        type: 'fill',
+        source: 'zonas',
+        paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
+      });
+
+      mapInstance.addLayer({
+        id: 'zone-fill-zona_barrial',
+        type: 'fill',
+        source: 'zonas',
+        paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
+      });
+
+      mapInstance.addLayer({
+        id: 'zone-fill-zona_rural',
+        type: 'fill',
+        source: 'zonas',
+        paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
+        filter: ['==', ['get', 'zone_code'], 'zona_rural'],
+      });
+
+      // Bordes de zonas
+      mapInstance.addLayer({
+        id: 'zone-borders',
+        type: 'line',
+        source: 'zonas',
+        paint: {
+          'line-color': ['get', 'borderColor'],
+          'line-width': ['get', 'borderWidth']
+        },
+        filter: ['has', 'zone_code'],
+      });
+
+      // Labels de zonas
+      mapInstance.addLayer({
+        id: 'zone-labels',
+        type: 'symbol',
+        source: 'zonas',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Open Sans Bold'],
+          'text-size': 12,
+          'text-anchor': 'center',
+        },
+        paint: {
+          'text-color': '#1f2937',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 2
+        },
+        minzoom: 12,
+        filter: ['has', 'zone_code'],
+      });
+
+      layersAddedRef.current = true;
+      console.log('[Map] Sources and layers added successfully');
+
+      // Debug: Check features after a short delay
+      setTimeout(() => {
+        try {
+          const zonasFeatures = mapInstance.querySourceFeatures('zonas');
+          const callesFeatures = mapInstance.querySourceFeatures('calles');
+          console.log('[Map] Features after addSource:', 'zonas:', zonasFeatures.length, 'calles:', callesFeatures.length);
+        } catch (err) {
+          console.warn('[Map] Feature check failed:', err);
+        }
+      }, 500);
+
+    } catch (err) {
+      console.error('[Map] Failed to add sources and layers:', err);
     }
   }, []);
 
@@ -281,9 +355,9 @@ export function AddressVerificationMap({
         setGeojsonLoaded(true);
         setGeojsonError(null);
 
-        // Push data to map if map is already initialized
+        // Add sources and layers to map if map is already initialized
         if (mapInstanceRef.current) {
-          pushGeoJSONToMap(mapInstanceRef.current);
+          addSourcesAndLayers(mapInstanceRef.current);
         }
       } catch (err) {
         if (cancelled) return;
@@ -297,7 +371,7 @@ export function AddressVerificationMap({
     return () => {
       cancelled = true;
     };
-  }, [pushGeoJSONToMap]);
+  }, [addSourcesAndLayers]);
 
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
@@ -382,16 +456,7 @@ export function AddressVerificationMap({
         style={{ width: '100%', height: `${height}px` }}
         mapStyle={{
           version: 8,
-          sources: {
-            zonas: {
-              type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] },
-            },
-            calles: {
-              type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] },
-            },
-          },
+          sources: {},
           layers: [
             // Background layer (solid color - no external tiles needed)
             {
@@ -400,99 +465,6 @@ export function AddressVerificationMap({
               paint: {
                 'background-color': '#f3f4f6', // light gray (gray-100)
               },
-            },
-            // Calles (líneas) - TEMP: filter removed for debugging
-            {
-              id: 'streets',
-              type: 'line',
-              source: 'calles',
-              paint: {
-                'line-color': '#9ca3af',
-                'line-width': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  12, 0.5,
-                  14, 1,
-                  16, 1.5,
-                  18, 2,
-                ],
-                'line-opacity': 0.7,
-              },
-              // filter: ['in', ['get', 'highway'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']]],
-            },
-            // Labels de calles
-            {
-              id: 'street-labels',
-              type: 'symbol',
-              source: 'calles',
-              layout: {
-                'text-field': ['get', 'name'],
-                'text-font': ['Open Sans Regular'],
-                'text-size': 10,
-                'text-anchor': 'center',
-                'symbol-placement': 'line',
-                'symbol-spacing': 200,
-              },
-              paint: {
-                'text-color': '#6b7280',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 1,
-              },
-              minzoom: 15,
-              filter: ['has', 'name'],
-            },
-            // Zonas fills
-            {
-              id: 'zone-fill-planta_urbana',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
-            },
-            {
-              id: 'zone-fill-zona_barrial',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
-            },
-            {
-              id: 'zone-fill-zona_rural',
-              type: 'fill',
-              source: 'zonas',
-              paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
-              filter: ['==', ['get', 'zone_code'], 'zona_rural'],
-            },
-            // Bordes de zonas
-            {
-              id: 'zone-borders',
-              type: 'line',
-              source: 'zonas',
-              paint: {
-                'line-color': ['get', 'borderColor'],
-                'line-width': ['get', 'borderWidth']
-              },
-              filter: ['has', 'zone_code'],
-            },
-            // Labels de zonas
-            {
-              id: 'zone-labels',
-              type: 'symbol',
-              source: 'zonas',
-              layout: {
-                'text-field': ['get', 'name'],
-                'text-font': ['Open Sans Bold'],
-                'text-size': 12,
-                'text-anchor': 'center',
-              },
-              paint: {
-                'text-color': '#1f2937',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 2
-              },
-              minzoom: 12,
-              filter: ['has', 'zone_code'],
             },
           ],
         }}
