@@ -75,7 +75,7 @@ export default function App() {
           <Route path="/ingresar" element={<Login />} />
           <Route path="/registrarse" element={<Register />} />
           <Route
-            path="/mis-pedidos*"
+            path="/mis-pedidos/*"
             element={
               <Protected allow={['customer', 'store_owner', 'store_staff', 'courier', 'admin']}>
                 <UserPanel />
