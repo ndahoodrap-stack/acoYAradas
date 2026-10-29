@@ -55,37 +55,6 @@ export function getZonePrice(code: string): number | null {
   return zone?.price ?? null;
 }
 
-// MapLibre GL style for the base map (customized for Bolívar)
-export const MAP_STYLE = {
-  version: 8,
-  name: 'Bolívar Delivery Map',
-  sources: {
-    'osm': {
-      type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-      maxzoom: 19,
-    },
-  },
-  layers: [
-    {
-      id: 'osm-layer',
-      type: 'raster',
-      source: 'osm',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
-};
-
-// Alternative: Use vector tiles from a free provider (if available)
-// For now, using OSM raster tiles for simplicity
-
 // Center of San Carlos de Bolívar, Argentina
 export const BOLIVAR_CENTER = [-61.12, -36.23] as [number, number];
 export const BOLIVAR_BOUNDS = [

@@ -4,10 +4,6 @@ import { DELIVERY_ZONES, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zon
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
-// Stadia Maps tile server (free, no blocking, OSM data)
-const STADIA_TILES = 'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png';
-const STADIA_ATTRIBUTION = '© OpenStreetMap contributors, © Stadia Maps';
-
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
   detectedZone: ZoneMatch | null;
@@ -44,7 +40,7 @@ export function AddressVerificationMap({
   const markerRef = useRef<any>(null);
 
   // Detect zone at a given position using client-side point-in-polygon
-  // Uses zoneFeaturesRef populated from the GeoJSON on map load
+  // Uses zoneFeaturesRef populated from the GeoJSON on mount
   const detectZoneAtPosition = useCallback((lngLat: [number, number]) => {
     try {
       // Client-side zone detection using pointInPolygon (same as server)
@@ -106,7 +102,7 @@ export function AddressVerificationMap({
   }, [position, loading]);
 
   // Load zone features from GeoJSON for client-side point-in-polygon detection
-  // Fetch directly instead of relying on map.querySourceFeatures timing
+  // Fetch directly on mount - no external dependencies
   useEffect(() => {
     const loadZoneFeatures = async () => {
       try {
@@ -120,6 +116,9 @@ export function AddressVerificationMap({
             ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
           ) || null;
 
+          // Get border color/width from DELIVERY_ZONES config
+          const zoneStyle = DELIVERY_ZONES.find(z => z.code === zoneCode);
+
           return {
             ...f,
             properties: {
@@ -129,6 +128,8 @@ export function AddressVerificationMap({
                 (props['Planta Urbana'] ? 'Planta Urbana' :
                   props['Zona Barrial'] ? 'Zona Barrial' :
                     props['Zona Rural'] ? 'Zona Rural' : ''),
+              borderColor: zoneStyle?.borderColor || '#9ca3af',
+              borderWidth: zoneStyle?.borderWidth || 2,
             }
           };
         });
@@ -142,48 +143,6 @@ export function AddressVerificationMap({
 
     loadZoneFeatures();
   }, []);
-
-  // Also re-query on map move/zoom (fallback to map source if direct fetch fails)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-
-    const handleMapMove = () => {
-      clearTimeout((window as any).__zoneQueryTimer);
-      (window as any).__zoneQueryTimer = setTimeout(() => {
-        try {
-          const features = map.querySourceFeatures('zonas');
-          if (features.length > 0) {
-            const processedFeatures = features.map((f: any) => {
-              const props = f.properties || {};
-              const zoneCode = props.zone_code ||
-                (Object.values(props) as string[]).find(v =>
-                  ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
-                ) || null;
-              return {
-                ...f,
-                properties: {
-                  ...props,
-                  zone_code: zoneCode,
-                  name: props.name ||
-                    (props['Planta Urbana'] ? 'Planta Urbana' :
-                      props['Zona Barrial'] ? 'Zona Barrial' :
-                        props['Zona Rural'] ? 'Zona Rural' : ''),
-                }
-              };
-            });
-            zoneFeaturesRef.current = processedFeatures;
-            console.log('[AddressVerificationMap] Updated zone features from map:', processedFeatures.length);
-          }
-        } catch (err) {
-          // Ignore
-        }
-      }, 300);
-    };
-
-    map.on('moveend', handleMapMove);
-    return () => map.off('moveend', handleMapMove);
-  }, [mapLoaded]);
 
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
@@ -225,7 +184,7 @@ export function AddressVerificationMap({
     );
   }
 
-  // Show map loading error state (only for actual map loading failures)
+  // Show map loading error state
   if (mapError) {
     return (
       <div className="rounded-xl bg-red-50 border border-red-200 h-[300px] flex items-center justify-center p-4">
@@ -267,13 +226,6 @@ export function AddressVerificationMap({
         mapStyle={{
           version: 8,
           sources: {
-            osm: {
-              type: 'raster',
-              tiles: [STADIA_TILES],
-              tileSize: 256,
-              attribution: STADIA_ATTRIBUTION,
-              maxzoom: 19,
-            },
             zonas: {
               type: 'geojson',
               data: '/bolivar.geojson',
@@ -284,14 +236,6 @@ export function AddressVerificationMap({
             },
           },
           layers: [
-            // Base raster layer
-            {
-              id: 'osm',
-              type: 'raster',
-              source: 'osm',
-              minzoom: 0,
-              maxzoom: 19,
-            },
             // Calles (líneas)
             {
               id: 'streets',
@@ -387,7 +331,6 @@ export function AddressVerificationMap({
             },
           ],
         }}
-        attributionControl={true}
         onLoad={() => {
           setMapLoaded(true);
           const map = mapRef.current?.getMap?.();
@@ -395,15 +338,8 @@ export function AddressVerificationMap({
             console.error('[Map] No se pudo obtener instancia MapLibre via ref');
             return;
           }
-          // Suppress false "Access blocked" error overlay from OSM volunteer servers
-          map.on('error', (e: any) => {
-            if (e.error?.message?.includes('Access blocked')) {
-              e.preventDefault();
-              console.log('[Map] Suppressed Access blocked overlay');
-            }
-          });
           (window as any).__MAP__ = map;
-          console.log('[Map] MapLibre loaded with raster + GeoJSON');
+          console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
         }}
         onClick={handleMapClick}
         maxBounds={[
