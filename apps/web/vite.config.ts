@@ -6,8 +6,30 @@ import react from '@vitejs/plugin-react';
  * - El frontend consume la API por `/api` (mismo origen en producción).
  * - En desarrollo se hace proxy a http://localhost:3001 para evitar CORS.
  */
+
+// Plugin to ensure .mjs files are served with correct MIME type (Fix 1 for MapLibre worker)
+const mjsMimePlugin = {
+  name: 'mjs-mime-type',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      }
+      next();
+    });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), mjsMimePlugin],
   server: {
     port: 5173,
     proxy: {

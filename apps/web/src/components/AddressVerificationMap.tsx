@@ -369,6 +369,8 @@ export function AddressVerificationMap({
           BOLIVAR_BOUNDS[0][0], BOLIVAR_BOUNDS[0][1],
           BOLIVAR_BOUNDS[1][0], BOLIVAR_BOUNDS[1][1]
         ] as [number, number, number, number]}
+        // Fix: Explicit worker URL to avoid MIME type issues in Vite
+        workerUrl="/assets/maplibre-gl-worker.mjs"
       >
         {/* Current location marker - color changes based on zone status */}
         {position && (
