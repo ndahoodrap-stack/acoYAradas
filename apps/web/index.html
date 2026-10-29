@@ -14,6 +14,14 @@
     <title>acoYAradas! - Comercios de tu zona</title>
     <!-- maplibre-gl CSS only (JS viene en bundle de Vite) -->
     <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Import Map: fuerza que 'maplibre-gl' resuelva a nuestro chunk fijo -->
+    <script type="importmap">
+    {
+      "imports": {
+        "maplibre-gl": "/assets/maplibre-gl.js"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

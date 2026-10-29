@@ -41,8 +41,14 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('maplibre-gl')) return 'maplibre-gl';
+        manualChunks: {
+          'maplibre-gl': ['maplibre-gl']
+        },
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'maplibre-gl') {
+            return 'assets/maplibre-gl.js';
+          }
+          return 'assets/[name]-[hash].js';
         }
       }
     },
