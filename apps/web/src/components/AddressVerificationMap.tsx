@@ -40,17 +40,12 @@ export function AddressVerificationMap({
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
-  const zonasDataRef = useRef<any>(null);
-  const callesDataRef = useRef<any>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const layersAddedRef = useRef(false);
 
   // Initialize map when ref is set (callback ref pattern - replaces onLoad which doesn't fire in v8)
   const initializeMap = useCallback((mapInstance: any) => {
     if (!mapInstance) return;
     console.log('[Map] Map instance ready via callback ref');
     setMapLoaded(true);
-    mapInstanceRef.current = mapInstance;
     (window as any).__MAP__ = mapInstance;
     console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
 
@@ -68,182 +63,6 @@ export function AddressVerificationMap({
         }
       }
     });
-
-    // If GeoJSON data is already loaded, add sources and layers now
-    if (zonasDataRef.current && callesDataRef.current) {
-      addSourcesAndLayers(mapInstance);
-    }
-  }, []);
-
-  // Add sources and layers programmatically after map is ready
-  const addSourcesAndLayers = useCallback((mapInstance: any) => {
-    if (!mapInstance || layersAddedRef.current) return;
-
-    console.log('[Map] Adding sources and layers programmatically...');
-
-    try {
-      // Add zonas source with data
-      if (zonasDataRef.current) {
-        console.log('[Map] Adding zonas source with', zonasDataRef.current.features?.length, 'features');
-        if (!mapInstance.getSource('zonas')) {
-          mapInstance.addSource('zonas', {
-            type: 'geojson',
-            data: zonasDataRef.current,
-          });
-        }
-      }
-
-      // Add calles source with data
-      if (callesDataRef.current) {
-        console.log('[Map] Adding calles source with', callesDataRef.current.features?.length, 'features');
-        if (!mapInstance.getSource('calles')) {
-          mapInstance.addSource('calles', {
-            type: 'geojson',
-            data: callesDataRef.current,
-          });
-        }
-      }
-
-      // Add layers (must be done after sources are added)
-      // Background layer - only add if not exists
-      if (!mapInstance.getLayer('background')) {
-        mapInstance.addLayer({
-          id: 'background',
-          type: 'background',
-          paint: { 'background-color': '#f3f4f6' },
-        });
-      }
-
-      // Calles (líneas)
-      if (!mapInstance.getLayer('streets')) {
-        mapInstance.addLayer({
-          id: 'streets',
-          type: 'line',
-          source: 'calles',
-          paint: {
-            'line-color': '#9ca3af',
-            'line-width': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              12, 0.5,
-              14, 1,
-              16, 1.5,
-              18, 2,
-            ],
-            'line-opacity': 0.7,
-          },
-        });
-      }
-
-      // Labels de calles
-      if (!mapInstance.getLayer('street-labels')) {
-        mapInstance.addLayer({
-          id: 'street-labels',
-          type: 'symbol',
-          source: 'calles',
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Regular'],
-            'text-size': 10,
-            'text-anchor': 'center',
-            'symbol-placement': 'line',
-            'symbol-spacing': 200,
-          },
-          paint: {
-            'text-color': '#6b7280',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 1,
-          },
-          minzoom: 15,
-          filter: ['has', 'name'],
-        });
-      }
-
-      // Zonas fills
-      if (!mapInstance.getLayer('zone-fill-planta_urbana')) {
-        mapInstance.addLayer({
-          id: 'zone-fill-planta_urbana',
-          type: 'fill',
-          source: 'zonas',
-          paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
-          filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
-        });
-      }
-
-      if (!mapInstance.getLayer('zone-fill-zona_barrial')) {
-        mapInstance.addLayer({
-          id: 'zone-fill-zona_barrial',
-          type: 'fill',
-          source: 'zonas',
-          paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
-          filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
-        });
-      }
-
-      if (!mapInstance.getLayer('zone-fill-zona_rural')) {
-        mapInstance.addLayer({
-          id: 'zone-fill-zona_rural',
-          type: 'fill',
-          source: 'zonas',
-          paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
-          filter: ['==', ['get', 'zone_code'], 'zona_rural'],
-        });
-      }
-
-      // Bordes de zonas
-      if (!mapInstance.getLayer('zone-borders')) {
-        mapInstance.addLayer({
-          id: 'zone-borders',
-          type: 'line',
-          source: 'zonas',
-          paint: {
-            'line-color': ['get', 'borderColor'],
-            'line-width': ['get', 'borderWidth']
-          },
-          filter: ['has', 'zone_code'],
-        });
-      }
-
-      // Labels de zonas
-      if (!mapInstance.getLayer('zone-labels')) {
-        mapInstance.addLayer({
-          id: 'zone-labels',
-          type: 'symbol',
-          source: 'zonas',
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Open Sans Bold'],
-            'text-size': 12,
-            'text-anchor': 'center',
-          },
-          paint: {
-            'text-color': '#1f2937',
-            'text-halo-color': '#ffffff',
-            'text-halo-width': 2
-          },
-          minzoom: 12,
-          filter: ['has', 'zone_code'],
-        });
-      }
-
-      layersAddedRef.current = true;
-      console.log('[Map] Sources and layers added successfully');
-
-      // Debug: Check features after a short delay
-      setTimeout(() => {
-        try {
-          const zonasFeatures = mapInstance.querySourceFeatures('zonas');
-          const callesFeatures = mapInstance.querySourceFeatures('calles');
-          console.log('[Map] Features after addSource:', 'zonas:', zonasFeatures.length, 'calles:', callesFeatures.length);
-        } catch (err) {
-          console.warn('[Map] Feature check failed:', err);
-        }
-      }, 500);
-
-    } catch (err) {
-      console.error('[Map] Failed to add sources and layers:', err);
-    }
   }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
@@ -314,13 +133,14 @@ export function AddressVerificationMap({
     return () => console.log('[AddressVerificationMap] Component UNMOUNTED');
   }, []);
 
-  // Fetch both GeoJSON files on mount and pass data objects to mapStyle
+  // Fetch GeoJSON files for client-side zone detection (point-in-polygon)
+  // The map itself loads GeoJSON via URL sources in mapStyle
   useEffect(() => {
     let cancelled = false;
 
     const loadBothGeoJSON = async () => {
       try {
-        console.log('[Map] Fetching both GeoJSON files...');
+        console.log('[Map] Fetching GeoJSON for zone detection...');
 
         // Fetch both in parallel
         const [zonasRes, callesRes] = await Promise.all([
@@ -340,10 +160,6 @@ export function AddressVerificationMap({
 
         console.log('[Map] Zonas GeoJSON loaded:', zonasData.features?.length, 'features');
         console.log('[Map] Calles GeoJSON loaded:', callesData.features?.length, 'features');
-
-        // Store data in refs for mapStyle
-        zonasDataRef.current = zonasData;
-        callesDataRef.current = callesData;
 
         // Process zone features for client-side detection
         const features = (zonasData.features || []).map((f: any) => {
@@ -374,11 +190,6 @@ export function AddressVerificationMap({
 
         setGeojsonLoaded(true);
         setGeojsonError(null);
-
-        // Add sources and layers to map if map is already initialized
-        if (mapInstanceRef.current) {
-          addSourcesAndLayers(mapInstanceRef.current);
-        }
       } catch (err) {
         if (cancelled) return;
         console.error('[Map] Failed to load GeoJSON files:', err);
@@ -391,7 +202,7 @@ export function AddressVerificationMap({
     return () => {
       cancelled = true;
     };
-  }, [addSourcesAndLayers]);
+  }, []);
 
   useEffect(() => {
     if (markerRef.current && position && !Number.isNaN(position[0]) && !Number.isNaN(position[1])) {
@@ -476,8 +287,118 @@ export function AddressVerificationMap({
         style={{ width: '100%', height: `${height}px` }}
         mapStyle={{
           version: 8,
-          sources: {},
-          layers: [],
+          sources: {
+            zonas: {
+              type: 'geojson',
+              data: '/bolivar.geojson',
+            },
+            calles: {
+              type: 'geojson',
+              data: '/bolivar-calles-simplified.geojson',
+            },
+          },
+          layers: [
+            // Background layer (solid color - no external tiles needed)
+            {
+              id: 'background',
+              type: 'background',
+              paint: {
+                'background-color': '#f3f4f6', // light gray (gray-100)
+              },
+            },
+            // Calles (líneas)
+            {
+              id: 'streets',
+              type: 'line',
+              source: 'calles',
+              paint: {
+                'line-color': '#9ca3af',
+                'line-width': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  12, 0.5,
+                  14, 1,
+                  16, 1.5,
+                  18, 2,
+                ],
+                'line-opacity': 0.7,
+              },
+            },
+            // Labels de calles
+            {
+              id: 'street-labels',
+              type: 'symbol',
+              source: 'calles',
+              layout: {
+                'text-field': ['get', 'name'],
+                'text-font': ['Open Sans Regular'],
+                'text-size': 10,
+                'text-anchor': 'center',
+                'symbol-placement': 'line',
+                'symbol-spacing': 200,
+              },
+              paint: {
+                'text-color': '#6b7280',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1,
+              },
+              minzoom: 15,
+              filter: ['has', 'name'],
+            },
+            // Zonas fills
+            {
+              id: 'zone-fill-planta_urbana',
+              type: 'fill',
+              source: 'zonas',
+              paint: { 'fill-color': '#10b981', 'fill-opacity': 0.15 },
+              filter: ['==', ['get', 'zone_code'], 'planta_urbana'],
+            },
+            {
+              id: 'zone-fill-zona_barrial',
+              type: 'fill',
+              source: 'zonas',
+              paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.15 },
+              filter: ['==', ['get', 'zone_code'], 'zona_barrial'],
+            },
+            {
+              id: 'zone-fill-zona_rural',
+              type: 'fill',
+              source: 'zonas',
+              paint: { 'fill-color': '#ef4444', 'fill-opacity': 0.15 },
+              filter: ['==', ['get', 'zone_code'], 'zona_rural'],
+            },
+            // Bordes de zonas
+            {
+              id: 'zone-borders',
+              type: 'line',
+              source: 'zonas',
+              paint: {
+                'line-color': ['get', 'borderColor'],
+                'line-width': ['get', 'borderWidth']
+              },
+              filter: ['has', 'zone_code'],
+            },
+            // Labels de zonas
+            {
+              id: 'zone-labels',
+              type: 'symbol',
+              source: 'zonas',
+              layout: {
+                'text-field': ['get', 'name'],
+                'text-font': ['Open Sans Bold'],
+                'text-size': 12,
+                'text-anchor': 'center',
+              },
+              paint: {
+                'text-color': '#1f2937',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 2
+              },
+              minzoom: 12,
+              filter: ['has', 'zone_code'],
+            },
+          ],
         }}
         onClick={handleMapClick}
         maxBounds={[
@@ -582,7 +503,7 @@ export function AddressVerificationMap({
             >
               <circle cx="12" cy="12" r="3" />
               <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
-              <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeWidth={1.5} />
+              <path d="M4.93 4.93l1.41 1.41M17.66 17.66l1.41-1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeWidth={1.5} />
             </svg>
 
             {/* Loading indicator */}
