@@ -53,7 +53,7 @@ Después, en el panel de administración → **WhatsApp**, configurá:
 
 **Con imagen (media attachment):**
 ```json
-{ "phone": "+54 9 2284 55-5555", "message": "Texto opcional (caption)", "mediaUrl": "https://tudominio.com/acoYAradasLLEGOUNPEDIDO.jpg" }
+{ "phone": "+54 9 2314 57-1476", "message": "Texto opcional (caption)", "mediaUrl": "https://tudominio.com/acoYAradasLLEGOUNPEDIDO.jpg" }
 ```
 
 - `message` es opcional si se envía `mediaUrl` (sirve como caption).

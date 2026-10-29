@@ -184,11 +184,33 @@ export default function AdminCategories() {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
         </Field>
-        <Field label="Icono" hint="Opcional - Elegí de la galería">
-          <IconPicker
-            value={form.icon_url}
-            onChange={(url) => setForm((f) => ({ ...f, icon_url: url }))}
-          />
+        <Field label="Icono" hint="Opcional - Elegí de la galería o escribí un emoji (Win+.)">
+          <div className="space-y-3">
+            <IconPicker
+              value={form.icon_url}
+              onChange={(url) => setForm((f) => ({ ...f, icon_url: url }))}
+            />
+            <div className="pt-2 border-t border-ink-200">
+              <label className="block text-xs font-medium text-ink-700 mb-1">
+                O escribí/pastéa un emoji directamente:
+              </label>
+              <input
+                type="text"
+                className="input text-2xl text-center"
+                maxLength={2}
+                placeholder="🍕 🛒 🏪"
+                value={form.icon_url}
+                onChange={(e) => setForm((f) => ({ ...f, icon_url: e.target.value }))}
+                onKeyDown={(e) => {
+                  // Prevent non-emoji input from overriding gallery selection
+                  if (e.key.length > 2) return;
+                }}
+              />
+              <p className="text-[11px] text-ink-500 text-center">
+                Usá Win+. (Windows) o Cmd+Ctrl+Space (Mac) para abrir el selector de emojis
+              </p>
+            </div>
+          </div>
         </Field>
         <Field label="Orden" hint="Menor número, antes en el listado.">
           <input

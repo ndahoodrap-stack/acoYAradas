@@ -225,8 +225,13 @@ export default function Home() {
                 tecnologia: '💻',
                 farmacias: '💊',
               };
+              const isUrl = (cat.icon_url?.startsWith('http') ?? false) || (cat.icon_url?.startsWith('/') ?? false);
               const icon = cat.icon_url ? (
-                <img src={cat.icon_url} alt="" className="h-8 w-8 object-contain" />
+                isUrl ? (
+                  <img src={cat.icon_url} alt="" className="h-8 w-8 object-contain" />
+                ) : (
+                  <span className="text-2xl" aria-hidden>{cat.icon_url}</span>
+                )
               ) : (
                 <span className="text-2xl" aria-hidden>{FALLBACK_EMOJI[cat.slug] ?? '🛍️'}</span>
               );

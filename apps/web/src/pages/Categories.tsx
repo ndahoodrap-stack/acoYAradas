@@ -54,7 +54,11 @@ export default function Categories() {
               </p>
             </div>
             {cat.icon_url ? (
-              <img src={cat.icon_url} alt="" className="h-10 w-10 object-contain" />
+              (cat.icon_url.startsWith('http') || cat.icon_url.startsWith('/')) ? (
+                <img src={cat.icon_url} alt="" className="h-10 w-10 object-contain" />
+              ) : (
+                <span className="text-3xl" aria-hidden>{cat.icon_url}</span>
+              )
             ) : (
               <span className="text-2xl" aria-hidden>{FALLBACK_EMOJI[cat.slug] ?? '🛍️'}</span>
             )}

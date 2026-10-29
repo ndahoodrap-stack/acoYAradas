@@ -1,6 +1,7 @@
 import express from 'express';
 import qrcode from 'qrcode-terminal';
-import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth, MessageMedia } = pkg;
 
 const PORT = Number(process.env.BRIDGE_PORT ?? 3010);
 const TOKEN = process.env.BRIDGE_TOKEN ?? '';
@@ -64,14 +65,19 @@ app.post('/send', auth, async (req, res) => {
   try {
     const chatId = `${phone}@c.us`;
     if (mediaUrl) {
+      console.log(`📥 Descargando imagen desde: ${mediaUrl}`);
       // Descargar la imagen y enviarla como adjunto con el mensaje como caption
       const media = await MessageMedia.fromUrl(mediaUrl, { unsafeMime: true });
+      console.log(`✅ Imagen descargada: ${media.mimetype}, ${media.data.length} bytes`);
       await client.sendMessage(chatId, media, { caption: message || undefined });
+      console.log(`📤 Mensaje con imagen enviado a ${phone}`);
     } else {
       await client.sendMessage(chatId, message);
+      console.log(`📤 Mensaje de texto enviado a ${phone}`);
     }
     return res.json({ ok: true });
   } catch (error) {
+    console.error('❌ Error enviando mensaje:', error);
     return res.status(500).json({ ok: false, error: String(error?.message ?? error) });
   }
 });
