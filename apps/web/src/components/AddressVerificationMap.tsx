@@ -117,11 +117,18 @@ export function AddressVerificationMap({
       try {
         const zonasSource = mapInstance.getSource('zonas');
         if (zonasSource) {
-          console.log('[Map] setData called for zonas');
+          console.log('[Map] setData called for zonas, data type:', typeof zonasDataRef.current, 'keys:', Object.keys(zonasDataRef.current || {}), 'features:', zonasDataRef.current.features?.length);
           mapInstance.getSource('zonas').setData(zonasDataRef.current);
+        } else {
+          console.log('[Map] zonas source not found, trying addSource');
+          // Try adding source explicitly
+          mapInstance.addSource('zonas', {
+            type: 'geojson',
+            data: zonasDataRef.current,
+          });
         }
       } catch (err) {
-        console.warn('[Map] setData zonas failed:', err);
+        console.warn('[Map] setData/addSource zonas failed:', err);
       }
     }
 
@@ -130,11 +137,17 @@ export function AddressVerificationMap({
       try {
         const callesSource = mapInstance.getSource('calles');
         if (callesSource) {
-          console.log('[Map] setData called for calles');
+          console.log('[Map] setData called for calles, data type:', typeof callesDataRef.current, 'keys:', Object.keys(callesDataRef.current || {}), 'features:', callesDataRef.current.features?.length);
           mapInstance.getSource('calles').setData(callesDataRef.current);
+        } else {
+          console.log('[Map] calles source not found, trying addSource');
+          mapInstance.addSource('calles', {
+            type: 'geojson',
+            data: callesDataRef.current,
+          });
         }
       } catch (err) {
-        console.warn('[Map] setData calles failed:', err);
+        console.warn('[Map] setData/addSource calles failed:', err);
       }
     }
   }, []);
