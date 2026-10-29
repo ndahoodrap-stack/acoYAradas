@@ -36,6 +36,8 @@ export function AddressVerificationMap({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [geojsonLoaded, setGeojsonLoaded] = useState(false);
+  const [callesLoaded, setCallesLoaded] = useState(false);
+  const [callesGeoJson, setCallesGeoJson] = useState<any>(null);
   const [geojsonError, setGeojsonError] = useState<string | null>(null);
   const zoneFeaturesRef = useRef<any[]>([]);
   const mapRef = useRef<any>(null);
@@ -146,6 +148,10 @@ export function AddressVerificationMap({
         console.log('[Map] Zonas GeoJSON loaded:', zonasData.features?.length, 'features');
         console.log('[Map] Calles GeoJSON loaded:', callesData.features?.length, 'features');
 
+        // Store calles GeoJSON for vector street labels
+        setCallesGeoJson(callesData);
+        setCallesLoaded(true);
+
         // Process zone features for client-side detection
         const features = (zonasData.features || []).map((f: any) => {
           const props = f.properties || {};
@@ -244,6 +250,93 @@ export function AddressVerificationMap({
     );
   }
 
+  // Build map style dynamically to include vector street labels when GeoJSON is loaded
+  const mapStyle = {
+    version: 8,
+    sources: {
+      zonas: {
+        type: 'raster',
+        tiles: ['/tiles/zonas/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        minzoom: 10,
+        maxzoom: 16,
+      },
+      calles: {
+        type: 'raster',
+        tiles: ['/tiles/calles/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        minzoom: 10,
+        maxzoom: 16,
+      },
+      // Vector source for street labels from local GeoJSON (added when loaded)
+      ...(callesLoaded && callesGeoJson ? {
+        calles_vector: {
+          type: 'geojson',
+          data: callesGeoJson,
+          generateId: true,
+          maxzoom: 18,
+        },
+      } : {}),
+    },
+    layers: [
+      // Background layer (solid color - no external tiles needed)
+      {
+        id: 'background',
+        type: 'background',
+        paint: {
+          'background-color': '#f3f4f6', // light gray (gray-100)
+        },
+      },
+      // Calles raster layer
+      {
+        id: 'streets-raster',
+        type: 'raster',
+        source: 'calles',
+        paint: {
+          'raster-opacity': 0.8,
+        },
+      },
+      // Zonas raster layer
+      {
+        id: 'zonas-raster',
+        type: 'raster',
+        source: 'zonas',
+        paint: {
+          'raster-opacity': 0.9,
+        },
+      },
+      // Street name labels (vector layer on top) - only when GeoJSON is loaded
+      ...(callesLoaded && callesGeoJson ? [{
+        id: 'street-labels',
+        type: 'symbol',
+        source: 'calles_vector',
+        minzoom: 14,
+        maxzoom: 20,
+        filter: ['==', ['geometry-type'], 'LineString'],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+          'text-size': 11,
+          'text-letter-spacing': 0.05,
+          'text-anchor': 'center',
+          'text-placement': 'line',
+          'text-rotate': 0,
+          'text-padding': 2,
+          'text-keep-upright': true,
+          'text-max-width': 12,
+          'text-max-angle': 45,
+        },
+        paint: {
+          'text-color': '#374151',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1.5,
+          'text-halo-blur': 0.5,
+          'text-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 16, 1],
+        },
+      }] : []),
+    ],
+  };
+
   return (
     <div className="relative rounded-xl overflow-hidden border border-ink-200">
       {/* Zone error warning banner */}
@@ -270,53 +363,7 @@ export function AddressVerificationMap({
         maxZoom={ZOOM.BUILDING}
         minZoom={ZOOM.CITY - 2}
         style={{ width: '100%', height: `${height}px` }}
-        mapStyle={{
-          version: 8,
-          sources: {
-            zonas: {
-              type: 'raster',
-              tiles: ['/tiles/zonas/{z}/{x}/{y}.png'],
-              tileSize: 256,
-              minzoom: 10,
-              maxzoom: 16,
-            },
-            calles: {
-              type: 'raster',
-              tiles: ['/tiles/calles/{z}/{x}/{y}.png'],
-              tileSize: 256,
-              minzoom: 10,
-              maxzoom: 16,
-            },
-          },
-          layers: [
-            // Background layer (solid color - no external tiles needed)
-            {
-              id: 'background',
-              type: 'background',
-              paint: {
-                'background-color': '#f3f4f6', // light gray (gray-100)
-              },
-            },
-            // Calles raster layer
-            {
-              id: 'streets-raster',
-              type: 'raster',
-              source: 'calles',
-              paint: {
-                'raster-opacity': 0.8,
-              },
-            },
-            // Zonas raster layer
-            {
-              id: 'zonas-raster',
-              type: 'raster',
-              source: 'zonas',
-              paint: {
-                'raster-opacity': 0.9,
-              },
-            },
-          ],
-        }}
+        mapStyle={mapStyle}
         onClick={handleMapClick}
         maxBounds={[
           BOLIVAR_BOUNDS[0][0], BOLIVAR_BOUNDS[0][1],
