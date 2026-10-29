@@ -101,6 +101,77 @@ export async function detectZoneFromGeolocation(): Promise<ZoneMatch | null> {
 }
 
 /**
+ * Detecta la zona del usuario usando geolocalización por IP (fallback para desktop sin GPS)
+ * Usa ipapi.co (gratis, 1k req/día) para obtener lat/lng y luego detecta la zona
+ */
+export async function detectZoneFromIP(): Promise<ZoneMatch | null> {
+  try {
+    // Obtener ubicación por IP
+    const res = await fetch('https://ipapi.co/json/');
+    if (!res.ok) throw new Error('IP geolocation failed');
+    const data = await res.json();
+
+    const lng = data.longitude;
+    const lat = data.latitude;
+
+    if (!lng || !lat) {
+      console.warn('[IP Geolocation] No coordinates returned');
+      return null;
+    }
+
+    console.log('[IP Geolocation] Location:', { lat, lng, city: data.city, region: data.region });
+
+    // Cargar bolivar.geojson y detectar zona
+    const geoRes = await fetch('/bolivar.geojson');
+    if (!geoRes.ok) throw new Error('Failed to load bolivar.geojson');
+    const geoData = await geoRes.json();
+
+    const features = geoData.features as ZoneFeature[];
+    const zoneOrder = ['planta_urbana', 'zona_barrial', 'zona_rural'];
+
+    for (const code of zoneOrder) {
+      const feature = features.find(f => Object.values(f.properties)[0] === code);
+      if (feature && pointInPolygon([lng, lat], feature.geometry)) {
+        return { code, ...ZONE_PRICES[code], lng, lat };
+      }
+    }
+
+    return { code: 'fuera_cobertura', name: 'Fuera de cobertura', price: 0, lng, lat };
+  } catch (err) {
+    console.warn('[IP Geolocation] Failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Busca direcciones usando OpenStreetMap Nominatim (gratis, sin API key)
+ * Rate limit: 1 req/seg
+ */
+export async function searchAddresses(query: string): Promise<Array<{ display_name: string; lat: string; lon: string }>> {
+  if (!query || query.length < 3) return [];
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ar&limit=5&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Language': 'es',
+        'User-Agent': 'acoYAradas/1.0'
+      }
+    });
+    if (!res.ok) throw new Error('Nominatim search failed');
+    const data = await res.json();
+    return data.map((item: any) => ({
+      display_name: item.display_name,
+      lat: item.lat,
+      lon: item.lon
+    }));
+  } catch (err) {
+    console.warn('[Nominatim] Search failed:', err);
+    return [];
+  }
+}
+
+/**
  * Obtiene la tarifa exacta desde la API (validación server-side)
  * Útil para confirmar el precio antes de enviar el pedido
  */

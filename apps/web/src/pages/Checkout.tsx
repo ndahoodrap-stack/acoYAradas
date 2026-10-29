@@ -6,7 +6,7 @@ import { useSession } from '../lib/session';
 import { formatMoney } from '../lib/format';
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@acoyaradas/shared';
 import { EmptyState, Field, Spinner } from '../components/ui';
-import { detectZoneFromGeolocation, type ZoneMatch } from '../lib/zoneDetection';
+import { detectZoneFromGeolocation, detectZoneFromIP, searchAddresses, type ZoneMatch } from '../lib/zoneDetection';
 import { AddressVerificationMap } from '../components/AddressVerificationMap';
 import { BOLIVAR_CENTER } from '../lib/zoneStyles';
 
@@ -44,15 +44,28 @@ export default function Checkout() {
   // Posición en el mapa (para verificación visual)
   const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
 
+  // Address autocomplete
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const cancelledRef = useRef(false);
+
   // Detectar zona al cargar la página
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
 
     async function detect() {
       try {
         setZoneLoading(true);
-        const zone = await detectZoneFromGeolocation();
-        if (!cancelled) {
+        let zone = await detectZoneFromGeolocation();
+
+        // If browser geolocation fails or is denied, try IP-based fallback
+        if (!zone || zone.code === 'fuera_cobertura') {
+          console.log('[Checkout] Browser geolocation failed, trying IP fallback...');
+          zone = await detectZoneFromIP();
+        }
+
+        if (!cancelledRef.current) {
           setDetectedZone(zone);
           // Usar las coordenadas reales de la geolocalización si están disponibles
           if (zone?.lng != null && zone?.lat != null) {
@@ -65,23 +78,43 @@ export default function Checkout() {
           if (zone?.code === 'fuera_cobertura' || !zone) setZoneError('Tu ubicación está fuera de nuestra zona de cobertura');
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelledRef.current) {
           // Detectar si fue por permiso denegado
           const isPermissionDenied = err instanceof GeolocationPositionError && err.code === GeolocationPositionError.PERMISSION_DENIED;
           setGeoDenied(isPermissionDenied);
-          setZoneError(isPermissionDenied
-            ? 'Permiso de ubicación denegado. Por favor ajustá el pin en el mapa manualmente.'
-            : 'No pudimos detectar tu ubicación automáticamente. Ajustá el pin en el mapa.');
+
+          // Try IP fallback on any error
+          console.log('[Checkout] Geolocation error, trying IP fallback...');
+          detectZoneFromIP().then(ipZone => {
+            if (!cancelledRef.current && ipZone) {
+              setDetectedZone(ipZone);
+              if (ipZone.lng != null && ipZone.lat != null) {
+                setMapPosition([ipZone.lng, ipZone.lat]);
+              }
+              if (ipZone.code !== 'fuera_cobertura') {
+                setZoneError(null);
+              } else {
+                setZoneError(isPermissionDenied
+                  ? 'Permiso de ubicación denegado. Por favor ajustá el pin en el mapa manualmente.'
+                  : 'No pudimos detectar tu ubicación automáticamente. Ajustá el pin en el mapa.');
+              }
+            } else if (!cancelledRef.current) {
+              setZoneError(isPermissionDenied
+                ? 'Permiso de ubicación denegado. Por favor ajustá el pin en el mapa manualmente.'
+                : 'No pudimos detectar tu ubicación automáticamente. Ajustá el pin en el mapa.');
+              setMapPosition(BOLIVAR_CENTER);
+            }
+          });
+
           console.warn('Geolocation failed:', err);
-          setMapPosition(BOLIVAR_CENTER);
         }
       } finally {
-        if (!cancelled) setZoneLoading(false);
+        if (!cancelledRef.current) setZoneLoading(false);
       }
     }
 
     detect();
-    return () => { cancelled = true; };
+    return () => { cancelledRef.current = true; };
   }, []);
 
   // Manejar cambio de posición desde el mapa
@@ -209,13 +242,101 @@ export default function Checkout() {
               {/* Manual address entry as fallback when geolocation fails */}
               {geoDenied || zoneError || !detectedZone ? (
                 <Field label="Dirección (manual)" hint="Calle y número, ej: Av. San Martín 123">
-                  <input
-                    className="input"
-                    value={form.address}
-                    onChange={field('address').onChange}
-                    placeholder="Ingresá tu dirección manualmente"
-                    autoComplete="street-address"
-                  />
+                  <div className="relative">
+                    <input
+                      className="input"
+                      value={form.address}
+                      onChange={async (e) => {
+                        const value = e.target.value;
+                        setForm((f) => ({ ...f, address: value }));
+
+                        // Fetch autocomplete suggestions
+                        if (value.length >= 3) {
+                          const suggestions = await searchAddresses(value);
+                          if (!cancelledRef.current) {
+                            setAddressSuggestions(suggestions);
+                            setShowSuggestions(suggestions.length > 0);
+                            setSelectedSuggestionIndex(-1);
+                          }
+                        } else {
+                          setAddressSuggestions([]);
+                          setShowSuggestions(false);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (form.address.length >= 3 && addressSuggestions.length > 0) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on suggestion
+                        setTimeout(() => setShowSuggestions(false), 200);
+                      }}
+                      onKeyDown={(e) => {
+                        if (!showSuggestions || addressSuggestions.length === 0) return;
+
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setSelectedSuggestionIndex(i => Math.min(i + 1, addressSuggestions.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setSelectedSuggestionIndex(i => Math.max(i - 1, -1));
+                        } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                          e.preventDefault();
+                          const suggestion = addressSuggestions[selectedSuggestionIndex];
+                          setForm(f => ({ ...f, address: suggestion.display_name }));
+                          setShowSuggestions(false);
+                          setSelectedSuggestionIndex(-1);
+
+                          // Also update map position if suggestion has coordinates
+                          const lat = parseFloat(suggestion.lat);
+                          const lng = parseFloat(suggestion.lon);
+                          if (!isNaN(lat) && !isNaN(lng)) {
+                            setMapPosition([lng, lat]);
+                            // Trigger zone detection for the new position
+                            // This will be handled by the map component when position changes
+                          }
+                        } else if (e.key === 'Escape') {
+                          setShowSuggestions(false);
+                          setSelectedSuggestionIndex(-1);
+                        }
+                      }}
+                      placeholder="Ingresá tu dirección manualmente"
+                      autoComplete="street-address"
+                    />
+
+                    {/* Autocomplete dropdown */}
+                    {showSuggestions && addressSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 rounded-lg bg-white shadow-lg border border-ink-200 overflow-hidden">
+                        {addressSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              setForm(f => ({ ...f, address: suggestion.display_name }));
+                              setShowSuggestions(false);
+                              setSelectedSuggestionIndex(-1);
+
+                              // Update map position
+                              const lat = parseFloat(suggestion.lat);
+                              const lng = parseFloat(suggestion.lon);
+                              if (!isNaN(lat) && !isNaN(lng)) {
+                                setMapPosition([lng, lat]);
+                              }
+                            }}
+                            onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                            className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                              index === selectedSuggestionIndex
+                                ? 'bg-brand-50 text-brand-700'
+                                : 'text-ink-900 hover:bg-ink-50'
+                            }`}
+                          >
+                            {suggestion.display_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Field>
               ) : (
                 <Field label="Dirección">
