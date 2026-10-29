@@ -124,15 +124,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Fetch user profile to get avatar_url for header avatar
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get<{ user: any; profile: any }>('/auth/me'),
+    enabled: Boolean(user),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const panelLink = useMemo(() => {
     if (!user) return null;
-    if (user.role === 'admin') return { to: '/admin', label: 'Panel de administración' };
+    const avatarUrl = me?.profile?.avatar_url ?? null;
+    if (user.role === 'admin') return { to: '/admin', label: 'Panel de administración', avatarUrl };
     if (user.role === 'store_owner' || user.role === 'store_staff') {
-      return { to: '/comercio', label: 'Mi comercio' };
+      return { to: '/comercio', label: 'Mi comercio', avatarUrl };
     }
-    if (user.role === 'courier') return { to: '/repartidor', label: 'Mis entregas' };
-    return { to: '/mis-pedidos', label: 'Mis pedidos' };
-  }, [user]);
+    if (user.role === 'courier') return { to: '/repartidor', label: 'Mis entregas', avatarUrl };
+    return { to: '/mis-pedidos', label: 'Mis pedidos', avatarUrl };
+  }, [user, me?.profile?.avatar_url]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -212,8 +221,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {user ? (
               <div className="hidden items-center gap-1 md:flex">
                 {panelLink ? (
-                  <Link to={panelLink.to} className="btn-ghost px-3">
-                    {panelLink.label}
+                  <Link
+                    to={panelLink.to}
+                    className="btn-ghost p-1"
+                    aria-label={panelLink.label}
+                  >
+                    {panelLink.avatarUrl ? (
+                      <img
+                        src={panelLink.avatarUrl}
+                        alt=""
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-ink-100 text-sm font-medium text-ink-600">
+                        {user.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()}
+                      </div>
+                    )}
                   </Link>
                 ) : null}
 
@@ -276,8 +299,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <NavLink
                       to={panelLink.to}
                       onClick={() => setMobileOpen(false)}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-brand-600 hover:bg-ink-100"
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-brand-600 hover:bg-ink-100 flex items-center gap-2"
                     >
+                      {panelLink.avatarUrl ? (
+                        <img
+                          src={panelLink.avatarUrl}
+                          alt=""
+                          className="h-7 w-7 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-7 w-7 place-items-center rounded-full bg-ink-100 text-sm font-medium text-ink-600">
+                          {user.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()}
+                        </div>
+                      )}
                       {panelLink.label}
                     </NavLink>
                   ) : null}
