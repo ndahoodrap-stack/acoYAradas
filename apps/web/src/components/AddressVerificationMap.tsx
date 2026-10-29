@@ -348,6 +348,26 @@ export function AddressVerificationMap({
           }
           (window as any).__MAP__ = map;
           console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
+
+          // Debug: Check if sources are loaded and have features
+          setTimeout(() => {
+            try {
+              const zonasSource = map.getSource('zonas');
+              const callesSource = map.getSource('calles');
+              console.log('[Map] Zonas source:', zonasSource);
+              console.log('[Map] Calles source:', callesSource);
+              if (zonasSource) {
+                const zonasFeatures = map.querySourceFeatures('zonas');
+                console.log('[Map] Zonas features:', zonasFeatures.length);
+              }
+              if (callesSource) {
+                const callesFeatures = map.querySourceFeatures('calles');
+                console.log('[Map] Calles features:', callesFeatures.length);
+              }
+            } catch (err) {
+              console.warn('[Map] Debug check failed:', err);
+            }
+          }, 1000);
         }}
         onClick={handleMapClick}
         maxBounds={[
