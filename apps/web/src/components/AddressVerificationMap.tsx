@@ -386,7 +386,7 @@ export function AddressVerificationMap({
             },
           ],
         }}
-        attributionControl={false}
+        attributionControl={true}
         onLoad={() => {
           setMapLoaded(true);
           const map = mapRef.current?.getMap?.();
