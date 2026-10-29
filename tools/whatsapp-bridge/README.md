@@ -46,13 +46,37 @@ Después, en el panel de administración → **WhatsApp**, configurá:
 
 `POST /send`
 
+**Solo texto:**
 ```json
 { "phone": "+54 9 2284 55-5555", "message": "Texto del mensaje" }
 ```
 
+**Con imagen (media attachment):**
+```json
+{ "phone": "+54 9 2284 55-5555", "message": "Texto opcional (caption)", "mediaUrl": "https://tudominio.com/acoYAradasLLEGOUNPEDIDO.jpg" }
+```
+
+- `message` es opcional si se envía `mediaUrl` (sirve como caption).
+- `mediaUrl` debe ser una URL pública accesible (la API usa `PUBLIC_BASE_URL` + nombre de archivo).
+
 Cabecera: `Authorization: Bearer <BRIDGE_TOKEN>`.
 
 Respuesta exitosa: `{ "ok": true }`.
+
+## Imágenes soportadas
+
+La API mapea cada tipo de notificación a su imagen en `@acoyaradas/shared`:
+
+| Tipo de mensaje | Archivo | Destinatario |
+|----------------|---------|--------------|
+| `store_new_order` | `acoYAradasLLEGOUNPEDIDO.jpg` | Comercio |
+| `store_pickup_request` | `acoYAradasLLEGOUNPEDIDO.jpg` | Comercio |
+| `customer_created` | `acoYAradasTUPEDIDOENCAMINO.jpg` | Cliente |
+| `customer_status` | `acoYAradasTUPEDIDOENCAMINO.jpg` | Cliente |
+| `owner_new_order` | *(sin imagen)* | Dueño |
+| `rider_assignment` | *(sin imagen)* | Repartidor |
+
+Las imágenes deben estar en `apps/web/public/` (servidas por `PUBLIC_BASE_URL`).
 
 ## Notas
 
