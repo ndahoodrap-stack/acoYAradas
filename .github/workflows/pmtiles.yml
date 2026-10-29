@@ -1,4 +1,5 @@
-name: Build & Deploy PMTiles
+name: Generate PMTiles
+
 on:
   workflow_dispatch:
   push:
@@ -9,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -30,26 +29,4 @@ jobs:
         with:
           name: bolivar-pmtiles
           path: bolivar.pmtiles
-          retention-days: 1
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bolivar-pmtiles
-          path: ./
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload to Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          retention-days: 7
