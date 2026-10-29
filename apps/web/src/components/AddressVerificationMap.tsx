@@ -60,6 +60,32 @@ export function AddressVerificationMap({
       console.warn('[Map] getStyle failed:', err);
     }
 
+    // Push GeoJSON data to sources using setData() - this forces immediate load
+    // instead of relying on async source initialization which gets stuck
+    if (zonasDataRef.current) {
+      try {
+        const zonasSource = mapInstance.getSource('zonas');
+        if (zonasSource) {
+          console.log('[Map] setData called for zonas');
+          mapInstance.getSource('zonas').setData(zonasDataRef.current);
+        }
+      } catch (err) {
+        console.warn('[Map] setData zonas failed:', err);
+      }
+    }
+
+    if (callesDataRef.current) {
+      try {
+        const callesSource = mapInstance.getSource('calles');
+        if (callesSource) {
+          console.log('[Map] setData called for calles');
+          mapInstance.getSource('calles').setData(callesDataRef.current);
+        }
+      } catch (err) {
+        console.warn('[Map] setData calles failed:', err);
+      }
+    }
+
     // Debug: Check sources immediately
     const checkSources = () => {
       try {
@@ -332,11 +358,11 @@ export function AddressVerificationMap({
           sources: {
             zonas: {
               type: 'geojson',
-              data: zonasDataRef.current,
+              data: { type: 'FeatureCollection', features: [] },
             },
             calles: {
               type: 'geojson',
-              data: callesDataRef.current,
+              data: { type: 'FeatureCollection', features: [] },
             },
           },
           layers: [
