@@ -244,7 +244,7 @@ export function AddressVerificationMap({
                 'background-color': '#f3f4f6', // light gray (gray-100)
               },
             },
-            // Calles (líneas)
+            // Calles (líneas) - TEMP: filter removed for debugging
             {
               id: 'streets',
               type: 'line',
@@ -262,7 +262,7 @@ export function AddressVerificationMap({
                 ],
                 'line-opacity': 0.7,
               },
-              filter: ['in', ['get', 'highway'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']]],
+              // filter: ['in', ['get', 'highway'], ['literal', ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'living_street']]],
             },
             // Labels de calles
             {
@@ -349,8 +349,8 @@ export function AddressVerificationMap({
           (window as any).__MAP__ = map;
           console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
 
-          // Debug: Check if sources are loaded and have features
-          setTimeout(() => {
+          // Debug: Check sources immediately
+          const checkSources = () => {
             try {
               const zonasSource = map.getSource('zonas');
               const callesSource = map.getSource('calles');
@@ -358,16 +358,35 @@ export function AddressVerificationMap({
               console.log('[Map] Calles source:', callesSource);
               if (zonasSource) {
                 const zonasFeatures = map.querySourceFeatures('zonas');
-                console.log('[Map] Zonas features:', zonasFeatures.length);
+                console.log('[Map] Zonas features (immediate):', zonasFeatures.length);
               }
               if (callesSource) {
                 const callesFeatures = map.querySourceFeatures('calles');
-                console.log('[Map] Calles features:', callesFeatures.length);
+                console.log('[Map] Calles features (immediate):', callesFeatures.length);
               }
             } catch (err) {
-              console.warn('[Map] Debug check failed:', err);
+              console.warn('[Map] Immediate debug check failed:', err);
             }
-          }, 1000);
+          };
+          checkSources();
+
+          // Debug: Listen for source data loading events
+          map.on('sourcedata', (e: any) => {
+            if (e.sourceId === 'calles' || e.sourceId === 'zonas') {
+              console.log('[Map] sourcedata event:', e.sourceId, e.isSourceLoaded ? 'loaded' : 'loading', e.dataType);
+              if (e.isSourceLoaded) {
+                try {
+                  const features = map.querySourceFeatures(e.sourceId);
+                  console.log('[Map] Features after load:', e.sourceId, features.length);
+                } catch (err) {
+                  console.warn('[Map] sourcedata query failed:', err);
+                }
+              }
+            }
+          });
+
+          // Also check after a short delay
+          setTimeout(checkSources, 500);
         }}
         onClick={handleMapClick}
         maxBounds={[
