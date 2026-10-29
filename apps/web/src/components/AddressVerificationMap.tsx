@@ -39,23 +39,19 @@ export function AddressVerificationMap({
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Initialize map when ref is ready (replaces onLoad which doesn't fire in v8)
-  useEffect(() => {
-    const map = mapRef.current?.getMap?.();
-    if (!map) {
-      console.log('[AddressVerificationMap] Waiting for map ref...');
-      return;
-    }
-    console.log('[Map] Map instance ready via ref');
+  // Initialize map when ref is set (callback ref pattern - replaces onLoad which doesn't fire in v8)
+  const initializeMap = useCallback((mapInstance: any) => {
+    if (!mapInstance) return;
+    console.log('[Map] Map instance ready via callback ref');
     setMapLoaded(true);
-    (window as any).__MAP__ = map;
+    (window as any).__MAP__ = mapInstance;
     console.log('[Map] MapLibre loaded with pure GeoJSON (no external tiles)');
 
     // Debug: Check map's actual style sources
     try {
-      const style = map.getStyle();
+      const style = mapInstance.getStyle();
       console.log('[Map] Style sources:', style?.sources);
-      console.log('[Map] Style layers:', style?.layers?.map(l => l.id));
+      console.log('[Map] Style layers:', style?.layers?.map((l: any) => l.id));
     } catch (err) {
       console.warn('[Map] getStyle failed:', err);
     }
@@ -63,16 +59,16 @@ export function AddressVerificationMap({
     // Debug: Check sources immediately
     const checkSources = () => {
       try {
-        const zonasSource = map.getSource('zonas');
-        const callesSource = map.getSource('calles');
+        const zonasSource = mapInstance.getSource('zonas');
+        const callesSource = mapInstance.getSource('calles');
         console.log('[Map] Zonas source:', zonasSource);
         console.log('[Map] Calles source:', callesSource);
         if (zonasSource) {
-          const zonasFeatures = map.querySourceFeatures('zonas');
+          const zonasFeatures = mapInstance.querySourceFeatures('zonas');
           console.log('[Map] Zonas features (immediate):', zonasFeatures.length);
         }
         if (callesSource) {
-          const callesFeatures = map.querySourceFeatures('calles');
+          const callesFeatures = mapInstance.querySourceFeatures('calles');
           console.log('[Map] Calles features (immediate):', callesFeatures.length);
         }
       } catch (err) {
@@ -82,12 +78,12 @@ export function AddressVerificationMap({
     checkSources();
 
     // Debug: Listen for source data loading events
-    map.on('sourcedata', (e: any) => {
+    mapInstance.on('sourcedata', (e: any) => {
       if (e.sourceId === 'calles' || e.sourceId === 'zonas') {
         console.log('[Map] sourcedata event:', e.sourceId, e.isSourceLoaded ? 'loaded' : 'loading', e.dataType);
         if (e.isSourceLoaded) {
           try {
-            const features = map.querySourceFeatures(e.sourceId);
+            const features = mapInstance.querySourceFeatures(e.sourceId);
             console.log('[Map] Features after load:', e.sourceId, features.length);
           } catch (err) {
             console.warn('[Map] sourcedata query failed:', err);
@@ -98,7 +94,7 @@ export function AddressVerificationMap({
 
     // Also check after a short delay
     setTimeout(checkSources, 500);
-  }, [mapRef.current]);
+  }, []);
 
   // Detect zone at a given position using client-side point-in-polygon
   // Uses zoneFeaturesRef populated from the GeoJSON on mount
@@ -280,7 +276,7 @@ export function AddressVerificationMap({
       )}
 
       <Map
-        ref={mapRef}
+        ref={(el) => { mapRef.current = el; if (el) initializeMap(el.getMap()); }}
         initialViewState={{
           longitude: BOLIVAR_CENTER[0],
           latitude: BOLIVAR_CENTER[1],
