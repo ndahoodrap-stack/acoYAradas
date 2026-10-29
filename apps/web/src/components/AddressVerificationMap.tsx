@@ -4,6 +4,10 @@ import { DELIVERY_ZONES, BOLIVAR_CENTER, ZOOM, BOLIVAR_BOUNDS } from '../lib/zon
 import type { ZoneMatch } from '../lib/zoneDetection';
 import { pointInPolygon } from '../lib/zoneDetection';
 
+// Stadia Maps tile server (free, no blocking, OSM data)
+const STADIA_TILES = 'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png';
+const STADIA_ATTRIBUTION = '© OpenStreetMap contributors, © Stadia Maps';
+
 interface AddressVerificationMapProps {
   /** Currently detected zone from geolocation */
   detectedZone: ZoneMatch | null;
@@ -102,23 +106,19 @@ export function AddressVerificationMap({
   }, [position, loading]);
 
   // Load zone features from GeoJSON for client-side point-in-polygon detection
+  // Fetch directly instead of relying on map.querySourceFeatures timing
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-
-    const loadZoneFeatures = () => {
+    const loadZoneFeatures = async () => {
       try {
-        const source = map.getSource('zonas');
-        if (!source) return;
+        const res = await fetch('/bolivar.geojson');
+        if (!res.ok) throw new Error('Failed to load bolivar.geojson');
+        const data = await res.json();
 
-        // Get features from the GeoJSON source
-        const features = map.querySourceFeatures('zonas');
-        const processedFeatures = features.map((f: any) => {
+        const features = (data.features || []).map((f: any) => {
           const props = f.properties || {};
-          const zoneCode = props.zone_code ||
-            (Object.values(props) as string[]).find(v =>
-              ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
-            ) || null;
+          const zoneCode = (Object.values(props) as string[]).find(v =>
+            ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
+          ) || null;
 
           return {
             ...f,
@@ -133,19 +133,17 @@ export function AddressVerificationMap({
           };
         });
 
-        zoneFeaturesRef.current = processedFeatures;
-        console.log('[AddressVerificationMap] Loaded zone features:', processedFeatures.length);
+        zoneFeaturesRef.current = features;
+        console.log('[AddressVerificationMap] Loaded zone features from GeoJSON:', features.length, features.map(f => f.properties.zone_code));
       } catch (err) {
         console.warn('Could not load zone features from GeoJSON:', err);
       }
     };
 
-    // Wait a bit for GeoJSON to load, then query
-    const timer = setTimeout(loadZoneFeatures, 500);
-    return () => clearTimeout(timer);
-  }, [mapLoaded]);
+    loadZoneFeatures();
+  }, []);
 
-  // Also re-query on map move/zoom
+  // Also re-query on map move/zoom (fallback to map source if direct fetch fails)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -155,25 +153,28 @@ export function AddressVerificationMap({
       (window as any).__zoneQueryTimer = setTimeout(() => {
         try {
           const features = map.querySourceFeatures('zonas');
-          const processedFeatures = features.map((f: any) => {
-            const props = f.properties || {};
-            const zoneCode = props.zone_code ||
-              (Object.values(props) as string[]).find(v =>
-                ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
-              ) || null;
-            return {
-              ...f,
-              properties: {
-                ...props,
-                zone_code: zoneCode,
-                name: props.name ||
-                  (props['Planta Urbana'] ? 'Planta Urbana' :
-                    props['Zona Barrial'] ? 'Zona Barrial' :
-                      props['Zona Rural'] ? 'Zona Rural' : ''),
-              }
-            };
-          });
-          zoneFeaturesRef.current = processedFeatures;
+          if (features.length > 0) {
+            const processedFeatures = features.map((f: any) => {
+              const props = f.properties || {};
+              const zoneCode = props.zone_code ||
+                (Object.values(props) as string[]).find(v =>
+                  ['planta_urbana', 'zona_barrial', 'zona_rural'].includes(v)
+                ) || null;
+              return {
+                ...f,
+                properties: {
+                  ...props,
+                  zone_code: zoneCode,
+                  name: props.name ||
+                    (props['Planta Urbana'] ? 'Planta Urbana' :
+                      props['Zona Barrial'] ? 'Zona Barrial' :
+                        props['Zona Rural'] ? 'Zona Rural' : ''),
+                }
+              };
+            });
+            zoneFeaturesRef.current = processedFeatures;
+            console.log('[AddressVerificationMap] Updated zone features from map:', processedFeatures.length);
+          }
         } catch (err) {
           // Ignore
         }
@@ -268,9 +269,9 @@ export function AddressVerificationMap({
           sources: {
             osm: {
               type: 'raster',
-              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tiles: [STADIA_TILES],
               tileSize: 256,
-              attribution: '© OpenStreetMap contributors',
+              attribution: STADIA_ATTRIBUTION,
               maxzoom: 19,
             },
             zonas: {
@@ -394,6 +395,13 @@ export function AddressVerificationMap({
             console.error('[Map] No se pudo obtener instancia MapLibre via ref');
             return;
           }
+          // Suppress false "Access blocked" error overlay from OSM volunteer servers
+          map.on('error', (e: any) => {
+            if (e.error?.message?.includes('Access blocked')) {
+              e.preventDefault();
+              console.log('[Map] Suppressed Access blocked overlay');
+            }
+          });
           (window as any).__MAP__ = map;
           console.log('[Map] MapLibre loaded with raster + GeoJSON');
         }}
