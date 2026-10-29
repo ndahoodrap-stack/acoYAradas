@@ -228,12 +228,11 @@ export default function Checkout() {
                   />
                 </Field>
               ) : (
-                <Field label="Dirección" hint="Se detectó la calle automáticamente. Agregá tu número de casa.">
+                <Field label="Dirección" hint="Se detectó la calle automáticamente desde el mapa.">
                   <input
-                    className="input"
+                    className="input bg-ink-50 cursor-not-allowed"
                     value={form.address}
-                    onChange={field('address').onChange}
-                    placeholder="Ej: 123"
+                    readOnly
                     autoComplete="street-address"
                   />
                 </Field>
@@ -564,17 +563,35 @@ export default function Checkout() {
             </div>
 
             <p className="text-sm text-ink-500 mb-4">
-              Verificá la dirección capturada desde el mapa. Podés editarla si es necesario.
+              Verificá la dirección capturada desde el mapa. Agregá el número de casa.
             </p>
 
             <div className="mb-4">
               <label className="block text-xs font-medium text-ink-600 mb-1">Dirección de entrega</label>
-              <textarea
-                className="input w-full min-h-[80px] resize-none"
-                value={confirmAddress}
-                onChange={(e) => setConfirmAddress(e.target.value)}
-                placeholder="La dirección aparecerá aquí automáticamente"
-              />
+              <div className="flex gap-2">
+                {/* Street name - read only */}
+                <input
+                  className="input flex-1 bg-ink-50 cursor-not-allowed"
+                  value={detectedZone?.streetName || confirmAddress.split(' ').slice(0, -1).join(' ') || confirmAddress}
+                  readOnly
+                  placeholder="Calle detectada"
+                  autoComplete="street-address"
+                />
+                {/* House number - editable */}
+                <input
+                  className="input w-24 text-center"
+                  value={confirmAddress.replace(/.*?(\d+)$/, '$1').replace(/[^\d]/g, '') || ''}
+                  onChange={(e) => {
+                    const num = e.target.value.replace(/[^\d]/g, '');
+                    const street = detectedZone?.streetName || confirmAddress.split(' ').slice(0, -1).join(' ') || confirmAddress;
+                    setConfirmAddress(num ? `${street} ${num}` : street);
+                  }}
+                  placeholder="Nº"
+                  autoComplete="address-level1"
+                  maxLength={5}
+                  inputMode="numeric"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -590,7 +607,7 @@ export default function Checkout() {
                 type="button"
                 onClick={confirmOrder}
                 className="flex-1 btn-primary"
-                disabled={submitting || !confirmAddress.trim()}
+                disabled={submitting || !confirmAddress.trim() || !/\d/.test(confirmAddress)}
               >
                 {submitting ? 'Enviando…' : 'Confirmar y enviar pedido'}
               </button>
