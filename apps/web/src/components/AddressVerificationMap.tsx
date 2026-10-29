@@ -296,13 +296,13 @@ export function AddressVerificationMap({
           'raster-opacity': 0.8,
         },
       },
-      // Zonas raster layer
+      // Zonas raster layer - reduced opacity to be less intrusive
       {
         id: 'zonas-raster',
         type: 'raster',
         source: 'zonas',
         paint: {
-          'raster-opacity': 0.9,
+          'raster-opacity': 0.35,
         },
       },
       // Street name labels (vector layer on top) - only when GeoJSON is loaded

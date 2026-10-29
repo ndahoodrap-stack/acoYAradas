@@ -131,7 +131,8 @@ export default function Checkout() {
   // Abrir popup de confirmación de dirección
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.address.trim()) {
+    // Address is optional when we have a detected zone (map position serves as address)
+    if (!detectedZone && !form.address.trim()) {
       setError('Por favor ajustá tu ubicación en el mapa para capturar la dirección.');
       return;
     }
@@ -462,7 +463,7 @@ export default function Checkout() {
             <button
               type="submit"
               className="btn-primary w-full py-4 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98] relative overflow-hidden"
-              disabled={submitting || !detectedZone || !form.address.trim()}
+              disabled={submitting || !detectedZone || (zoneLoading && !detectedZone) || (!detectedZone && !form.address.trim())}
             >
               <span className="relative flex items-center justify-center gap-2">
                 {submitting ? (
