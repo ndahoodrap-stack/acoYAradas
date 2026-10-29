@@ -83,6 +83,11 @@ function SearchBox({ onDone }: { onDone?: () => void }) {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useSession();
   const { count, subtotal } = useCart();
+  const queryClient = useQueryClient();
+  const handleLogout = () => {
+    void logout();
+    queryClient.removeQueries({ queryKey: ['me'] });
+  };
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showTop, setShowTop] = useState(false);
@@ -125,11 +130,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
 
   // Fetch user profile to get avatar_url for header avatar
+  // queryKey incluye user.id para evitar caché compartido entre usuarios
   const { data: me } = useQuery({
-    queryKey: ['me'],
+    queryKey: ['me', user?.id],
     queryFn: () => api.get<{ user: any; profile: any }>('/auth/me'),
     enabled: Boolean(user),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30s: refetch rápido al cambiar usuario
   });
 
   const panelLink = useMemo(() => {
@@ -243,7 +249,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   className="btn-ghost px-3"
-                  onClick={() => void logout()}
+                  onClick={handleLogout}
                   title={user.email}
                 >
                   Salir
@@ -319,7 +325,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     type="button"
                     className="rounded-lg px-3 py-2 text-left text-sm font-medium text-ink-700 hover:bg-ink-100"
                     onClick={() => {
-                      void logout();
+                      handleLogout();
                       setMobileOpen(false);
                     }}
                   >
