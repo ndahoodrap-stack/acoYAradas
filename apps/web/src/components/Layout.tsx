@@ -138,16 +138,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
     staleTime: 30 * 1000, // 30s: refetch rápido al cambiar usuario
   });
 
+  // Fetch store profile for store_owner/store_staff to get logo_url as fallback
+  const { data: storeProfile } = useQuery({
+    queryKey: ['store-profile'],
+    queryFn: () => api.get<{ store: { logo_url: string | null } }>('/store/profile'),
+    enabled: Boolean(user && (user.role === 'store_owner' || user.role === 'store_staff')),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const panelLink = useMemo(() => {
     if (!user) return null;
     const avatarUrl = me?.profile?.avatar_url ?? null;
-    if (user.role === 'admin') return { to: '/admin', label: 'Panel de administración', avatarUrl };
+    const storeLogoUrl = storeProfile?.store?.logo_url ?? null;
+
+    // Fallback: si es comercio y no tiene avatar personal, usar logo del comercio
+    const effectiveAvatar = avatarUrl ??
+      ((user.role === 'store_owner' || user.role === 'store_staff') ? storeLogoUrl : null);
+
+    if (user.role === 'admin') return { to: '/admin', label: 'Panel de administración', avatarUrl: effectiveAvatar };
     if (user.role === 'store_owner' || user.role === 'store_staff') {
-      return { to: '/comercio', label: 'Mi comercio', avatarUrl };
+      return { to: '/comercio', label: 'Mi comercio', avatarUrl: effectiveAvatar };
     }
-    if (user.role === 'courier') return { to: '/repartidor', label: 'Mis entregas', avatarUrl };
-    return { to: '/mis-pedidos', label: 'Mis pedidos', avatarUrl };
-  }, [user, me?.profile?.avatar_url]);
+    if (user.role === 'courier') return { to: '/repartidor', label: 'Mis entregas', avatarUrl: effectiveAvatar };
+    return { to: '/mis-pedidos', label: 'Mis pedidos', avatarUrl: effectiveAvatar };
+  }, [user, me?.profile?.avatar_url, storeProfile?.store?.logo_url]);
 
   return (
     <div className="flex min-h-screen flex-col">
