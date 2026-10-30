@@ -19,7 +19,7 @@ export function publicToken(bytes = 24): string {
 
 /** Token de carrito invitado. */
 export function guestToken(): string {
-  return `g_${randomBytes(16).toString('hex')}`;
+  return `g_${randomBytes(32).toString('hex')}`;
 }
 
 export function slugify(input: string): string {

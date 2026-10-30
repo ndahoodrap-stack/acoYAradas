@@ -433,7 +433,10 @@ ordersRouter.post(
       for (const item of cartItems.rows) {
         try {
           if (hasPlatformProduct && !item.store_id) {
-            await ctx.db.system.query(`update public.platform_products set stock = stock - ${Number(item.quantity)}, updated_at = now() where id = '${item.product_id}' and stock >= ${Number(item.quantity)}`);
+            await tx.query(
+              `update public.platform_products set stock = stock - $1, updated_at = now() where id = $2 and stock >= $1`,
+              [Number(item.quantity), item.product_id]
+            );
           } else {
             await tx.query('select public.decrement_stock($1, $2, null) as stock', [
               item.product_id,
@@ -520,7 +523,10 @@ ordersRouter.post(
             money(Number(item.price) * Number(item.quantity)),
           ],
         );
-        await ctx.db.system.query(`update public.stock_movements set order_id = '${orderId}' where product_id = '${item.product_id}' and order_id is null`);
+        await tx.query(
+          `update public.stock_movements set order_id = $1 where product_id = $2 and order_id is null`,
+          [orderId, item.product_id]
+        );
       }
 
       await tx.query(

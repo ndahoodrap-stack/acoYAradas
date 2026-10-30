@@ -43,7 +43,15 @@ export const config = {
   /** Confiar en el proxy (Vercel/Netlify/Nginx) para obtener la IP real del cliente. */
   trustProxy: bool(process.env.TRUST_PROXY, false),
 
-  uploadsDir: process.env.UPLOADS_DIR ?? path.join(rootDir, 'uploads'),
+  uploadsDir: (() => {
+    const dir = process.env.UPLOADS_DIR ?? path.join(rootDir, 'uploads');
+    const resolved = path.resolve(dir);
+    const projectRoot = path.resolve(rootDir);
+    if (!resolved.startsWith(projectRoot)) {
+      throw new Error('UPLOADS_DIR must be within project root');
+    }
+    return dir;
+  })(),
   publicBaseUrl: process.env.PUBLIC_BASE_URL ?? `http://localhost:${num(process.env.PORT, 3001)}`,
 
   /** Proveedor de WhatsApp.
@@ -76,9 +84,8 @@ export const config = {
   },
 } as const;
 
-if (config.isProd && config.authSecret.includes('dev-secret')) {
-  // eslint-disable-next-line no-console
-  console.warn('[config] AUTH_SECRET por defecto en producción: definí una clave propia.');
+if (config.isProd && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.includes('dev-secret'))) {
+  throw new Error('AUTH_SECRET must be set to a secure random value in production. Generate one with: openssl rand -hex 32');
 }
 
 export function assertConfig() {

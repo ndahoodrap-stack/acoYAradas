@@ -31,8 +31,16 @@ export function createApp(db: Database) {
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || config.corsOrigins.includes(origin)) return callback(null, true);
-        return callback(null, false);
+        if (!origin) return callback(null, true);
+        const allowed = config.corsOrigins.some(o => {
+          if (o === origin) return true;
+          if (o.startsWith('*.')) {
+            const domain = o.slice(2);
+            return origin.endsWith('.' + domain) || origin === domain;
+          }
+          return false;
+        });
+        return callback(null, allowed);
       },
       credentials: true,
     }),

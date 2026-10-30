@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { loginSchema, registerSchema } from '@acoyaradas/shared';
 import { route, validate } from '../http/router.js';
 import { applyClaims } from '../db/index.js';
@@ -6,6 +7,17 @@ import { loginUser, registerUser, refreshSession, revokeSession } from '../auth/
 import { badRequest } from '../lib/errors.js';
 
 export const authRouter = Router();
+
+// Rate limiting para endpoints de autenticación
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // máximo 10 intentos por ventana
+  message: { error: 'too_many_requests', message: 'Demasiados intentos, intente más tarde' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+authRouter.use(authLimiter);
 
 authRouter.post(
   '/register',

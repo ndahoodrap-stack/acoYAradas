@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { z, type ZodTypeAny } from 'zod';
 import type { Ctx } from './context.js';
 import { AppError, badRequest } from '../lib/errors.js';
+import { config } from '../config.js';
 
 export type Handler = (ctx: Ctx, req: Request, res: Response) => Promise<unknown>;
 
@@ -52,6 +53,16 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
   // eslint-disable-next-line no-console
   console.error('[api] error no controlado:', (err as any)?.message, (err as any)?.query, (err as any)?.code, (err as any)?.stack);
+
+  // En producción, no exponer detalles internos
+  if (config.isProd) {
+    res.status(500).json({
+      error: 'internal_error',
+      message: 'Ocurrió un error inesperado. Intentá de nuevo.',
+    });
+    return;
+  }
+
   res.status(500).json({
     error: 'internal_error',
     message: e?.message || 'Ocurrió un error inesperado. Intentá de nuevo.',
