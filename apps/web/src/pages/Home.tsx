@@ -177,15 +177,13 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden text-white section-scroll-timeline">
-        {/* Mesh gradient animated background */}
-        <div className="absolute inset-0 hero-mesh" aria-hidden />
-        {/* Parallax background image */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-600 to-ink-900 text-white section-scroll-timeline">
+        {/* Background image with mix-blend-overlay (original design) */}
         <img
           src="/acoyaradasBANNER.png"
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover object-center hero-bg-parallax mix-blend-overlay opacity-60"
+          className="absolute inset-0 h-full w-full object-cover object-center mix-blend-overlay"
         />
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500/80 via-brand-600/70 to-ink-900/90" />
