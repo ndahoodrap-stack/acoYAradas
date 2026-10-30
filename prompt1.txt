@@ -4,8 +4,7 @@ Analiza toda la pagina, entiende como funciona, y que funciona en render atraves
 Actúa como un Ingeniero de Software Senior experto en desarrollo
 Actúa como un Diseñador Actúa como un diseñador web y de UI experto luego>
 
-En el panel de admin/dashboard de admin > sección categorias
-Aparecen las categorías que están puestas en el inicio de la página y en la sección "Categorías" del header, en este panel de admin se pueden editar las categorías/agregar, actualmente no está funcionando, ya que la página tiene unos iconos que en el panel de admin no aparecen, al actualizarlos/cambiarlos, tampoco se ejecuta en la página principal.
+
 
 
 [Etapa 2]

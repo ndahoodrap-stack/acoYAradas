@@ -3,11 +3,21 @@ import type { ProductDto, StoreDto } from '@acoyaradas/shared';
 import { formatMoney } from '../lib/format';
 import { AvailabilityBadge, SponsoredTag } from './ui';
 
-export function StoreCard({ store }: { store: StoreDto }) {
+interface StoreCardProps {
+  store: StoreDto;
+  variant?: 'default' | 'glass';
+}
+
+export function StoreCard({ store, variant = 'default' }: StoreCardProps) {
+  const isGlass = variant === 'glass';
+  const baseClass = isGlass ? 'card-glass' : 'card';
+  const hoverClass = isGlass ? 'group flex flex-col overflow-hidden' :
+    'group flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card';
+
   return (
     <Link
       to={`/comercios/${store.slug}`}
-      className="card group flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card"
+      className={`${baseClass} ${hoverClass}`}
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-ink-100">
         {store.cover_url ? (
@@ -47,12 +57,22 @@ export function StoreCard({ store }: { store: StoreDto }) {
   );
 }
 
-export function ProductCard({ product }: { product: ProductDto }) {
+interface ProductCardProps {
+  product: ProductDto;
+  variant?: 'default' | 'glass';
+}
+
+export function ProductCard({ product, variant = 'default' }: ProductCardProps) {
   const open = product.store_is_open !== false;
+  const isGlass = variant === 'glass';
+  const baseClass = isGlass ? 'card-glass' : 'card';
+  const hoverClass = isGlass ? '' : 'group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md';
+  const glassHoverClass = isGlass ? 'group flex flex-col overflow-hidden' : '';
+
   return (
     <Link
       to={`/productos/${product.id}`}
-      className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md"
+      className={`${baseClass} ${hoverClass} ${glassHoverClass}`}
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-ink-100">
         {product.image_url ? (
@@ -78,7 +98,7 @@ export function ProductCard({ product }: { product: ProductDto }) {
           </p>
         ) : null}
         <h3 className="line-clamp-2 text-xs font-semibold text-ink-900">{product.name}</h3>
-        <p className="mt-auto pt-1.5 text-sm font-bold text-brand-600">
+        <p className="mt-auto pt-1.5 text-sm font-bold text-brand-600 price">
           {formatMoney(product.price)}
         </p>
       </div>

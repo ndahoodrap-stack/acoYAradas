@@ -325,10 +325,10 @@ En ambos casos el cliente recibe un enlace seguro para consultar el estado del p
 /**
  * Carga los datos de demostración (claramente identificados) en una base ya migrada.
  * Es idempotente: se puede ejecutar varias veces sobre la misma base.
+ * Usa db.system (contexto interno, propietario de tablas) para saltar RLS.
  */
 export async function seedDemoData(db: Database): Promise<void> {
-  await db.transaction(async (tx) => {
-    await applyClaims(tx, { role: 'admin' });
+  const tx = db.system;
 
     // --- Categorías -------------------------------------------------
     for (const [index, category] of DEFAULT_CATEGORIES.entries()) {
@@ -647,8 +647,7 @@ export async function seedDemoData(db: Database): Promise<void> {
        values ($1,'admin','Seed de demostración','seed_executed','system','seed', $2::jsonb)`,
       [ADMIN_ID, JSON.stringify({ demo: true })],
     );
-  });
-}
+  }
 
 async function main() {
   const db = await createDatabase();

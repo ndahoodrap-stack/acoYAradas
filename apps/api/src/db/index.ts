@@ -59,9 +59,8 @@ export async function applyClaims(tx: DbExecutor, claims: Claims) {
   await tx.query('select set_config($1, $2, true)', ['request.jwt.claims', payload]);
   try {
     await tx.query(`set local role ${RUNTIME_ROLE}`);
-  } catch (err) {
-    // Si ya éramos ese rol (o la DB no lo tiene), seguimos con los claims.
-    const code = (err as { code?: string }).code;
-    if (code !== '42501' && code !== '0A000') throw err;
+  } catch {
+    // Si la DB no soporta roles (como PGlite) o el rol no existe, continuamos solo con los claims.
+    // El set_config arriba ya configuró request.jwt.claims para que RLS funcione.
   }
 }

@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { formatMoney } from '../lib/format';
 import { ProductCard, StoreCard } from '../components/Cards';
 import { Icon } from '../components/Icon';
-import { EmptyState, ErrorState, SectionTitle, Spinner, SponsoredTag } from '../components/ui';
+import { EmptyState, ErrorState, SectionTitle, SponsoredTag } from '../components/ui';
 import type { CategoryDto, ProductDto, StoreDto } from '@acoyaradas/shared';
 
 interface Banner {
@@ -49,6 +49,16 @@ export default function Home() {
     queryFn: () => api.get<HomeData>('/home'),
   });
 
+  // Ripple effect handler for buttons and links
+  const handleRipple = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    target.style.setProperty('--x', `${x}px`);
+    target.style.setProperty('--y', `${y}px`);
+  };
+
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     const cycle = () => {
@@ -62,7 +72,95 @@ export default function Home() {
     return () => clearTimeout(timeout);
   }, []);
 
-  if (isLoading) return <Spinner label="Cargando la tienda…" />;
+  if (isLoading) return (
+    <div className="container-app space-y-12 py-10">
+      {/* Hero skeleton */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-600 to-ink-900 text-white">
+        <div className="container-app relative grid gap-8 py-12 lg:grid-cols-2 lg:items-center lg:py-16">
+          <div className="animate-fade-up">
+            <div className="mb-4 skeleton-card h-8 w-32 rounded-full" />
+            <div className="skeleton-card h-10 w-3/4" />
+            <div className="skeleton-card h-10 w-3/4" />
+            <div className="mt-6 skeleton-card h-12 w-1/2" />
+            <div className="mt-5 skeleton-card h-10 w-2/3" />
+          </div>
+          <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 skeleton-card" />
+        </div>
+      </section>
+
+      {/* Categorías skeleton */}
+      <section className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 reveal-stagger">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="skeleton-card h-20" />
+          ))}
+        </div>
+      </section>
+
+      {/* Comercios destacados skeleton */}
+      <section className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton-card h-56" />
+          ))}
+        </div>
+      </section>
+
+      {/* Promociones skeleton */}
+      <section className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 reveal-stagger">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="skeleton-card h-28" />
+          ))}
+        </div>
+      </section>
+
+      {/* Populares skeleton (bento) */}
+      <section className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="bento-grid reveal-stagger">
+          <div className="skeleton-bento-hero" />
+          <div className="skeleton-bento-wide" />
+          <div className="skeleton-bento-wide" />
+          <div className="skeleton-bento-tall" />
+          <div className="skeleton-bento-tall" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+        </div>
+      </section>
+
+      {/* Novedades skeleton (bento) */}
+      <section className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="bento-grid reveal-stagger">
+          <div className="skeleton-bento-hero" />
+          <div className="skeleton-bento-wide" />
+          <div className="skeleton-bento-wide" />
+          <div className="skeleton-bento-tall" />
+          <div className="skeleton-bento-tall" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+          <div className="skeleton-bento-standard" />
+        </div>
+      </section>
+
+      {/* No afiliados skeleton */}
+      <section id="no-afiliados" className="section-scroll-timeline">
+        <div className="skeleton-card h-10 w-1/3 mb-4" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton-card h-56" />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
   if (error) {
     return (
       <div className="container-app py-10">
@@ -79,16 +177,20 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-500 via-brand-600 to-ink-900 text-white">
+      <section className="relative overflow-hidden text-white section-scroll-timeline">
+        {/* Mesh gradient animated background */}
+        <div className="absolute inset-0 hero-mesh" aria-hidden />
+        {/* Parallax background image */}
         <img
           src="/acoyaradasBANNER.png"
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover object-center mix-blend-overlay"
+          className="absolute inset-0 h-full w-full object-cover object-center hero-bg-parallax mix-blend-overlay opacity-60"
         />
+        {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500/80 via-brand-600/70 to-ink-900/90" />
         <div className="container-app relative grid gap-8 py-12 lg:grid-cols-2 lg:items-center lg:py-16">
-          <div className="animate-fade-up">
+          <div className="reveal-on-scroll">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
               <img src="/acoyaradaslogo.jpg" alt="acoYAradas!" className="h-6 w-6 rounded object-cover" />
               acoYAradas!
@@ -102,7 +204,7 @@ export default function Home() {
             </p>
 
             <form
-              className="mt-6 flex max-w-lg gap-2"
+              className="mt-6 flex max-w-lg gap-2 search-glass p-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 window.location.href = term.trim()
@@ -117,28 +219,29 @@ export default function Home() {
                   onChange={(e) => setTerm(e.target.value)}
                   placeholder="¿Qué estás buscando?"
                   aria-label="Buscar"
-                  className="input h-12 pl-10 text-base"
+                  className="input h-12 pl-10 text-base bg-transparent border-0 focus:ring-0 focus:outline-none"
                 />
               </div>
-              <button type="submit" className="btn h-12 bg-ink-900 px-6 text-white hover:bg-ink-800 active:scale-[0.98]">
+              <button type="submit" className="btn btn-ripple btn-smile h-12 bg-ink-900 px-6 text-white hover:bg-ink-800 active:scale-[0.98]" onClick={handleRipple}>
                 Buscar
               </button>
             </form>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm">
-              <Link to="/carrito" className="btn bg-white text-ink-900 hover:bg-ink-100">
+              <Link to="/carrito" className="btn btn-ripple btn-smile bg-white text-ink-900 hover:bg-ink-100" onClick={handleRipple}>
                 🛒 Ver mi carrito
               </Link>
               <Link
                 to="/seguimiento"
-                className="btn border border-white/40 text-white hover:bg-white/10"
+                className="btn btn-ripple border border-white/40 text-white hover:bg-white/10"
+                onClick={handleRipple}
               >
                 📦 Seguir un pedido
               </Link>
             </div>
           </div>
 
-          <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20">
+          <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 reveal-on-scroll">
             <div
               className={`absolute inset-0 transition-all duration-700 ease-in-out ${
                 showAd ? 'opacity-0 -translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
@@ -200,7 +303,7 @@ export default function Home() {
 
       <div className="container-app space-y-12 py-10">
         {/* Categorías */}
-        <section>
+        <section className="section-scroll-timeline">
           <SectionTitle
             title="Categorías"
             subtitle="Explorá por tipo de comercio"
@@ -211,7 +314,7 @@ export default function Home() {
               </Link>
             }
           />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 reveal-stagger">
             {categories.map((cat) => {
               const FALLBACK_EMOJI: Record<string, string> = {
                 gastronomia: '🍽️',
@@ -239,9 +342,9 @@ export default function Home() {
               <Link
                 key={cat.id}
                 to={`/comercios?categoria=${cat.id}`}
-                className="card flex items-center gap-3 px-4 py-3 transition hover:border-brand-300 hover:shadow-md"
+                className="category-card flex items-center gap-3 px-4 py-3"
               >
-                {icon}
+                <span className="icon">{icon}</span>
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-ink-900">{cat.name}</span>
                   <span className="block text-xs text-ink-500">
@@ -255,7 +358,7 @@ export default function Home() {
         </section>
 
         {/* Comercios destacados */}
-        <section>
+        <section className="section-scroll-timeline">
           <SectionTitle
             title="Comercios destacados"
             subtitle="Los negocios más elegidos de la plataforma"
@@ -272,9 +375,9 @@ export default function Home() {
               description="Cuando el administrador apruebe solicitudes, van a aparecer acá."
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
               {featured.map((store) => (
-                <StoreCard key={store.id} store={store} />
+                <StoreCard key={store.id} store={store} variant="glass" />
               ))}
             </div>
           )}
@@ -282,11 +385,11 @@ export default function Home() {
 
         {/* Promociones */}
         {data?.promotions?.length ? (
-          <section>
+          <section className="section-scroll-timeline">
             <SectionTitle title="Ofertas y promociones" subtitle="Descuentos vigentes ahora" />
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 reveal-stagger">
               {data.promotions.map((promo) => (
-                <div key={promo.id} className="card flex items-start gap-3 p-4">
+                <div key={promo.id} className="card-glass flex items-start gap-3 p-4">
                   <span className="text-2xl" aria-hidden>
                     🏷️
                   </span>
@@ -309,32 +412,48 @@ export default function Home() {
         ) : null}
 
         {/* Populares */}
-        <section>
+        <section className="section-scroll-timeline">
           <SectionTitle title="Productos populares" subtitle="Los más pedidos por la comunidad" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {(data?.popular ?? []).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div className="bento-grid reveal-stagger">
+            {(data?.popular ?? []).map((product, index) => {
+              const cellClass = index === 0 ? 'bento-hero' :
+                                index <= 2 ? 'bento-wide' :
+                                index <= 4 ? 'bento-tall' :
+                                'bento-standard';
+              return (
+                <div key={product.id} className={cellClass}>
+                  <ProductCard product={product} variant="glass" />
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* Novedades */}
-        <section>
+        <section className="section-scroll-timeline">
           <SectionTitle title="Novedades" subtitle="Lo último que agregaron los comercios" icon="🆕" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {(data?.newest ?? []).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div className="bento-grid reveal-stagger">
+            {(data?.newest ?? []).map((product, index) => {
+              const cellClass = index === 0 ? 'bento-hero' :
+                                index <= 2 ? 'bento-wide' :
+                                index <= 4 ? 'bento-tall' :
+                                'bento-standard';
+              return (
+                <div key={product.id} className={cellClass}>
+                  <ProductCard product={product} variant="glass" />
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* Productos no afiliados */}
         {(data?.unaffiliated ?? []).length ? (
-          <section id="no-afiliados">
+          <section id="no-afiliados" className="section-scroll-timeline">
             <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
               {(data?.unaffiliated ?? []).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} variant="glass" />
               ))}
             </div>
           </section>
