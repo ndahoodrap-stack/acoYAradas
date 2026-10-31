@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -15,7 +15,148 @@ interface Banner {
   image_url: string | null;
   link_url: string | null;
   placement: string;
+  sort_order: number;
   is_sponsored: boolean;
+  store_slug?: string | null;
+}
+
+function Carousel({ banners, className = '' }: { banners: Banner[]; className?: string }) {
+  const homeBanners = banners.filter((b) => b.placement === 'home_banner' && b.active);
+  if (homeBanners.length === 0) return null;
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % homeBanners.length);
+  }, [homeBanners.length]);
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + homeBanners.length) % homeBanners.length);
+  }, [homeBanners.length]);
+
+  // Auto-advance
+  useEffect(() => {
+    if (isPaused || homeBanners.length <= 1) return;
+    timeoutRef.current = setTimeout(nextSlide, 5000);
+    return () => clearTimeout(timeoutRef.current);
+  }, [currentIndex, isPaused, homeBanners.length, nextSlide]);
+
+  // Pause on hover/focus
+  const handleMouseEnter = () => setIsPaused(true);
+  const handleMouseLeave = () => setIsPaused(false);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nextSlide, prevSlide]);
+
+  return (
+    <div
+      className={`relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 ${className}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleMouseEnter}
+      onBlur={handleMouseLeave}
+      tabIndex={0}
+      role="region"
+      aria-label="Carrusel de banners"
+    >
+      <div className="absolute inset-0" aria-hidden="true">
+        {homeBanners.map((banner, index) => (
+          <div
+            key={banner.id}
+            className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+              index === currentIndex ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none'
+            }`}
+            aria-hidden={index !== currentIndex}
+          >
+            <Link
+              to={banner.link_url || (banner.store_slug ? `/comercios/${banner.store_slug}` : '/comercios')}
+              className="block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              {banner.image_url ? (
+                <img
+                  src={banner.image_url}
+                  alt={banner.title}
+                  className="h-full w-full object-cover"
+                  loading={index === currentIndex ? 'eager' : 'lazy'}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
+                  🎉
+                </div>
+              )}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
+                {banner.is_sponsored && <SponsoredTag className="mb-1" />}
+                <p className="text-lg font-bold text-white">{banner.title}</p>
+                {banner.subtitle ? <p className="text-xs text-white/80">{banner.subtitle}</p> : null}
+              </div>
+            </Link>
+          </div>
+        ))}
+      </div>
+
+      {/* Navigation dots */}
+      {homeBanners.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2" aria-label="Navegación del carrusel">
+          {homeBanners.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? 'bg-white w-6'
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              onClick={() => setCurrentIndex(index)}
+              aria-label={`Ir a slide ${index + 1}`}
+              aria-current={index === currentIndex ? 'true' : 'false'}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Prev/Next arrows (show on hover) */}
+      {homeBanners.length > 1 && (
+        <>
+          <button
+            type="button"
+            className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity duration-300 p-2 rounded-full bg-ink-900/50 text-white hover:bg-ink-900/75"
+            onClick={prevSlide}
+            aria-label="Banner anterior"
+          >
+            <Icon name="arrow-right" className="h-5 w-5 rotate-180" />
+          </button>
+          <button
+            type="button"
+            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity duration-300 p-2 rounded-full bg-ink-900/50 text-white hover:bg-ink-900/75"
+            onClick={nextSlide}
+            aria-label="Siguiente banner"
+          >
+            <Icon name="arrow-right" className="h-5 w-5" />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface Banner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  placement: string;
+  is_sponsored: boolean;
+  active: boolean;
   store_id?: string | null;
   store_slug?: string | null;
 }
@@ -43,7 +184,6 @@ interface HomeData {
 
 export default function Home() {
   const [term, setTerm] = useState('');
-  const [showAd, setShowAd] = useState(true);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['home'],
     queryFn: () => api.get<HomeData>('/home'),
@@ -58,19 +198,6 @@ export default function Home() {
     target.style.setProperty('--x', `${x}px`);
     target.style.setProperty('--y', `${y}px`);
   };
-
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const cycle = () => {
-      setShowAd(true);
-      timeout = setTimeout(() => {
-        setShowAd(false);
-        timeout = setTimeout(cycle, 5000);
-      }, 15000);
-    };
-    cycle();
-    return () => clearTimeout(timeout);
-  }, []);
 
   if (isLoading) return (
     <div className="container-app space-y-12 py-10">
@@ -160,7 +287,6 @@ export default function Home() {
   const featured = data?.stores ?? [];
   const banners = data?.banners ?? [];
   const categories = data?.categories ?? [];
-  const paidBanner = banners.find((b: any) => b.is_sponsored) ?? banners[0] ?? null;
 
   return (
     <div>
@@ -227,63 +353,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative h-72 overflow-hidden rounded-2xl bg-ink-800/40 ring-1 ring-white/20 reveal-on-scroll">
-            <div
-              className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                showAd ? 'opacity-0 -translate-x-4 pointer-events-none' : 'opacity-100 translate-x-0'
-              }`}
-            >
-              <button
-                type="button"
-                className="block h-full w-full text-left"
-                onClick={() => {
-                  const el = document.getElementById('no-afiliados');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-              >
-                <img
-                  src="/AcoyaradasCarrousel.jpg"
-                  alt="acoYAradas!"
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
-                  <p className="text-lg font-bold text-white">Productos no afiliados</p>
-                  <p className="text-xs text-white/80">Envío por acoYAradas!</p>
-                </div>
-              </button>
-            </div>
-            {paidBanner ? (
-              <div
-                className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                  showAd ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'
-                }`}
-              >
-                <Link
-                  to={paidBanner.link_url || (paidBanner.store_slug ? `/comercios/${paidBanner.store_slug}` : '/comercios')}
-                  className="block h-full"
-                >
-                  {paidBanner.image_url ? (
-                    <img
-                      src={paidBanner.image_url}
-                      alt={paidBanner.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-500 to-ink-800 text-3xl">
-                      🎉
-                    </div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/90 to-transparent p-4">
-                    {paidBanner.is_sponsored ? <SponsoredTag className="mb-1" /> : null}
-                    <p className="text-lg font-bold text-white">{paidBanner.title}</p>
-                    {paidBanner.subtitle ? (
-                      <p className="text-xs text-white/80">{paidBanner.subtitle}</p>
-                    ) : null}
-                  </div>
-                </Link>
-              </div>
-            ) : null}
-          </div>
+          <Carousel banners={banners} className="reveal-on-scroll" />
         </div>
       </section>
 
