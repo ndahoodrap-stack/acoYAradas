@@ -72,7 +72,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
   return (
     <Link
       to={`/productos/${product.id}`}
-      className={`${baseClass} ${hoverClass} ${glassHoverClass}`}
+      className={`${baseClass} ${hoverClass} ${glassHoverClass} h-full w-full`}
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-ink-100">
         {product.image_url ? (

@@ -419,10 +419,10 @@ export default function Home() {
           <SectionTitle title="Productos populares" subtitle="Los más pedidos por la comunidad" />
           <div className="bento-grid reveal-stagger">
             {(data?.popular ?? []).map((product, index) => {
-              const cellClass = index === 0 ? 'bento-hero' :
-                                index <= 2 ? 'bento-wide' :
-                                index <= 4 ? 'bento-tall' :
-                                'bento-standard';
+              const cellClass = index === 0 ? 'bento-hero h-full' :
+                                index <= 2 ? 'bento-wide h-full' :
+                                index <= 4 ? 'bento-tall h-full' :
+                                'bento-standard h-full';
               return (
                 <div key={product.id} className={cellClass}>
                   <ProductCard product={product} variant="glass" />
@@ -439,10 +439,10 @@ export default function Home() {
           <SectionTitle title="Novedades" subtitle="Lo último que agregaron los comercios" icon="🆕" />
           <div className="bento-grid reveal-stagger">
             {(data?.newest ?? []).map((product, index) => {
-              const cellClass = index === 0 ? 'bento-hero' :
-                                index <= 2 ? 'bento-wide' :
-                                index <= 4 ? 'bento-tall' :
-                                'bento-standard';
+              const cellClass = index === 0 ? 'bento-hero h-full' :
+                                index <= 2 ? 'bento-wide h-full' :
+                                index <= 4 ? 'bento-tall h-full' :
+                                'bento-standard h-full';
               return (
                 <div key={product.id} className={cellClass}>
                   <ProductCard product={product} variant="glass" />
