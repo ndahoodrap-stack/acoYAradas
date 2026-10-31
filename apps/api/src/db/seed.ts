@@ -286,7 +286,8 @@ export async function seedDemoData(db: Database): Promise<void> {
       const exists = await tx.query('select id from public.profiles where id = $1', [user.id]);
       if (!exists.rows.length) {
         await tx.query(
-          `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)`,
+          `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)
+           on conflict (email) do nothing`,
           [user.id, user.email, user.full_name, user.phone, user.role],
         );
       }
@@ -294,7 +295,8 @@ export async function seedDemoData(db: Database): Promise<void> {
         const localExists = await tx.query('select id from public.local_users where id = $1', [user.id]);
         if (!localExists.rows.length) {
           await tx.query(
-            `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,$4)`,
+            `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,$4)
+             on conflict (email) do nothing`,
             [user.id, user.email, await hashPassword(user.password), user.role],
           );
         }
