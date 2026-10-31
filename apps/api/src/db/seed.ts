@@ -283,20 +283,21 @@ export async function seedDemoData(db: Database): Promise<void> {
 
     // --- Usuarios de demostración --------------------------------------
     for (const user of USERS) {
-      const exists = await tx.query('select id from public.profiles where id = $1', [user.id]);
-      if (!exists.rows.length) {
+      // Verificar por ID Y por email (la constraint única es sobre lower(email))
+      const existsById = await tx.query('select id from public.profiles where id = $1', [user.id]);
+      const existsByEmail = await tx.query('select id from public.profiles where lower(email) = lower($1)', [user.email]);
+      if (!existsById.rows.length && !existsByEmail.rows.length) {
         await tx.query(
-          `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)
-           on conflict (email) do nothing`,
+          `insert into public.profiles (id, email, full_name, phone, role) values ($1,$2,$3,$4,$5)`,
           [user.id, user.email, user.full_name, user.phone, user.role],
         );
       }
       if (config.authMode === 'local') {
-        const localExists = await tx.query('select id from public.local_users where id = $1', [user.id]);
-        if (!localExists.rows.length) {
+        const localExistsById = await tx.query('select id from public.local_users where id = $1', [user.id]);
+        const localExistsByEmail = await tx.query('select id from public.local_users where lower(email) = lower($1)', [user.email]);
+        if (!localExistsById.rows.length && !localExistsByEmail.rows.length) {
           await tx.query(
-            `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,$4)
-             on conflict (email) do nothing`,
+            `insert into public.local_users (id, email, password_hash, role) values ($1,$2,$3,$4)`,
             [user.id, user.email, await hashPassword(user.password), user.role],
           );
         }
