@@ -9,16 +9,22 @@ async function main() {
   assertConfig();
   const db = await getDatabase();
 
-  // Ejecutar migraciones en todos los entornos (sin reset en producción)
-  // En desarrollo: reset + seed para empezar limpio
-  // En producción: solo migraciones pendientes (sin reset, sin seed)
-  console.log('[server] ejecutando migraciones...');
-  await runMigrations({ reset: !config.isProd, db, silent: false });
+  // Detectar entorno Render (más fiable que NODE_ENV)
+  const isRender = process.env.RENDER === 'true' || !!process.env.RENDER_SERVICE_ID;
+  const isProduction = config.isProd || isRender;
 
-  if (!config.isProd) {
+  // Ejecutar migraciones en todos los entornos (sin reset en producción)
+  // En desarrollo local: reset + seed para empezar limpio
+  // En producción/Render: solo migraciones pendientes (sin reset, sin seed)
+  console.log('[server] ejecutando migraciones...');
+  await runMigrations({ reset: !isProduction, db, silent: false });
+
+  if (!isProduction) {
     console.log('[server] modo desarrollo: ejecutando seed demo...');
     await seedDemoData(db);
     console.log('[server] seed completado');
+  } else {
+    console.log('[server] producción detectada: saltando seed demo');
   }
 
   const app = createApp(db);
