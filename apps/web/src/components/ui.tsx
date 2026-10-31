@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, SVGAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon';
 import { ORDER_STATUS_LABELS, SPONSORED_LABEL, type OrderStatus } from '@acoyaradas/shared';
@@ -106,14 +106,14 @@ export function SectionTitle({
   title: string;
   subtitle?: string;
   action?: ReactNode;
-  icon?: string;
+  icon?: ReactNode;
 }) {
   return (
     <div className="section-header-glass reveal-on-scroll">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon ? (
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50/80 text-lg backdrop-blur-sm" aria-hidden>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50/80 backdrop-blur-sm" aria-hidden>
               {icon}
             </span>
           ) : null}

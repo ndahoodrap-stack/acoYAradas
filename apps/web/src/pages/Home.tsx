@@ -457,7 +457,7 @@ export default function Home() {
         {(data?.unaffiliated ?? []).length ? (
           <div className="border-t border-white/10 pt-6">
             <section id="no-afiliados" className="section-scroll-timeline">
-            <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" />
+            <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" icon={<img src="/icono-productos-no-afiliados.svg" alt="" className="h-6 w-6" />} />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
               {(data?.unaffiliated ?? []).map((product) => (
                 <ProductCard key={product.id} product={product} variant="glass" />

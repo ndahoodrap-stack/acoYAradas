@@ -44,7 +44,13 @@ catalogRouter.get(
         tx.query(
           `select ${STORE_SELECT},
                   c.name as category_name,
-                  (select count(*) from public.products p where p.store_id = s.id and p.status = 'active' and p.deleted_at is null) as products_count,
+                  (
+                    (select count(*) from public.products p where p.store_id = s.id and p.status = 'active' and p.deleted_at is null)
+                    +
+                    (case when s.slug = 'acoyaradas' then
+                      (select count(*) from public.platform_products pp where pp.status = 'active' and pp.deleted_at is null and pp.is_available = true)
+                    else 0 end)
+                  ) as products_count,
                   exists (
                     select 1 from public.ad_campaigns ac
                      where ac.store_id = s.id and ac.status = 'active'
