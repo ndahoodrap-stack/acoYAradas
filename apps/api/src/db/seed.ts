@@ -487,24 +487,3 @@ export async function seedDemoData(db: Database): Promise<void> {
       [ADMIN_ID, JSON.stringify({ demo: true })],
     );
   }
-
-async function main() {
-  const db = await createDatabase();
-  console.log('[seed] motor:', db.kind);
-  await seedDemoData(db);
-  await db.close();
-
-  console.log('\n[seed] datos de demostración cargados.');
-  console.log('  Cuentas (contraseña para todas: Demo1234!)');
-  console.log('   · Administrador : ndahoodrap@gmail.com (Albus Bro)');
-  console.log('   · Comercio      : iltano@acoyaradas.app (Restaurante iltano)');
-  console.log('   · Cliente       : albema@acoyaradas.app (Albema)');
-}
-
-const isMain = process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]));
-if (isMain) {
-  main().catch((err) => {
-    console.error('[seed] error:', err);
-    process.exit(1);
-  });
-}
