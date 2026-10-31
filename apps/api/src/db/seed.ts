@@ -12,11 +12,8 @@ import { DEFAULT_CATEGORIES } from '@acoyaradas/shared';
  */
 
 const ADMIN_ID = '11111111-1111-4111-8111-111111111111';
-const STORE1_OWNER = '22222222-2222-4222-8222-222222222222';
-const RIDER_USER = '33333333-3333-4333-8333-333333333333';
-const CUSTOMER_ID = '44444444-4444-4444-8444-444444444444';
-const STORE2_OWNER = '55555555-5555-4555-8555-555555555555';
-const STORE3_OWNER = '66666666-6666-4666-8666-666666666666';
+const STORE_OWNER_ID = '22222222-2222-4222-8222-222222222222';
+const ALBEMA_ID = '33333333-3333-4333-8333-333333333333';
 
 export const DEMO_PASSWORD = 'Demo1234!';
 
@@ -32,50 +29,26 @@ interface SeedUser {
 const USERS: SeedUser[] = [
   {
     id: ADMIN_ID,
-    email: 'admin@acoyaradas.app',
-    full_name: 'Administración acoYAradas!',
+    email: 'ndahoodrap@gmail.com',
+    full_name: 'Albus Bro',
     phone: '+5491100000001',
     role: 'admin',
     password: DEMO_PASSWORD,
   },
   {
-    id: STORE1_OWNER,
-    email: 'comercio@acoyaradas.app',
-    full_name: 'Dueño de Pizzería Napoli',
+    id: STORE_OWNER_ID,
+    email: 'iltano@acoyaradas.app',
+    full_name: 'Restaurante iltano',
     phone: '+5491100000002',
     role: 'store_owner',
     password: DEMO_PASSWORD,
   },
   {
-    id: RIDER_USER,
-    email: 'repartidor@acoyaradas.app',
-    full_name: 'Sofía (repartidora)',
+    id: ALBEMA_ID,
+    email: 'albema@acoyaradas.app',
+    full_name: 'Albema',
     phone: '+5491100000003',
-    role: 'courier',
-    password: DEMO_PASSWORD,
-  },
-  {
-    id: CUSTOMER_ID,
-    email: 'cliente@acoyaradas.app',
-    full_name: 'Cliente Demo',
-    phone: '+5491100000004',
     role: 'customer',
-    password: DEMO_PASSWORD,
-  },
-  {
-    id: STORE2_OWNER,
-    email: 'rotiseria@acoyaradas.app',
-    full_name: 'Dueño de Rotisería El Palomar',
-    phone: '+5491100000005',
-    role: 'store_owner',
-    password: DEMO_PASSWORD,
-  },
-  {
-    id: STORE3_OWNER,
-    email: 'kiosco@acoyaradas.app',
-    full_name: 'Dueño de Kiosco 24',
-    phone: '+5491100000006',
-    role: 'store_owner',
     password: DEMO_PASSWORD,
   },
 ];
@@ -83,163 +56,28 @@ const USERS: SeedUser[] = [
 const STORES = [
   {
     id: '77777777-7777-4777-8777-777777777771',
-    owner: STORE1_OWNER,
-    name: 'Pizzería Napoli',
-    slug: 'pizzeria-napoli',
-    category: 'rotiserias',
-    description:
-      'Pizzas a la piedra, empanadas caseras y bebidas. Delivería propia en el barrio y retiro en el local.',
+    owner: STORE_OWNER_ID,
+    name: 'Restaurante iltano',
+    slug: 'restaurante-iltano',
+    category: 'gastronomia',
+    description: 'Restaurante con entrega a domicilio',
     address: 'Av. San Martín 123',
     locality: 'San Carlos de Bolívar',
     phone: '+5491100000002',
     whatsapp: '+5491100000002',
-    logo: '/placeholders/logo-napoli.svg',
-    cover: '/placeholders/cover-napoli.svg',
+    logo: '/placeholders/logo-iltano.svg',
+    cover: '/placeholders/cover-iltano.svg',
     platform: true,
-    merchant: true,
-    prep: 25,
-    cash: true,
-    transfer: true,
-    cod: true,
-    featured: true,
-  },
-  {
-    id: '77777777-7777-4777-8777-777777777772',
-    owner: STORE2_OWNER,
-    name: 'Rotisería El Palomar',
-    slug: 'rotiseria-el-palomar',
-    category: 'rotiserias',
-    description:
-      'Pollo al horno, empanadas y comidas caseras por peso. Retiro en el local todos los días.',
-    address: 'Rivadavia 555',
-    locality: 'San Carlos de Bolívar',
-    phone: '+5491100000005',
-    whatsapp: '+5491100000005',
-    logo: '/placeholders/logo-palomar.svg',
-    cover: '/placeholders/cover-palomar.svg',
-    platform: false,
     merchant: true,
     prep: 30,
     cash: true,
-    transfer: false,
+    transfer: true,
     cod: true,
     featured: true,
   },
-  {
-    id: '77777777-7777-4777-8777-777777777773',
-    owner: STORE3_OWNER,
-    name: 'Kiosco 24',
-    slug: 'kiosco-24',
-    category: 'kioscos',
-    description: 'Bebidas, snacks, café y golosinas. Entrega rápida con repartidor propio.',
-    address: 'Belgrano 2020',
-    locality: 'San Carlos de Bolívar',
-    phone: '+5491100000006',
-    whatsapp: '+5491100000006',
-    logo: '/placeholders/logo-kiosco.svg',
-    cover: '/placeholders/cover-kiosco.svg',
-    platform: true,
-    merchant: true,
-    prep: 10,
-    cash: true,
-    transfer: true,
-    cod: false,
-    featured: false,
-  },
 ];
 
-const PRODUCTS = [
-  {
-    store: 0,
-    name: 'Pizza Muzzarella',
-    description: 'Masa casera, salsa de tomate, muzzarella y albahaca.',
-    price: 8500,
-    stock: 40,
-    image: '/placeholders/pizza.svg',
-    category: 'gastronomia',
-    featured: true,
-  },
-  {
-    store: 0,
-    name: 'Pizza Special',
-    description: 'Jamón, morrones, aceitunas y muzzarella.',
-    price: 11200,
-    stock: 25,
-    image: '/placeholders/pizza.svg',
-    category: 'gastronomia',
-    featured: true,
-  },
-  {
-    store: 0,
-    name: 'Empanadas x6 (carne suave)',
-    description: 'Masa casera, carne descartada y salsa picante a elección.',
-    price: 9800,
-    stock: 60,
-    image: '/placeholders/empanadas.svg',
-    category: 'rotiserias',
-    featured: false,
-  },
-  {
-    store: 0,
-    name: 'Gaseosa 500ml',
-    description: 'Botella retornable de cola o limonada.',
-    price: 1800,
-    stock: 120,
-    image: '/placeholders/bebidas.svg',
-    category: 'bebidas',
-    featured: false,
-  },
-  {
-    store: 1,
-    name: 'Pollo al horno x1kg',
-    description: 'Pollo asado al horno con papas y limón.',
-    price: 16500,
-    stock: 15,
-    image: '/placeholders/pollo.svg',
-    category: 'rotiserias',
-    featured: true,
-  },
-  {
-    store: 1,
-    name: 'Empanadas x12 (pollo)',
-    description: 'Relleno de pollo con crema suave.',
-    price: 14000,
-    stock: 30,
-    image: '/placeholders/empanadas.svg',
-    category: 'rotiserias',
-    featured: false,
-  },
-  {
-    store: 2,
-    name: 'Gaseosa 1.5L',
-    description: 'Botella grande para compartir.',
-    price: 3200,
-    stock: 80,
-    image: '/placeholders/bebidas.svg',
-    category: 'bebidas',
-    featured: true,
-  },
-  {
-    store: 2,
-    name: 'Papas fritas',
-    description: 'Bolsa de papas crocantes.',
-    price: 2500,
-    stock: 45,
-    image: '/placeholders/papas.svg',
-    category: 'kioscos',
-    featured: false,
-  },
-  {
-    store: 2,
-    name: 'Pack de agua 500ml x6',
-    description: 'Botellas de agua mineral sin gas.',
-    price: 4500,
-    stock: 70,
-    image: '/placeholders/agua.svg',
-    category: 'bebidas',
-    featured: false,
-  },
-];
+const PRODUCTS: Array<{ store: number; name: string; description: string; price: number; stock: number; image: string; category: string; featured: boolean }> = [];
 
 const LEGAL_PAGES = [
   {
@@ -329,6 +167,14 @@ En ambos casos el cliente recibe un enlace seguro para consultar el estado del p
  */
 export async function seedDemoData(db: Database): Promise<void> {
   const tx = db.system;
+
+  // --- Guardia de seguridad: si ya hay datos reales, no hacer seed ---
+  const existingUsers = await tx.query('select count(*) from public.profiles');
+  const userCount = Number(existingUsers.rows[0]?.count ?? 0);
+  if (userCount > 3) {  // Solo nuestros 3 usuarios permitidos
+    console.log('[seed] Datos reales detectados (users > 3), saltando seed demo');
+    return;
+  }
 
     // --- Categorías -------------------------------------------------
     for (const [index, category] of DEFAULT_CATEGORIES.entries()) {
@@ -560,27 +406,17 @@ export async function seedDemoData(db: Database): Promise<void> {
       );
     }
 
-    // --- Repartidor -------------------------------------------------------
-    const riderExists = await tx.query('select id from public.riders where user_id = $1', [RIDER_USER]);
-    if (!riderExists.rows.length) {
-      await tx.query(
-        `insert into public.riders (user_id, full_name, phone, vehicle_type, zones, active, available)
-         values ($1,'Sofía Ramírez','+5491100000003','Moto','{caba-centro,caba-norte}', true, true)`,
-        [RIDER_USER],
-      );
-    }
-
     // --- Campaña publicitaria de demostración ------------------------------
     const campaignExists = await tx.query(
-      `select 1 from public.ad_campaigns where store_id = $1 and title = 'Napoli 2x1 los martes' limit 1`,
+      `select 1 from public.ad_campaigns where store_id = $1 and title = 'iltano 2x1 los martes' limit 1`,
       [STORES[0].id],
     );
     if (!campaignExists.rows.length) {
       await tx.query(
         `insert into public.ad_campaigns
            (store_id, placement, title, body, image_url, link_url, starts_at, ends_at, price, status, created_by)
-         values ($1,'home_banner','Napoli 2x1 los martes','Promoción patrocinada de ejemplo',
-                 '/placeholders/cover-napoli.svg','/comercios/pizzeria-napoli',
+         values ($1,'home_banner','iltano 2x1 los martes','Promoción patrocinada de ejemplo',
+                 '/placeholders/cover-iltano.svg','/comercios/restaurante-iltano',
                  now() - interval '1 day', now() + interval '30 days', 240000, 'active', $2)`,
         [STORES[0].id, ADMIN_ID],
       );
@@ -591,7 +427,7 @@ export async function seedDemoData(db: Database): Promise<void> {
     if (!bannerExists.rows.length) {
       await tx.query(
         `insert into public.banners (title, subtitle, image_url, link_url, placement, sort_order, active)
-         values ('Bienvenido a acoYAradas!','Comercios de tu zona, a un click','/placeholders/cover-napoli.svg','/','home_banner', 0, true)`,
+         values ('Bienvenido a acoYAradas!','Comercios de tu zona, a un click','/placeholders/cover-iltano.svg','/','home_banner', 0, true)`,
       );
     }
 
@@ -657,12 +493,9 @@ async function main() {
 
   console.log('\n[seed] datos de demostración cargados.');
   console.log('  Cuentas (contraseña para todas: Demo1234!)');
-  console.log('   · Administrador : admin@acoyaradas.app');
-  console.log('   · Comercio      : comercio@acoyaradas.app (Pizzería Napoli)');
-  console.log('   · Comercio 2    : rotiseria@acoyaradas.app');
-  console.log('   · Comercio 3    : kiosco@acoyaradas.app');
-  console.log('   · Repartidor    : repartidor@acoyaradas.app');
-  console.log('   · Cliente       : cliente@acoyaradas.app');
+  console.log('   · Administrador : ndahoodrap@gmail.com (Albus Bro)');
+  console.log('   · Comercio      : iltano@acoyaradas.app (Restaurante iltano)');
+  console.log('   · Cliente       : albema@acoyaradas.app (Albema)');
 }
 
 const isMain = process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]));
