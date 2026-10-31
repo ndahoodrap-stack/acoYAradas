@@ -21,7 +21,7 @@ interface Banner {
 }
 
 function Carousel({ banners, className = '' }: { banners: Banner[]; className?: string }) {
-  const homeBanners = banners.filter((b) => b.placement === 'home_banner' && b.active);
+  const homeBanners = banners.filter((b) => b.placement === 'home_banner');
   if (homeBanners.length === 0) return null;
 
   const [currentIndex, setCurrentIndex] = useState(0);
