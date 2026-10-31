@@ -109,19 +109,21 @@ export function SectionTitle({
   icon?: string;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <div className="flex items-center gap-2">
-        {icon ? (
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-lg" aria-hidden>
-            {icon}
-          </span>
-        ) : null}
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">{title}</h2>
-          {subtitle ? <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p> : null}
+    <div className="section-header-glass reveal-on-scroll">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {icon ? (
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50/80 text-lg backdrop-blur-sm" aria-hidden>
+              {icon}
+            </span>
+          ) : null}
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-ink-900 sm:text-2xl">{title}</h2>
+            {subtitle ? <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p> : null}
+          </div>
         </div>
+        {action}
       </div>
-      {action}
     </div>
   );
 }

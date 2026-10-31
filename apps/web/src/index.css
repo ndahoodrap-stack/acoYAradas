@@ -334,6 +334,34 @@
       border-color var(--duration-fast) var(--ease-out);
   }
 
+  /* Glassmorphism section header */
+  .section-header-glass {
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px 16px 0 0;
+    border-top: 3px solid #f97316; /* brand-500 accent */
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-header-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background:
+      radial-gradient(ellipse 60% 100% at 50% 0%, #f97316 0%, transparent 60%),
+      radial-gradient(ellipse 40% 100% at 20% 0%, #fb923c 0%, transparent 50%),
+      radial-gradient(ellipse 40% 100% at 80% 0%, #fdba74 0%, transparent 50%);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
   .category-card:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: var(--elevation-2);

@@ -86,6 +86,7 @@ export default function AdminAds() {
   const [reviewNote, setReviewNote] = useState('');
   const [bannerOpen, setBannerOpen] = useState(false);
   const [bannerForm, setBannerForm] = useState({
+    id: '',
     title: '',
     subtitle: '',
     image_url: '',
@@ -104,6 +105,38 @@ export default function AdminAds() {
     price_per_day: '0',
     active: true,
   });
+
+  const handleEditBanner = (b: Banner) => {
+    setBannerForm({
+      id: b.id,
+      title: b.title,
+      subtitle: b.subtitle ?? '',
+      image_url: b.image_url ?? '',
+      link_url: b.link_url ?? '',
+      placement: b.placement,
+      sort_order: String(b.sort_order ?? 0),
+      active: b.active,
+      starts_at: b.starts_at ? b.starts_at.split('T')[0] : '',
+      ends_at: b.ends_at ? b.ends_at.split('T')[0] : '',
+    });
+    setBannerOpen(true);
+  };
+
+  const handleNewBanner = () => {
+    setBannerForm({
+      id: '',
+      title: '',
+      subtitle: '',
+      image_url: '',
+      link_url: '',
+      placement: 'home_banner',
+      sort_order: '0',
+      active: true,
+      starts_at: '',
+      ends_at: '',
+    });
+    setBannerOpen(true);
+  };
 
   const campaigns = useQuery({
     queryKey: ['admin-campaigns'],
@@ -317,7 +350,7 @@ export default function AdminAds() {
       {tab === 'banners' ? (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <button type="button" className="btn-primary" onClick={() => setBannerOpen(true)}>
+            <button type="button" className="btn-primary" onClick={handleNewBanner}>
               + Nuevo banner
             </button>
           </div>
@@ -352,6 +385,14 @@ export default function AdminAds() {
                     <button
                       type="button"
                       className="text-sm font-medium text-brand-600 hover:underline"
+                      disabled={bannerMutation.isPending}
+                      onClick={() => handleEditBanner(b)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-3 text-sm font-medium text-brand-600 hover:underline"
                       disabled={toggleBanner.isPending}
                       onClick={() => toggleBanner.mutate({ id: b.id, active: !b.active })}
                     >
@@ -489,8 +530,8 @@ export default function AdminAds() {
 
       <Modal
         open={bannerOpen}
-        title="Nuevo banner"
-        onClose={() => setBannerOpen(false)}
+        title={bannerForm.id ? 'Editar banner' : 'Nuevo banner'}
+        onClose={() => { setBannerOpen(false); }}
         footer={
           <>
             <button type="button" className="btn-secondary" onClick={() => setBannerOpen(false)}>
@@ -502,6 +543,7 @@ export default function AdminAds() {
               disabled={bannerMutation.isPending}
               onClick={() =>
                 bannerMutation.mutate({
+                  id: bannerForm.id || undefined,
                   body: {
                     title: bannerForm.title,
                     subtitle: bannerForm.subtitle || null,

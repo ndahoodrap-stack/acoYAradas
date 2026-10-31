@@ -4,14 +4,22 @@ node_modules/
 # Entorno
 .env
 .env.local
+.env.*.local
 
-# Base de datos embebida
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Base de datos embebida / temp
 .data/
 .tmp/
 
 # Builds
 apps/api/dist/
 apps/web/dist/
+packages/shared/dist/
 
 # Subidas locales
 uploads/
@@ -19,6 +27,8 @@ uploads/
 # Logs
 *.log
 npm-debug.log*
+api-server.log
+dev-server.log
 
 # Generated map tiles (auto-generated, not for version control)
 apps/web/public/tiles/
@@ -28,3 +38,43 @@ acoYAradasLLEGOUNPEDIDO.jpg
 acoYAradasTUPEDIDOENCAMINO.jpg
 CONTEXTO.md
 calles_categorizadas.txt
+
+# Large assets (move to apps/web/public/ instead)
+*.jpg
+*.png
+*.geojson
+*.json
+
+# Local scripts & debug files
+*.bat
+*.sh
+*.sql
+prompt*.txt
+generate_tiles.py
+COMANDO_PARA_SUBIR.txt
+iniciar-acoyaradas.bat
+start.bat
+
+# Debug scripts
+diag*.mjs
+diag*.js
+
+# WhatsApp bridge session data
+tools/whatsapp-bridge/.wwebjs_auth/
+tools/whatsapp-bridge/.wwebjs_cache/
+tools/whatsapp-bridge/node_modules/
+tools/whatsapp-bridge/package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Turbo (if using)
+.turbo/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Vitest
+vitest.config.ts.timestamp-*

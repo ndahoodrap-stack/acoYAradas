@@ -299,7 +299,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="container-app space-y-12 py-10">
+      <div className="container-app space-y-12 lg:space-y-8 py-10">
         {/* Categorías */}
         <section className="section-scroll-timeline">
           <SectionTitle
@@ -356,7 +356,8 @@ export default function Home() {
         </section>
 
         {/* Comercios destacados */}
-        <section className="section-scroll-timeline">
+        <div className="border-t border-white/10 pt-6">
+          <section className="section-scroll-timeline">
           <SectionTitle
             title="Comercios destacados"
             subtitle="Los negocios más elegidos de la plataforma"
@@ -380,10 +381,12 @@ export default function Home() {
             </div>
           )}
         </section>
+        </div>
 
         {/* Promociones */}
         {data?.promotions?.length ? (
-          <section className="section-scroll-timeline">
+          <div className="border-t border-white/10 pt-6 bg-gradient-to-b from-brand-50/20 to-transparent rounded-2xl -mx-4 px-4">
+            <section className="section-scroll-timeline">
             <SectionTitle title="Ofertas y promociones" subtitle="Descuentos vigentes ahora" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 reveal-stagger">
               {data.promotions.map((promo) => (
@@ -407,10 +410,12 @@ export default function Home() {
               ))}
             </div>
           </section>
+        </div>
         ) : null}
 
         {/* Populares */}
-        <section className="section-scroll-timeline">
+        <div className="border-t border-white/10 pt-6">
+          <section className="section-scroll-timeline">
           <SectionTitle title="Productos populares" subtitle="Los más pedidos por la comunidad" />
           <div className="bento-grid reveal-stagger">
             {(data?.popular ?? []).map((product, index) => {
@@ -426,9 +431,11 @@ export default function Home() {
             })}
           </div>
         </section>
+        </div>
 
         {/* Novedades */}
-        <section className="section-scroll-timeline">
+        <div className="border-t border-white/10 pt-6 bg-gradient-to-b from-brand-50/20 to-transparent rounded-2xl -mx-4 px-4">
+          <section className="section-scroll-timeline">
           <SectionTitle title="Novedades" subtitle="Lo último que agregaron los comercios" icon="🆕" />
           <div className="bento-grid reveal-stagger">
             {(data?.newest ?? []).map((product, index) => {
@@ -444,10 +451,12 @@ export default function Home() {
             })}
           </div>
         </section>
+        </div>
 
         {/* Productos no afiliados */}
         {(data?.unaffiliated ?? []).length ? (
-          <section id="no-afiliados" className="section-scroll-timeline">
+          <div className="border-t border-white/10 pt-6">
+            <section id="no-afiliados" className="section-scroll-timeline">
             <SectionTitle title="Productos no afiliados" subtitle="Disponibles para envío por motomandado" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
               {(data?.unaffiliated ?? []).map((product) => (
@@ -455,6 +464,7 @@ export default function Home() {
               ))}
             </div>
           </section>
+          </div>
         ) : null}
       </div>
     </div>
