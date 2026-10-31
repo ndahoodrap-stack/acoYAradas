@@ -129,26 +129,26 @@
     @apply rounded-2xl border border-ink-200/70 bg-white shadow-card;
   }
   .card-hover {
-    @apply transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg;
+    @apply transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out
       disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98];
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-brand-500 text-white shadow-sm hover:bg-brand-600 active:bg-brand-700;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-50 bg-brand-500 text-white shadow-sm hover:bg-brand-600 active:bg-brand-700;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 border border-ink-300 bg-white text-ink-800 hover:border-ink-400 hover:bg-ink-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-50 border border-ink-300 bg-white text-ink-800 hover:border-ink-400 hover:bg-ink-100;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 text-ink-600 hover:bg-ink-100 hover:text-ink-900;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-50 text-ink-600 hover:bg-ink-100 hover:text-ink-900;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-red-600 text-white hover:bg-red-700;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-50 bg-red-600 text-white hover:bg-red-700;
   }
   .btn-whatsapp {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 bg-whatsapp-500 text-white shadow-sm hover:bg-whatsapp-600 active:bg-whatsapp-700;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out disabled:cursor-not-allowed disabled:opacity-50 bg-whatsapp-500 text-white shadow-sm hover:bg-whatsapp-600 active:bg-whatsapp-700;
   }
   .input {
     @apply w-full rounded-xl border border-ink-300 bg-white px-3 py-2 text-sm text-ink-900
@@ -206,7 +206,7 @@
     @apply inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-inset ring-white/30 backdrop-blur;
   }
   .panel-nav-link {
-    @apply flex items-center gap-2 whitespace-nowrap rounded-xl px-2.5 py-2 text-sm font-medium text-ink-600 transition
+    @apply flex items-center gap-2 whitespace-nowrap rounded-xl px-2.5 py-2 text-sm font-medium text-ink-600 transition-all duration-300 ease-out
       hover:bg-ink-100 hover:text-ink-900 lg:w-full;
   }
   .panel-nav-icon {

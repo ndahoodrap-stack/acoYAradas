@@ -118,35 +118,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Populares skeleton (bento) */}
+      {/* Populares skeleton */}
       <section className="section-scroll-timeline">
         <div className="skeleton-card h-10 w-1/3 mb-4" />
-        <div className="bento-grid reveal-stagger">
-          <div className="skeleton-bento-hero" />
-          <div className="skeleton-bento-wide" />
-          <div className="skeleton-bento-wide" />
-          <div className="skeleton-bento-tall" />
-          <div className="skeleton-bento-tall" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="skeleton-card h-56" />
+          ))}
         </div>
       </section>
 
-      {/* Novedades skeleton (bento) */}
+      {/* Novedades skeleton */}
       <section className="section-scroll-timeline">
         <div className="skeleton-card h-10 w-1/3 mb-4" />
-        <div className="bento-grid reveal-stagger">
-          <div className="skeleton-bento-hero" />
-          <div className="skeleton-bento-wide" />
-          <div className="skeleton-bento-wide" />
-          <div className="skeleton-bento-tall" />
-          <div className="skeleton-bento-tall" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
-          <div className="skeleton-bento-standard" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="skeleton-card h-56" />
+          ))}
         </div>
       </section>
 
@@ -416,19 +404,11 @@ export default function Home() {
         {/* Populares */}
         <div className="border-t border-white/10 pt-6">
           <section className="section-scroll-timeline">
-          <SectionTitle title="Productos populares" subtitle="Los más pedidos por la comunidad" />
-          <div className="bento-grid reveal-stagger">
-            {(data?.popular ?? []).map((product, index) => {
-              const cellClass = index === 0 ? 'bento-hero h-full' :
-                                index <= 2 ? 'bento-wide h-full' :
-                                index <= 4 ? 'bento-tall h-full' :
-                                'bento-standard h-full';
-              return (
-                <div key={product.id} className={cellClass}>
-                  <ProductCard product={product} variant="glass" />
-                </div>
-              );
-            })}
+          <SectionTitle title="Productos populares" subtitle="Los más pedidos por la comunidad" icon="🔥" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+            {(data?.popular ?? []).map((product) => (
+              <ProductCard key={product.id} product={product} variant="glass" />
+            ))}
           </div>
         </section>
         </div>
@@ -437,18 +417,10 @@ export default function Home() {
         <div className="border-t border-white/10 pt-6 bg-gradient-to-b from-brand-50/20 to-transparent rounded-2xl -mx-4 px-4">
           <section className="section-scroll-timeline">
           <SectionTitle title="Novedades" subtitle="Lo último que agregaron los comercios" icon="🆕" />
-          <div className="bento-grid reveal-stagger">
-            {(data?.newest ?? []).map((product, index) => {
-              const cellClass = index === 0 ? 'bento-hero h-full' :
-                                index <= 2 ? 'bento-wide h-full' :
-                                index <= 4 ? 'bento-tall h-full' :
-                                'bento-standard h-full';
-              return (
-                <div key={product.id} className={cellClass}>
-                  <ProductCard product={product} variant="glass" />
-                </div>
-              );
-            })}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 reveal-stagger">
+            {(data?.newest ?? []).map((product) => (
+              <ProductCard key={product.id} product={product} variant="glass" />
+            ))}
           </div>
         </section>
         </div>

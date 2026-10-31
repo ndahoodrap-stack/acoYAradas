@@ -66,7 +66,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
   const open = product.store_is_open !== false;
   const isGlass = variant === 'glass';
   const baseClass = isGlass ? 'card-glass' : 'card';
-  const hoverClass = isGlass ? '' : 'group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md';
+  const hoverClass = isGlass ? '' : 'group flex flex-col overflow-hidden transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md';
   const glassHoverClass = isGlass ? 'group flex flex-col overflow-hidden' : '';
 
   return (
