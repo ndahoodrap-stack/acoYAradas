@@ -9,13 +9,16 @@ async function main() {
   assertConfig();
   const db = await getDatabase();
 
-  // En desarrollo: ejecutar migraciones y seed al arrancar para que
-  // migración, seed y servidor compartan la misma BD en memoria (memory://)
+  // Ejecutar migraciones en todos los entornos (sin reset en producción)
+  // En desarrollo: reset + seed para empezar limpio
+  // En producción: solo migraciones pendientes (sin reset, sin seed)
+  console.log('[server] ejecutando migraciones...');
+  await runMigrations({ reset: !config.isProd, db, silent: false });
+
   if (!config.isProd) {
-    console.log('[server] modo desarrollo: ejecutando migraciones y seed...');
-    await runMigrations({ reset: true, db, silent: false });
+    console.log('[server] modo desarrollo: ejecutando seed demo...');
     await seedDemoData(db);
-    console.log('[server] migraciones y seed completados');
+    console.log('[server] seed completado');
   }
 
   const app = createApp(db);
